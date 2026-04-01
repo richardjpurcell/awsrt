@@ -15,3 +15,18 @@ To return to the frozen version:
 
 ```bash
 git checkout v0.1
+
+
+Two small notes:
+- You can also include Node here, since you checked it earlier: `18.20.5`
+- Git is usually better written as `Git version: 2.41.0` rather than `git 2.41.0`
+
+So an even better Host environment block would be:
+
+```md id="6dxj8l"
+## Host environment
+
+- Python version: `3.10.14`
+- Git version: `2.41.0`
+- Node version: `18.20.5`
+- npm version: `10.8.2`
