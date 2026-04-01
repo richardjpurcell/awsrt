@@ -1,0 +1,146 @@
+{
+  "epi_id": null,
+  "impairments": {
+    "delay_steps": 0,
+    "loss_prob": 0.0,
+    "noise_level": 0.0
+  },
+  "network": {
+    "base_station_rc": [
+      100,
+      100
+    ],
+    "battery_capacity": 0.0,
+    "battery_model": "none",
+    "collision_model": "none",
+    "collision_strength": 0.0,
+    "deployment_mode": "dynamic",
+    "max_moves_per_step": 0,
+    "min_separation_m": 250.0,
+    "movement_budget_m": 0.0,
+    "n_sensors": 20,
+    "policy": "mdc_info",
+    "sensor_move_max_m": 500.0,
+    "sensor_radius_m": 250.0,
+    "tie_breaking": "deterministic"
+  },
+  "o1": {
+    "alpha_neg": 0.15,
+    "alpha_pos": 0.35,
+    "c_cov": 1.0,
+    "c_info": 0.1,
+    "enabled": true,
+    "eps_ref": 0.0,
+    "front_band_cells": 1,
+    "obs_model": "detections_binary",
+    "prior_p": 0.02,
+    "seed": 0,
+    "store_epi_trace": true,
+    "uncertainty_beta": 2.0,
+    "uncertainty_decay": 0.985,
+    "uncertainty_gain": 0.35,
+    "uncertainty_gamma": 6.0,
+    "uncertainty_lambda": 0.15
+  },
+  "phy_id": "phy-c28f1ce790",
+  "regime_management": {
+    "certified": {
+      "stages": [
+        {
+          "entropy_threshold": 0.75,
+          "eta": 0.1,
+          "expected_certified_rate": 0.75,
+          "healthy_utilization_range": {
+            "max": 1.0,
+            "min": 0.0
+          },
+          "label": "",
+          "stage_id": "cert_lo"
+        },
+        {
+          "entropy_threshold": 0.55,
+          "eta": 0.2,
+          "expected_certified_rate": 0.55,
+          "healthy_utilization_range": {
+            "max": 1.0,
+            "min": 0.0
+          },
+          "label": "",
+          "stage_id": "cert_hi"
+        }
+      ]
+    },
+    "enabled": false,
+    "logging": {
+      "store_step_trace": true,
+      "store_transition_details": true,
+      "store_trigger_components": true
+    },
+    "mode": "advisory",
+    "opportunistic": {
+      "ladder": [
+        {
+          "eta_adjustment": 0.0,
+          "healthy_utilization_target": 0.9,
+          "label": "",
+          "level_id": "nominal",
+          "motion_adjustment": 0.0,
+          "notes": ""
+        },
+        {
+          "eta_adjustment": 0.0,
+          "healthy_utilization_target": 0.65,
+          "label": "",
+          "level_id": "conservative",
+          "motion_adjustment": -2.0,
+          "notes": ""
+        }
+      ]
+    },
+    "recovery_support": {
+      "breadth_threshold": 0.15,
+      "enabled": true,
+      "persistence_steps": 3,
+      "require_switch_off": true,
+      "support_threshold": 0.3,
+      "weight_detection_arrivals": 0.25,
+      "weight_front_overlap": 0.35,
+      "weight_health": 0.15,
+      "weight_info_driver": 0.25
+    },
+    "signals": {
+      "use_cumulative_exposure": true,
+      "use_local_drift_rate": true,
+      "use_strict_drift_proxy": true,
+      "use_trigger_bools": true,
+      "use_utilization": true
+    },
+    "transition_logic": {
+      "downshift_thresholds": {
+        "cumulative_exposure_threshold": 0.0,
+        "hysteresis_band": 0.05,
+        "local_drift_rate_threshold": 0.0,
+        "persistence_steps": 2,
+        "strict_drift_proxy_threshold": 0.0,
+        "utilization_threshold": 0.75
+      },
+      "recovery_thresholds": {
+        "cumulative_exposure_threshold": 0.0,
+        "hysteresis_band": 0.05,
+        "local_drift_rate_threshold": 0.0,
+        "persistence_steps": 2,
+        "strict_drift_proxy_threshold": 0.0,
+        "utilization_threshold": 0.85
+      },
+      "switch_to_certified_thresholds": {
+        "cumulative_exposure_threshold": 0.0,
+        "hysteresis_band": 0.05,
+        "local_drift_rate_threshold": 0.0,
+        "persistence_steps": 2,
+        "strict_drift_proxy_threshold": 0.0,
+        "utilization_threshold": 0.55
+      }
+    }
+  },
+  "run_mode": "closed_loop"
+}

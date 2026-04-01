@@ -1,0 +1,412 @@
+{
+  "ana_id": "ana-00d070b5d3",
+  "analysis_contract_version": "analysis_v2",
+  "base_manifest": {
+    "epi_id": null,
+    "impairments": {
+      "delay_steps": 1,
+      "loss_prob": 0.05,
+      "noise_level": 0.1
+    },
+    "network": {
+      "base_station_rc": [
+        100,
+        100
+      ],
+      "battery_capacity": 0.0,
+      "battery_model": "none",
+      "collision_model": "none",
+      "collision_strength": 0.0,
+      "deployment_mode": "dynamic",
+      "max_moves_per_step": 0,
+      "min_separation_m": 250.0,
+      "movement_budget_m": 0.0,
+      "n_sensors": 20,
+      "policy": "greedy",
+      "sensor_move_max_m": 500.0,
+      "sensor_radius_m": 250.0,
+      "tie_breaking": "stochastic"
+    },
+    "o1": {
+      "alpha_neg": 0.15,
+      "alpha_pos": 0.35,
+      "c_cov": 1.0,
+      "c_info": 1.0,
+      "enabled": true,
+      "eps_ref": 0.0,
+      "front_band_cells": 1,
+      "obs_model": "detections_binary",
+      "prior_p": 0.02,
+      "seed": 0,
+      "store_epi_trace": true,
+      "uncertainty_beta": 2.0,
+      "uncertainty_decay": 0.985,
+      "uncertainty_gain": 0.35,
+      "uncertainty_gamma": 6.0,
+      "uncertainty_lambda": 0.15
+    },
+    "phy_id": "phy-c28f1ce790",
+    "regime_management": {
+      "certified": {
+        "stages": [
+          {
+            "entropy_threshold": 0.75,
+            "eta": 0.1,
+            "expected_certified_rate": 0.75,
+            "healthy_utilization_range": {
+              "max": 1.0,
+              "min": 0.0
+            },
+            "label": "",
+            "stage_id": "cert_lo"
+          },
+          {
+            "entropy_threshold": 0.55,
+            "eta": 0.2,
+            "expected_certified_rate": 0.55,
+            "healthy_utilization_range": {
+              "max": 1.0,
+              "min": 0.0
+            },
+            "label": "",
+            "stage_id": "cert_hi"
+          }
+        ]
+      },
+      "enabled": false,
+      "logging": {
+        "store_step_trace": true,
+        "store_transition_details": true,
+        "store_trigger_components": true
+      },
+      "mode": "advisory",
+      "opportunistic": {
+        "ladder": [
+          {
+            "eta_adjustment": 0.0,
+            "healthy_utilization_target": 0.9,
+            "label": "",
+            "level_id": "nominal",
+            "motion_adjustment": 0.0,
+            "notes": ""
+          },
+          {
+            "eta_adjustment": 0.0,
+            "healthy_utilization_target": 0.65,
+            "label": "",
+            "level_id": "conservative",
+            "motion_adjustment": -2.0,
+            "notes": ""
+          }
+        ]
+      },
+      "recovery_support": {
+        "breadth_threshold": 0.15,
+        "enabled": true,
+        "persistence_steps": 3,
+        "require_switch_off": true,
+        "support_threshold": 0.3,
+        "weight_detection_arrivals": 0.25,
+        "weight_front_overlap": 0.35,
+        "weight_health": 0.15,
+        "weight_info_driver": 0.25
+      },
+      "signals": {
+        "use_cumulative_exposure": true,
+        "use_local_drift_rate": true,
+        "use_strict_drift_proxy": true,
+        "use_trigger_bools": true,
+        "use_utilization": true
+      },
+      "transition_logic": {
+        "downshift_thresholds": {
+          "cumulative_exposure_threshold": 0.0,
+          "hysteresis_band": 0.05,
+          "local_drift_rate_threshold": 0.0,
+          "persistence_steps": 2,
+          "strict_drift_proxy_threshold": 0.0,
+          "utilization_threshold": 0.75
+        },
+        "recovery_thresholds": {
+          "cumulative_exposure_threshold": 0.0,
+          "hysteresis_band": 0.05,
+          "local_drift_rate_threshold": 0.0,
+          "persistence_steps": 2,
+          "strict_drift_proxy_threshold": 0.0,
+          "utilization_threshold": 0.85
+        },
+        "switch_to_certified_thresholds": {
+          "cumulative_exposure_threshold": 0.0,
+          "hysteresis_band": 0.05,
+          "local_drift_rate_threshold": 0.0,
+          "persistence_steps": 2,
+          "strict_drift_proxy_threshold": 0.0,
+          "utilization_threshold": 0.55
+        }
+      }
+    },
+    "run_mode": "closed_loop"
+  },
+  "choose_best_by": "mean_entropy_auc",
+  "columns": [],
+  "created_at": "2026-03-30T22:53:50.845926+00:00",
+  "opr_ids": [
+    "opr-35511ba2fc",
+    "opr-700e725a2f",
+    "opr-7f94f71674",
+    "opr-156f552d75",
+    "opr-e37be2b6e5",
+    "opr-0e7e0650dc",
+    "opr-31f1ac3b44",
+    "opr-c8dd060fc7",
+    "opr-e437ea5a75",
+    "opr-135715a9e5",
+    "opr-22489b2edb",
+    "opr-20bae3e4f5",
+    "opr-a0ea5b19e0",
+    "opr-ca74618185",
+    "opr-f65dcde1a6",
+    "opr-cece8ce923",
+    "opr-c5dd633cd9",
+    "opr-dc6d994c4c",
+    "opr-a4da36370f",
+    "opr-f0b16e8288",
+    "opr-10d130277f",
+    "opr-4f06c85e92",
+    "opr-b235c89435",
+    "opr-9a9f0f77bb",
+    "opr-9181262dec",
+    "opr-75214f5d83",
+    "opr-61d478669e",
+    "opr-bdaf297df2",
+    "opr-164fe62d96",
+    "opr-6802dc330f",
+    "opr-dcf5fc5a87",
+    "opr-4fd36c1ea7",
+    "opr-dbb24146e1",
+    "opr-22d8bbfd92",
+    "opr-eeb5538926",
+    "opr-8cd1a8fb8b",
+    "opr-0d49e97c3c",
+    "opr-2e4f5703d1",
+    "opr-2c378dba20",
+    "opr-75cd8ee61e",
+    "opr-b0d9d5c0c6",
+    "opr-6fa5c63320",
+    "opr-b785cb690e",
+    "opr-09c3328ab8",
+    "opr-a02dd66dcc",
+    "opr-788c2f6535",
+    "opr-a65a4c61ae",
+    "opr-191fd24ed0",
+    "opr-2a940c14a1",
+    "opr-6d00fa7406",
+    "opr-ff8a07928d",
+    "opr-b2bee70851",
+    "opr-81aa24563f",
+    "opr-6ade01fec4",
+    "opr-e6c4fca09c",
+    "opr-d458d1eaf8",
+    "opr-3e78c0de97",
+    "opr-abd39c19d9",
+    "opr-a983f0a40b",
+    "opr-6a84937fcc",
+    "opr-c013638244",
+    "opr-7f38b49e3d",
+    "opr-76d09a2185",
+    "opr-fb4fe20a3c",
+    "opr-3800b48269",
+    "opr-5451553656",
+    "opr-0d79a2c9f5",
+    "opr-7be8aba3ab",
+    "opr-9ba211daff",
+    "opr-122599927d",
+    "opr-45ff1930f4",
+    "opr-7535697624",
+    "opr-ce1d7a0621",
+    "opr-d6a06fc030",
+    "opr-514f6f3321",
+    "opr-56350b48f9",
+    "opr-353915bf9e",
+    "opr-99aef8a9fa",
+    "opr-7088b515e0",
+    "opr-584af366f6",
+    "opr-dfc3db8dac",
+    "opr-4b3168da7e",
+    "opr-f15f7ab937",
+    "opr-6cec4503c9",
+    "opr-22e31dd7e2",
+    "opr-98c1e9d36f",
+    "opr-d27651a844",
+    "opr-6ab3cec5e4",
+    "opr-9f52cbdc55",
+    "opr-dba4d4c522",
+    "opr-04d5c1f8f2",
+    "opr-f7f0c573f7",
+    "opr-f5cb57ac0a",
+    "opr-437010fc49",
+    "opr-29f8d52590",
+    "opr-bd87b04344",
+    "opr-a57a2c2d00",
+    "opr-a1947c47ed",
+    "opr-3cad574247",
+    "opr-e8c5817c07",
+    "opr-5573ce8da3",
+    "opr-604cc574db",
+    "opr-6583f25e5e",
+    "opr-ae89ced194",
+    "opr-d4669272e1",
+    "opr-f3c7725231",
+    "opr-a30720493d",
+    "opr-4ce8e655bb",
+    "opr-d0ecc31bce",
+    "opr-c066fa9903",
+    "opr-8722c18fdb",
+    "opr-828bca5e67",
+    "opr-592316369a",
+    "opr-cea5f123af",
+    "opr-db221a57ed",
+    "opr-7460c960d8",
+    "opr-e5af185a79",
+    "opr-67fa5f29d0",
+    "opr-7af86862da",
+    "opr-abc13196f2",
+    "opr-9ec9d8c9d7",
+    "opr-38af40c1a3",
+    "opr-8def598559",
+    "opr-39548dd43e",
+    "opr-1e62983bbb",
+    "opr-cdfcd9b2d3",
+    "opr-c9b1beae3d",
+    "opr-9a25b11f91",
+    "opr-c544e890c7",
+    "opr-49dba048e5",
+    "opr-fd7e736237",
+    "opr-e455e48ce8",
+    "opr-13415763c6",
+    "opr-e9b39caead",
+    "opr-64224e2d51",
+    "opr-aba9fba8c2",
+    "opr-43aa4ebe2c",
+    "opr-8d657657bc",
+    "opr-ba1f3e712c",
+    "opr-2c9606a43d",
+    "opr-5e0ac3b026",
+    "opr-ec029004b1",
+    "opr-1aa08ec152",
+    "opr-d1cae9726a"
+  ],
+  "policies": [
+    "greedy",
+    "uncertainty",
+    "mdc_info"
+  ],
+  "protocol_id": "p-36e9be939f7c",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "study_semantics": {
+    "comparison_axis": "impairment",
+    "comparison_tier": "diagnostic",
+    "policy_semantics": {
+      "contains_active_regime": false,
+      "contains_advisory_regime": true,
+      "contains_baseline": true,
+      "contains_mdc": true,
+      "contains_verify": false,
+      "policies": [
+        "greedy",
+        "uncertainty",
+        "mdc_info"
+      ]
+    },
+    "preset_origin": "delay",
+    "regime_semantics": {
+      "active_metrics_present": false,
+      "advisory_metrics_present": true,
+      "frontend_should_separate_advisory_and_active": false,
+      "regime_families_present": [
+        "disabled"
+      ],
+      "regime_present": false
+    },
+    "section": "analysis",
+    "source_section": "operational",
+    "study_family": "impairment_diagnostic",
+    "study_label": "Delay diagnostic",
+    "taxonomy_version": "analysis_v2"
+  },
+  "study_type": "operational_study",
+  "sweep": [
+    {
+      "label": "base",
+      "overrides": {}
+    },
+    {
+      "label": "delay=0",
+      "overrides": {
+        "impairments.delay_steps": 0
+      }
+    },
+    {
+      "label": "delay=1",
+      "overrides": {
+        "impairments.delay_steps": 1
+      }
+    },
+    {
+      "label": "delay=2",
+      "overrides": {
+        "impairments.delay_steps": 2
+      }
+    },
+    {
+      "label": "delay=4",
+      "overrides": {
+        "impairments.delay_steps": 4
+      }
+    },
+    {
+      "label": "delay=8",
+      "overrides": {
+        "impairments.delay_steps": 8
+      }
+    }
+  ],
+  "sweep_context": {
+    "case_labels": [
+      "base",
+      "delay=0",
+      "delay=1",
+      "delay=2",
+      "delay=4",
+      "delay=8"
+    ],
+    "has_impairment_variation": true,
+    "has_regime_variation": true,
+    "impairment_levels": [
+      "custom",
+      "moderate"
+    ],
+    "override_keys": [
+      "impairments.delay_steps"
+    ],
+    "primary_sweep_key": "impairments.delay_steps",
+    "regime_families": [
+      "disabled"
+    ],
+    "regime_modes": [
+      "advisory"
+    ],
+    "sweep_kind": "single_factor",
+    "uses_named_impairment_bundles": true,
+    "uses_named_regime_bundles": true
+  }
+}

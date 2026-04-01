@@ -1,0 +1,313 @@
+{
+  "ana_id": "ana-b092112342",
+  "analysis_contract_version": "analysis_v2",
+  "base_manifest": {
+    "epi_id": null,
+    "impairments": {
+      "delay_steps": 1,
+      "loss_prob": 0.05,
+      "noise_level": 0.1
+    },
+    "network": {
+      "base_station_rc": [
+        100,
+        100
+      ],
+      "battery_capacity": 0.0,
+      "battery_model": "none",
+      "collision_model": "none",
+      "collision_strength": 0.0,
+      "deployment_mode": "dynamic",
+      "max_moves_per_step": 0,
+      "min_separation_m": 250.0,
+      "movement_budget_m": 0.0,
+      "n_sensors": 20,
+      "policy": "greedy",
+      "sensor_move_max_m": 500.0,
+      "sensor_radius_m": 250.0,
+      "tie_breaking": "stochastic"
+    },
+    "o1": {
+      "alpha_neg": 0.15,
+      "alpha_pos": 0.35,
+      "c_cov": 1.0,
+      "c_info": 1.0,
+      "enabled": true,
+      "eps_ref": 0.0,
+      "front_band_cells": 1,
+      "obs_model": "detections_binary",
+      "prior_p": 0.02,
+      "seed": 0,
+      "store_epi_trace": true,
+      "uncertainty_beta": 2.0,
+      "uncertainty_decay": 0.985,
+      "uncertainty_gain": 0.35,
+      "uncertainty_gamma": 6.0,
+      "uncertainty_lambda": 0.15
+    },
+    "phy_id": "phy-5575e5a44e",
+    "regime_management": {
+      "certified": {
+        "stages": [
+          {
+            "entropy_threshold": 0.75,
+            "eta": 0.1,
+            "expected_certified_rate": 0.75,
+            "healthy_utilization_range": {
+              "max": 1.0,
+              "min": 0.0
+            },
+            "label": "",
+            "stage_id": "cert_lo"
+          },
+          {
+            "entropy_threshold": 0.55,
+            "eta": 0.2,
+            "expected_certified_rate": 0.55,
+            "healthy_utilization_range": {
+              "max": 1.0,
+              "min": 0.0
+            },
+            "label": "",
+            "stage_id": "cert_hi"
+          }
+        ]
+      },
+      "enabled": false,
+      "logging": {
+        "store_step_trace": true,
+        "store_transition_details": true,
+        "store_trigger_components": true
+      },
+      "mode": "advisory",
+      "opportunistic": {
+        "ladder": [
+          {
+            "eta_adjustment": 0.0,
+            "healthy_utilization_target": 0.9,
+            "label": "",
+            "level_id": "nominal",
+            "motion_adjustment": 0.0,
+            "notes": ""
+          },
+          {
+            "eta_adjustment": 0.0,
+            "healthy_utilization_target": 0.65,
+            "label": "",
+            "level_id": "conservative",
+            "motion_adjustment": -2.0,
+            "notes": ""
+          }
+        ]
+      },
+      "recovery_support": {
+        "breadth_threshold": 0.15,
+        "enabled": true,
+        "persistence_steps": 3,
+        "require_switch_off": true,
+        "support_threshold": 0.3,
+        "weight_detection_arrivals": 0.25,
+        "weight_front_overlap": 0.35,
+        "weight_health": 0.15,
+        "weight_info_driver": 0.25
+      },
+      "signals": {
+        "use_cumulative_exposure": true,
+        "use_local_drift_rate": true,
+        "use_strict_drift_proxy": true,
+        "use_trigger_bools": true,
+        "use_utilization": true
+      },
+      "transition_logic": {
+        "downshift_thresholds": {
+          "cumulative_exposure_threshold": 0.0,
+          "hysteresis_band": 0.05,
+          "local_drift_rate_threshold": 0.0,
+          "persistence_steps": 2,
+          "strict_drift_proxy_threshold": 0.0,
+          "utilization_threshold": 0.75
+        },
+        "recovery_thresholds": {
+          "cumulative_exposure_threshold": 0.0,
+          "hysteresis_band": 0.05,
+          "local_drift_rate_threshold": 0.0,
+          "persistence_steps": 2,
+          "strict_drift_proxy_threshold": 0.0,
+          "utilization_threshold": 0.85
+        },
+        "switch_to_certified_thresholds": {
+          "cumulative_exposure_threshold": 0.0,
+          "hysteresis_band": 0.05,
+          "local_drift_rate_threshold": 0.0,
+          "persistence_steps": 2,
+          "strict_drift_proxy_threshold": 0.0,
+          "utilization_threshold": 0.55
+        }
+      }
+    },
+    "run_mode": "closed_loop"
+  },
+  "choose_best_by": "mean_entropy_auc",
+  "columns": [],
+  "created_at": "2026-03-31T20:43:48.045237+00:00",
+  "opr_ids": [
+    "opr-1ba1d2a55c",
+    "opr-51845de4ea",
+    "opr-95ed1627d6",
+    "opr-dea73f9ed4",
+    "opr-1a97115e45",
+    "opr-729ce99f95",
+    "opr-6a19e6bed3",
+    "opr-2fe0831819",
+    "opr-272b6fb432",
+    "opr-00f77515b3",
+    "opr-820a3ef2d4",
+    "opr-9380cc614d",
+    "opr-16428cee39",
+    "opr-c36dfe8ea7",
+    "opr-de31634c61",
+    "opr-3a4a861ce3",
+    "opr-6a3a6647a2",
+    "opr-133a0d4478",
+    "opr-b6a7a1c4bb",
+    "opr-81823f12ba"
+  ],
+  "policies": [
+    "mdc_info"
+  ],
+  "protocol_id": "p-d8dfa683925f",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "study_semantics": {
+    "comparison_axis": "regime_family",
+    "comparison_tier": "main",
+    "policy_semantics": {
+      "contains_active_regime": true,
+      "contains_advisory_regime": true,
+      "contains_baseline": false,
+      "contains_mdc": true,
+      "contains_verify": false,
+      "policies": [
+        "mdc_info"
+      ]
+    },
+    "preset_origin": "regime_family_active",
+    "regime_semantics": {
+      "active_metrics_present": true,
+      "advisory_metrics_present": true,
+      "frontend_should_separate_advisory_and_active": true,
+      "regime_families_present": [
+        "balanced",
+        "certified",
+        "disabled",
+        "opportunistic"
+      ],
+      "regime_present": true
+    },
+    "section": "analysis",
+    "source_section": "operational",
+    "study_family": "regime_active_compare",
+    "study_label": "Regime active family comparison",
+    "taxonomy_version": "analysis_v2"
+  },
+  "study_type": "operational_study",
+  "sweep": [
+    {
+      "label": "base",
+      "overrides": {}
+    },
+    {
+      "label": "active-balanced",
+      "overrides": {
+        "regime_management.enabled": true,
+        "regime_management.mode": "active",
+        "regime_management.transition_logic.downshift_thresholds.hysteresis_band": 0.05,
+        "regime_management.transition_logic.downshift_thresholds.persistence_steps": 2,
+        "regime_management.transition_logic.downshift_thresholds.utilization_threshold": 0.75,
+        "regime_management.transition_logic.recovery_thresholds.hysteresis_band": 0.05,
+        "regime_management.transition_logic.recovery_thresholds.persistence_steps": 2,
+        "regime_management.transition_logic.recovery_thresholds.utilization_threshold": 0.85,
+        "regime_management.transition_logic.switch_to_certified_thresholds.hysteresis_band": 0.05,
+        "regime_management.transition_logic.switch_to_certified_thresholds.persistence_steps": 2,
+        "regime_management.transition_logic.switch_to_certified_thresholds.utilization_threshold": 0.55
+      }
+    },
+    {
+      "label": "active-opportunistic",
+      "overrides": {
+        "regime_management.enabled": true,
+        "regime_management.mode": "active",
+        "regime_management.transition_logic.downshift_thresholds.hysteresis_band": 0.08,
+        "regime_management.transition_logic.downshift_thresholds.persistence_steps": 3,
+        "regime_management.transition_logic.downshift_thresholds.utilization_threshold": 0.6,
+        "regime_management.transition_logic.recovery_thresholds.hysteresis_band": 0.05,
+        "regime_management.transition_logic.recovery_thresholds.persistence_steps": 2,
+        "regime_management.transition_logic.recovery_thresholds.utilization_threshold": 0.9,
+        "regime_management.transition_logic.switch_to_certified_thresholds.hysteresis_band": 0.08,
+        "regime_management.transition_logic.switch_to_certified_thresholds.persistence_steps": 3,
+        "regime_management.transition_logic.switch_to_certified_thresholds.utilization_threshold": 0.4
+      }
+    },
+    {
+      "label": "active-certified",
+      "overrides": {
+        "regime_management.enabled": true,
+        "regime_management.mode": "active",
+        "regime_management.transition_logic.downshift_thresholds.hysteresis_band": 0.03,
+        "regime_management.transition_logic.downshift_thresholds.persistence_steps": 1,
+        "regime_management.transition_logic.downshift_thresholds.utilization_threshold": 0.85,
+        "regime_management.transition_logic.recovery_thresholds.hysteresis_band": 0.08,
+        "regime_management.transition_logic.recovery_thresholds.persistence_steps": 3,
+        "regime_management.transition_logic.recovery_thresholds.utilization_threshold": 0.82,
+        "regime_management.transition_logic.switch_to_certified_thresholds.hysteresis_band": 0.03,
+        "regime_management.transition_logic.switch_to_certified_thresholds.persistence_steps": 1,
+        "regime_management.transition_logic.switch_to_certified_thresholds.utilization_threshold": 0.7
+      }
+    }
+  ],
+  "sweep_context": {
+    "case_labels": [
+      "base",
+      "active-balanced",
+      "active-opportunistic",
+      "active-certified"
+    ],
+    "has_impairment_variation": true,
+    "has_regime_variation": true,
+    "impairment_levels": [
+      "moderate"
+    ],
+    "override_keys": [
+      "regime_management.enabled",
+      "regime_management.mode",
+      "regime_management.transition_logic.downshift_thresholds.hysteresis_band",
+      "regime_management.transition_logic.downshift_thresholds.persistence_steps",
+      "regime_management.transition_logic.downshift_thresholds.utilization_threshold",
+      "regime_management.transition_logic.recovery_thresholds.hysteresis_band",
+      "regime_management.transition_logic.recovery_thresholds.persistence_steps",
+      "regime_management.transition_logic.recovery_thresholds.utilization_threshold",
+      "regime_management.transition_logic.switch_to_certified_thresholds.hysteresis_band",
+      "regime_management.transition_logic.switch_to_certified_thresholds.persistence_steps",
+      "regime_management.transition_logic.switch_to_certified_thresholds.utilization_threshold"
+    ],
+    "primary_sweep_key": "regime_management",
+    "regime_families": [
+      "balanced",
+      "certified",
+      "disabled",
+      "opportunistic"
+    ],
+    "regime_modes": [
+      "active",
+      "advisory"
+    ],
+    "sweep_kind": "multi_factor",
+    "uses_named_impairment_bundles": true,
+    "uses_named_regime_bundles": true
+  }
+}

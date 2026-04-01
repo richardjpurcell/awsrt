@@ -1,0 +1,20 @@
+[project]
+name = "awsrt-backend"
+version = "0.1.0"
+description = "Adaptive Wildfire Sensing Research Tool (AWSRT) backend"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "pydantic>=2.6",
+  "numpy>=1.24",
+  "zarr>=2.16",
+  "pillow>=10.0",
+  "matplotlib>=3.7",
+]
+
+[tool.uvicorn]
+factory = true
+
+[tool.ruff]
+line-length = 100

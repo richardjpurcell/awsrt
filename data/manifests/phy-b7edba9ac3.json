@@ -1,0 +1,115 @@
+{
+  "dt_seconds": 3600,
+  "fire": {
+    "burn_time_steps": 4,
+    "det_threshold": 0.5,
+    "ignition_window": {
+      "seed": 123,
+      "t_max": 12,
+      "t_min": 0
+    },
+    "ignitions": [],
+    "mode": "stochastic",
+    "model": "anisotropic",
+    "neighborhood": "moore",
+    "slope_gain": 1.0,
+    "spotting": {
+      "enabled": false,
+      "prob": 0.0,
+      "radius_cells": 10,
+      "seed": 0
+    },
+    "spread_prob_base": 0.35,
+    "weather_coupling": {
+      "affects": "spread_prob",
+      "enabled": false,
+      "mult_max": 4.0,
+      "mult_min": 0.25,
+      "rh_gain": 0.0,
+      "rh_ref": 0.35,
+      "temp_gain": 0.0,
+      "temp_ref_c": 20.0
+    },
+    "wind_gain": 1.0
+  },
+  "fuels": {
+    "burn_mult": {},
+    "dominant_codes": [
+      "C2",
+      "C3",
+      "M1"
+    ],
+    "dominant_weights": [
+      0.55,
+      0.3,
+      0.15
+    ],
+    "enabled": false,
+    "patch_iters": 10,
+    "preset": "fort_mcmurray",
+    "seed": 7,
+    "spread_mult": {},
+    "terrain_correlation": 0.35
+  },
+  "grid": {
+    "H": 1085,
+    "W": 1448,
+    "cell_size_m": 90.0,
+    "crs_code": "CFSDS_LCC_NAD83",
+    "origin_x": -1013100.0,
+    "origin_y": 7589070.0
+  },
+  "historical": {
+    "datasource": "cfsds",
+    "fire_id": "2016_255",
+    "label": "2016_255 (DEM)",
+    "notes": "cfsds.krig_tif=2016_255_krig.tif | dob_doy_min=122 | dob_span_days=108 | native_dt_seconds=86400 | dt_seconds=3600 | burn_duration_steps=6 | dem=ok[203,619]m | crs_wkt=PROJCS[\"unknown\",GEOGCS[\"NAD83\",DATUM[\"North_American_Datum_1983\",SPHEROID[\"GRS 1980\",6378137,298.257222101004,AUTHORITY[\"EPSG\",\"7019\"]],AUTHORITY[\"EPSG\",\"6269\"]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AUTHORITY[\"EPSG\",\"4269\"]],PROJECTION[\"Lambert_Conformal_Conic_2SP\"],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"central_meridian\",-95],PARAMETER[\"standard_parallel_1\",49],PARAMETER[\"standard_parallel_2\",77],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]] | groups_rows=108"
+  },
+  "horizon_steps": 2621,
+  "seed": 0,
+  "source": "historical_cfsds",
+  "terrain": {
+    "amplitude": 250.0,
+    "enabled": true,
+    "seed": 42,
+    "smooth_iters": 8
+  },
+  "weather": {
+    "enabled": false,
+    "humidity": {
+      "base_rh": 0.35,
+      "dynamic": false,
+      "enabled": false,
+      "seed": 456,
+      "spatial_amp_rh": 0.1,
+      "spatial_smooth_iters": 8,
+      "tau_steps": 8.0,
+      "temporal_sigma_rh": 0.02,
+      "units": "rh"
+    },
+    "temperature": {
+      "base_c": 20.0,
+      "dynamic": false,
+      "enabled": false,
+      "seed": 123,
+      "spatial_amp_c": 3.0,
+      "spatial_smooth_iters": 8,
+      "tau_steps": 8.0,
+      "temporal_sigma_c": 0.5,
+      "units": "C"
+    }
+  },
+  "wind": {
+    "dynamic": false,
+    "enabled": false,
+    "seed": 0,
+    "spatial_amp": 0.0,
+    "spatial_smooth_iters": 6,
+    "tau_steps": 6.0,
+    "temporal_sigma": 0.25,
+    "terrain_gain": 0.0,
+    "u": 0.0,
+    "units": "m/s",
+    "v": 0.0
+  }
+}
