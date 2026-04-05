@@ -1,0 +1,15 @@
+This command generates fire data from cfsds data.
+First identify the fire id from the national burn data base.
+Create a folder in data/cfsds/<fireYear_fireID>
+Copy the tif and relevant csv info and bundle.json into the folder.
+Run the command below.
+
+
+curl -s -X POST http://127.0.0.1:8000/physical/historical/import \
+  -H "Content-Type: application/json" \
+  -d '{"source":"cfsds","fire_id":"2003_663","label":"2003_663 (DEM)","dt_seconds":3600,"burn_duration_hours":6}' | jq
+
+
+
+
+
