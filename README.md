@@ -2,7 +2,7 @@
 
 AWSRT is an **information-centric research software platform** for studying adaptive wildfire sensing in dynamic and uncertain environments.
 
-The platform supports three linked research layers:
+The platform supports four linked research layers:
 
 - **Physical**: wildfire environment generation and replay, including grid, terrain, fuels, wind, weather, and fire spread
 - **Epistemic**: belief-state construction and uncertainty analysis, including Beta–Bernoulli belief updates and Shannon entropy summaries
@@ -16,7 +16,7 @@ AWSRT is designed to support research on questions such as:
 - how delay, noise, and loss affect belief quality differently,
 - and how higher-level regime logic can respond when sensing remains active but belief improvement begins to stall.
 
-This repository contains the frozen **AWSRT v0.1** research software state associated with the thesis-results version of the platform. Future development proceeds from later versions (for example, `v0.2-dev`), but this repository state documents the software basis of the v0.1 research release.
+This repository contains the frozen **AWSRT v0.1** research software state associated with the thesis-results version of the platform. Future development proceeds from later versions (for example, `v0.2-dev`), but this repository state documents the software basis of the v0.1 research release and provides a stable public reference point for ongoing development.
 
 ## Core capabilities
 
@@ -300,12 +300,18 @@ In particular:
 
 ## Citation and versioning
 
+If you use AWSRT in research, please cite the software repository and associated release metadata. Citation metadata is provided in `CITATION.cff`.
+
 This repository contains the frozen research software state associated with AWSRT v0.1. If you are documenting or citing the thesis-results version of the platform, refer to the frozen `v0.1` tag rather than later development branches.
+
+## Contributing
+
+Contributions are welcome, especially bug reports, documentation improvements, testing improvements, and research-workflow enhancements. Please open an issue before making substantial changes so proposed work can be discussed in advance. See `CONTRIBUTING.md` for guidance.
 
 ## License
 
-Add the project license here.
+AWSRT is released under the BSD 3-Clause License. See the `LICENSE` file for details.
 
 ## Acknowledgements
 
-Add project, institutional, funding, and collaboration acknowledgements here.
+AWSRT was developed as part of ongoing research on adaptive wildfire sensing in dynamic and uncertain environments. Specific project, institutional, funding, and collaboration acknowledgements will be maintained here as the public repository record develops.
