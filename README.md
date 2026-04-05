@@ -51,3 +51,261 @@ source .venv/bin/activate
 pip install -U pip
 pip install -e .
 uvicorn backend.api.main:app --reload --port 8000
+```
+
+Health check:
+
+http://127.0.0.1:8000/health
+
+## Environment variables
+
+### Data directory override
+
+By default AWSRT writes artifacts under `./data/`, including:
+
+- `data/manifests/`
+- `data/fields/`
+- `data/renders/`
+- `data/metrics/`
+
+To override the root data directory:
+
+- `AWSRT_DATA_DIR=/abs/path/to/data`
+
+Example:
+
+```bash
+export AWSRT_DATA_DIR=/tmp/awsrt_data
+uvicorn backend.api.main:app --reload --port 8000
+```
+
+### Render resolution
+
+AWSRT renders overlay-aligned PNGs (for example base, fire, wind, and fuels layers) using a pixel canvas derived from grid dimensions. For large historical replays, higher render resolution is often useful.
+
+Available variables:
+
+- `AWSRT_RENDER_PX_PER_CELL`  
+  Pixels per grid cell. Higher values increase sharpness and file size.
+
+- `AWSRT_RENDER_MAX_SIDE_PX`  
+  Hard clamp on the longest rendered PNG side.
+
+- `AWSRT_RENDER_DPI`  
+  Matplotlib DPI used during rendering.
+
+Recommended starting points:
+
+- Small simulations (≤ 300×300):
+  - `AWSRT_RENDER_PX_PER_CELL=2.0`
+  - `AWSRT_RENDER_MAX_SIDE_PX=4096`
+  - `AWSRT_RENDER_DPI=160`
+
+- Large historical replays:
+  - `AWSRT_RENDER_PX_PER_CELL=3.0`
+  - `AWSRT_RENDER_MAX_SIDE_PX=8192`
+  - `AWSRT_RENDER_DPI=200`
+
+Example:
+
+```bash
+export AWSRT_RENDER_PX_PER_CELL=3.0
+export AWSRT_RENDER_MAX_SIDE_PX=8192
+export AWSRT_RENDER_DPI=200
+uvicorn backend.api.main:app --reload --port 8000
+```
+
+### Render cache note
+
+Render endpoints cache PNGs under `data/renders/{phy_id}/t/{t}/...`. If you change render environment variables, delete cached renders to regenerate them at the new resolution:
+
+```bash
+rm -rf data/renders/phy-XXXXX
+# or only cached timestep frames:
+rm -rf data/renders/phy-XXXXX/t
+```
+
+## Run the frontend
+
+```bash
+cd frontend
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
+
+Open:
+
+http://127.0.0.1:3000
+
+## Quick smoke test
+
+### 1. Create and run a physical simulation
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/physical/manifest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grid": {"H": 100, "W": 100, "cell_size_m": 250, "crs_code": "EPSG:3978"},
+    "dt_seconds": 3600,
+    "horizon_steps": 48,
+    "seed": 0,
+    "terrain": {"enabled": true, "seed": 42, "smooth_iters": 8},
+    "fire": {"ignitions": [{"row": 50, "col": 50, "t0": 0}], "spread_prob": 1.0}
+  }' | jq
+
+# suppose it returns {"phy_id": "phy-..."}
+curl -s -X POST http://127.0.0.1:8000/physical/run \
+  -H "Content-Type: application/json" \
+  -d '{"id": "phy-..."}' | jq
+```
+
+### 2. Create and run an epistemic layer
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/epistemic/manifest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phy_id": "phy-...",
+    "belief": {"prior_p": 0.5, "decay": 1.0, "noise": {"false_pos": 0.01, "false_neg": 0.05}},
+    "entropy": {"units": "bits"},
+    "observe_all_cells": true
+  }' | jq
+
+# suppose it returns {"epi_id": "epi-..."}
+curl -s -X POST http://127.0.0.1:8000/epistemic/run \
+  -H "Content-Type: application/json" \
+  -d '{"id": "epi-..."}' | jq
+```
+
+### 3. Create and run an operational experiment
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/operational/manifest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "epi_id": "epi-...",
+    "mdc": {
+      "delta": 1.0,
+      "epsilon": 0.1,
+      "rho": 0.01,
+      "tau": 0.2,
+      "noise_level": 0.1,
+      "delay_steps": 1,
+      "loss_prob": 0.05
+    },
+    "network": {
+      "policy": "greedy",
+      "deployment_mode": "dynamic",
+      "tie_breaking": "deterministic",
+      "n_sensors": 20,
+      "sensor_radius_m": 250,
+      "sensor_move_max_m": 500,
+      "min_separation_m": 0,
+      "base_station_rc": [50, 50]
+    }
+  }' | jq
+
+# suppose it returns {"opr_id": "opr-..."}
+curl -s -X POST http://127.0.0.1:8000/operational/run \
+  -H "Content-Type: application/json" \
+  -d '{"id": "opr-..."}' | jq
+
+curl -s http://127.0.0.1:8000/metrics/opr-.../summary | jq
+```
+
+## Historical replays (CFSDS)
+
+AWSRT supports historical replay physical runs from on-disk CFSDS-style artifacts.
+
+### Expected data layout
+
+Place files under:
+
+```text
+data/cfsds/{fire_id}/
+  {fire_id}_krig.tif
+  Firegrowth_groups_v1_1_{fire_id}.csv          (optional but recommended)
+  Firegrowth_pts_v1_1_{fire_id}.csv             (optional)
+  bundle.json                                   (optional)
+```
+
+Example:
+
+```text
+data/cfsds/2016_255/2016_255_krig.tif
+```
+
+### Create a CFSDS replay run
+
+This creates a new `phy-...` run with historical fields such as `fire_state` and `arrival_time`. You do not run `/physical/run` afterward because the importer writes the fields directly.
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/physical/historical/import \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": "cfsds",
+    "fire_id": "2016_255",
+    "dt_seconds": 3600,
+    "label": "CFSDS replay 2016_255"
+  }' | jq
+```
+
+### Create a synthetic demo replay
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/physical/historical/import \
+  -H "Content-Type: application/json" \
+  -d '{
+    "source": "cfsds_demo",
+    "fire_id": "demo_001",
+    "H": 200,
+    "W": 200,
+    "days": 10,
+    "dt_seconds": 3600,
+    "burn_duration_hours": 12,
+    "label": "Synthetic replay demo"
+  }' | jq
+```
+
+### Viewing historical runs
+
+- Open the frontend physical visualizer
+- Select the returned `phy-...` id
+- The manifest includes `source: historical_cfsds` and a `historical` metadata block
+
+## Testing
+
+Backend tests are located under:
+
+```text
+backend/tests/
+```
+
+Typical test command:
+
+```bash
+pytest backend/tests
+```
+
+## Notes on scope
+
+AWSRT v0.1 is a meaningful research software release, but it is not the final form of the platform. The software is designed to support continuing development in later versions while preserving a frozen, reproducible basis for the v0.1 results and documentation.
+
+In particular:
+
+- policies are intentionally simple enough to be swappable and extensible,
+- manifests are preserved so studies can be recovered and compared,
+- and the platform is intended to support future refinement in simulation realism, sensing logic, control logic, and experiment design.
+
+## Citation and versioning
+
+This repository contains the frozen research software state associated with AWSRT v0.1. If you are documenting or citing the thesis-results version of the platform, refer to the frozen `v0.1` tag rather than later development branches.
+
+## License
+
+Add the project license here.
+
+## Acknowledgements
+
+Add project, institutional, funding, and collaboration acknowledgements here.
