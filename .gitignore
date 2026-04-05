@@ -90,4 +90,5 @@ node_modules/
 .next/
 out/
 dist/
-build/
+build/notes/
+src/
