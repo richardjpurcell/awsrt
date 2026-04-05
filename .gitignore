@@ -72,3 +72,22 @@ notes/images/
 # - data/manifests/
 # - data/figures/
 # - results/figures/
+
+# Environments / secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Python packaging
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Generic frontend/build dirs
+node_modules/
+.next/
+out/
+dist/
+build/
