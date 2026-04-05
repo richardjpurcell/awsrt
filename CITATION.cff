@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use AWSRT, please cite the software using the metadata below."
+title: "AWSRT: Adaptive Wildfire Sensing Research Tool"
+type: software
+authors:
+  - family-names: "Purcell"
+    given-names: "Richard"
+repository-code: "https://github.com/richardjpurcell/awsrt"
+url: "https://github.com/richardjpurcell/awsrt"
+abstract: >
+  AWSRT is an information-centric research software platform for studying
+  adaptive wildfire sensing in dynamic and uncertain environments. It supports
+  wildfire simulation and replay, belief and uncertainty analysis, sensing-policy
+  comparison, impairment studies, and regime-managed sensing experiments.
+keywords:
+  - wildfire sensing
+  - adaptive sensing
+  - simulation
+  - uncertainty
+  - information theory
+  - sensor networks
+license: "BSD-3-Clause"
+version: "v0.1"
+date-released: "2026-04-05"
