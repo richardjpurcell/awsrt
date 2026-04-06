@@ -85,11 +85,11 @@ notes/images/
 build/
 dist/
 
-# Generic frontend/build dirs
-node_modules/
-.next/
-out/
-dist/
-build/notes/
-src/
-notes/
+# Generic top-level dirs only
+/node_modules/
+/.next/
+/out/
+/dist/
+/build/notes/
+/src/
+/notes/
