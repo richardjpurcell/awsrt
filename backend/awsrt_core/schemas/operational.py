@@ -6,17 +6,36 @@ from pydantic import BaseModel, Field, model_validator
 
 class ImpairmentSpec(BaseModel):
     """
-    Operational observation-channel impairments.
+    Operational observation-stream impairments for closed-loop runs.
 
-    These affect the arrived observation stream used by the embedded belief
-    update in closed-loop operational runs.
+    AWSRT v0.2 distinguishes three primary impairment classes:
 
-    They are operational knobs, not the full paper-level MDC penalty model.
+      - delay_steps: timing impairment (staleness via delivery lag)
+      - noise_level: content impairment (observation corruption)
+      - loss_prob: delivery impairment (observation loss)
+
+    These are operational knobs affecting the delivered observation stream used
+    by the embedded belief update in closed-loop runs. They are not the full
+    paper-level MDC penalty model.
     """
 
-    noise_level: float = Field(default=0.0, ge=0.0, le=1.0)
-    delay_steps: int = Field(default=0, ge=0)
-    loss_prob: float = Field(default=0.0, ge=0.0, le=1.0)
+    noise_level: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Content impairment strength applied to observations before delivery.",
+    )
+    delay_steps: int = Field(
+        default=0,
+        ge=0,
+        description="Delivery delay in timesteps between observation generation and arrival.",
+    )
+    loss_prob: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Probability that an observation opportunity produces no delivered observation.",
+    )
 
 
 class O1Spec(BaseModel):

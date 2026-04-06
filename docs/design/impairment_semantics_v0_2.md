@@ -18,6 +18,8 @@ The definitions here are intended to support:
 
 This note applies to the simulation and experiment layer of AWSRT. It does not yet introduce detailed network realism, queueing models, or hidden-cause inference.
 
+This note is written primarily for AWSRT `v0.2` closed-loop operational runs. Other layers, especially the epistemic layer, may currently use related but non-identical impairment parameterizations (for example bounded stochastic delay models). Those are not unified by this note and should be treated as separate modeling choices unless explicitly harmonized in a later revision.
+
 ---
 
 ## 2. Design goals
@@ -273,6 +275,7 @@ This semantic layer is considered successful if:
 - simulation code applies impairments at conceptually appropriate stages,
 - controller-visible versus audit-only information is explicit,
 - and later diagnostic metrics can refer to these terms without ambiguity.
+
 
 ---
 

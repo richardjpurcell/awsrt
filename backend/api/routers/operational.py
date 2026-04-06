@@ -374,11 +374,20 @@ def _apply_impairments_to_detections(
     rng: np.random.Generator,
 ) -> np.ndarray:
     """
-    Convert true detections to arrived observations with loss + noise.
+    Convert true detections into delivered observations under content and delivery impairments.
+
+    Semantics:
+    - loss_prob applies delivery impairment: an observation opportunity may produce
+        no delivered observation (`-1`)
+    - noise_level applies content impairment: an arrived binary detection may flip
+        from 0 to 1 or 1 to 0
+    - delay is not handled here; it is applied later by the delivery queue in the
+        closed-loop run loop
+
     Returns int8 array with:
-      -1 = no arrival (lost)
-       0 = arrived non-detection
-       1 = arrived detection
+    -1 = no arrival (lost)
+    0 = arrived non-detection
+    1 = arrived detection
     """
     det = det_u1.astype(np.int8)
 
@@ -460,6 +469,12 @@ def _union_flat_indices(
                 seen[rr * W + cc] = True
     return np.flatnonzero(seen).astype(np.int32)
  
+# Controller visibility note:
+#   This helper computes an analysis-style information driver from the current
+#   belief state and configured impairment parameters. It is appropriate for
+#   operational scoring and diagnostics because it uses controller-available
+#   belief plus configured channel assumptions, not hidden ground-truth
+#   corruption labels or privileged latent-state mismatch tags.
 def _binary_sensor_expected_mi_union(
     *,
     belief_t: np.ndarray,       # (H,W) float32, current belief BEFORE applying obs
@@ -1725,6 +1740,9 @@ def run(req: RunRequest) -> dict:
         max_moves_per_step = int(getattr(m.network, "max_moves_per_step", 0) or 0)
 
         # Delay queue of observations: each entry is int8 obs array (N,), -1/0/1
+        # Delay is modeled as delivery lag after observation generation.
+        # obs_now is generated at the current step; obs_apply is the delivered
+        # observation after delay, taken from the queue below.
         delay = int(m.impairments.delay_steps or 0)
         delay = max(0, delay)
         empty_obs = np.full((m.network.n_sensors,), -1, dtype=np.int8)
