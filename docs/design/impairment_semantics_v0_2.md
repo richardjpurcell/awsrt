@@ -1,6 +1,6 @@
 # AWSRT v0.2 Impairment and Usefulness Semantics
-**Status:** Draft design note  
-**Applies to:** `v0.2-dev`  
+**Status:** Draft  
+**Branch:** `v0.2-dev`  
 **Purpose:** Establish a compact internal vocabulary for observation impairments and usefulness in AWSRT so that schemas, manifests, diagnostics, and later regime logic use the same meanings.
 
 ---
@@ -29,7 +29,7 @@ AWSRT `v0.2` should be able to distinguish:
 3. whether an observation was lost,
 4. and whether continuing observation activity is still producing meaningful belief improvement.
 
-The first three are **impairment classes**. The fourth is a **usefulness state** or consequence, not an impairment class itself.
+The first three are **impairment classes**. The fourth is a **usefulness state**, not an impairment class.
 
 This distinction is central to AWSRT's information-centric framing: information can continue to arrive even when its operational usefulness has degraded.
 
@@ -52,7 +52,7 @@ This layer is the reference truth. It is not itself impaired.
 ### 3.2 Generated observation
 The observation as produced by the sensing process at its generation time.
 
-This layer represents what is sensed from the world before delivery effects are applied. Depending on implementation, content corruption may enter here.
+This layer represents what is sensed from the world before delivery effects are applied. In AWSRT `v0.2`, content corruption is intended to enter at or before this stage.
 
 ### 3.3 Delivered observation
 The observation that actually reaches the controller.
@@ -159,6 +159,16 @@ Derived quantities may include:
 - loss fraction,
 - non-arrival summaries over recent windows.
 
+### 7.4 Canonical parameter names
+
+For `v0.2`, the preferred top-level impairment parameter names are:
+
+- `delay_steps`
+- `noise_level`
+- `loss_prob`
+
+These names should be used consistently across schemas, manifests, exports, and analysis code unless a future schema refactor explicitly replaces them.
+
 This small taxonomy is sufficient for `v0.2`. More detailed network or channel realism is out of scope for this stage.
 
 ---
@@ -191,6 +201,8 @@ This preserves the distinction between realistic control inputs and privileged a
 ## 9. Schema and manifest implications
 
 At minimum, AWSRT schemas and manifests should distinguish among:
+
+These distinctions separate what was configured, what actually happened during a run, and what is later summarized for analysis.
 
 ### 9.1 Configured impairment parameters
 These record what the experiment requested.
@@ -232,7 +244,7 @@ The following design expectations apply to `v0.2`:
 1. **Delay** should be modeled as delivery lag after observation generation.
 2. **Noise** should be modeled as content corruption, not generic downstream randomness.
 3. **Loss** should be modeled as absence of delivered observation.
-4. Impairment handling should live in the simulation or observation pipeline, not be embedded implicitly inside policy logic.
+4. Impairment handling should live in the simulation or observation pipeline, not inside policy logic except where explicitly documented.
 5. Policies should consume delivered observations and controller-visible metadata, not privileged ground-truth impairment labels.
 
 ---
