@@ -1529,6 +1529,10 @@ def run(req: RunRequest) -> dict:
         # Realized "budget" series (arrivals after loss/delay, and arrived detections)
         arrivals_frac = np.zeros((T,), dtype=np.float32)
         detections_arrived_frac = np.zeros((T,), dtype=np.float32)
+        obs_generation_step = np.full((T,), -1, dtype=np.int32)
+        obs_delivery_step = np.full((T,), -1, dtype=np.int32)
+        obs_age_steps = np.full((T,), -1, dtype=np.int32)
+        loss_frac = np.zeros((T,), dtype=np.float32)
         # Residual/control primitives used by current dynamic policies
         # driver_cov := arrivals_frac (arrival-like / budget-like)
         # driver_info_true is the canonical information driver aligned to obs_apply cause
@@ -1957,10 +1961,25 @@ def run(req: RunRequest) -> dict:
             obs_queue.append(obs_now)
             obs_apply = obs_queue.pop(0)  # apply delayed observation now
 
+            # Minimal delivered-observation metadata for v0.2 diagnostics:
+            # record the generation step of the observation currently being
+            # applied, its delivery step, and its effective age in timesteps.
+            if delay == 0:
+                gen_step_t = t
+            elif t - delay >= 0:
+                gen_step_t = t - delay
+            else:
+                gen_step_t = -1
+
+            obs_generation_step[t] = int(gen_step_t)
+            obs_delivery_step[t] = int(t)
+            obs_age_steps[t] = int(t - gen_step_t) if gen_step_t >= 0 else -1
+
             # realized "budget": arrivals after loss/delay
             arrived_mask = obs_apply >= 0
             arrivals_frac[t] = float(np.mean(arrived_mask.astype(np.float32))) if arrived_mask.size else 0.0
             detections_arrived_frac[t] = float(np.mean((obs_apply == 1).astype(np.float32))) if obs_apply.size else 0.0
+            loss_frac[t] = 1.0 - float(arrivals_frac[t])
 
             # arrived detections (0/1) for plots/metrics: lost -> 0
             det_arrived = (obs_apply == 1).astype(np.uint8)
@@ -2510,6 +2529,10 @@ def run(req: RunRequest) -> dict:
         # Realized budget series
         _write_1d("arrivals_frac", arrivals_frac.astype(np.float32), "f4")
         _write_1d("detections_arrived_frac", detections_arrived_frac.astype(np.float32), "f4")
+        _write_1d("obs_generation_step", obs_generation_step.astype(np.int32), "i4")
+        _write_1d("obs_delivery_step", obs_delivery_step.astype(np.int32), "i4")
+        _write_1d("obs_age_steps", obs_age_steps.astype(np.int32), "i4")
+        _write_1d("loss_frac", loss_frac.astype(np.float32), "f4")
 
         # O1 series: mean entropy and delta
         _write_1d("mean_entropy", mean_entropy.astype(np.float32), "f4")
@@ -2647,6 +2670,10 @@ def run(req: RunRequest) -> dict:
 
                     "arrivals_frac": float(arrivals_frac[t]),
                     "detections_arrived_frac": float(detections_arrived_frac[t]),
+                    "obs_generation_step": int(obs_generation_step[t]),
+                    "obs_delivery_step": int(obs_delivery_step[t]),
+                    "obs_age_steps": int(obs_age_steps[t]),
+                    "loss_frac": float(loss_frac[t]),
                     "driver_info_true": float(driver_info_true[t]),
                     "regime_requal_support_score": float(regime_requal_support_score[t]),
                     "regime_requal_support_breadth": float(regime_requal_support_breadth[t]),
@@ -2995,6 +3022,10 @@ def series(opr_id: str) -> dict[str, Any]:
         # O1: realized budget
         "arrivals_frac": _read_1d("arrivals_frac"),
         "detections_arrived_frac": _read_1d("detections_arrived_frac"),
+        "obs_generation_step": _read_1d_int("obs_generation_step"),
+        "obs_delivery_step": _read_1d_int("obs_delivery_step"),
+        "obs_age_steps": _read_1d_int("obs_age_steps"),
+        "loss_frac": _read_1d("loss_frac"),
         # Driver/residual series
         "driver_info_true": _read_1d("driver_info_true"),
         "residual_cov": _read_1d("residual_cov"),
