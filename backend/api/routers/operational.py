@@ -1533,6 +1533,7 @@ def run(req: RunRequest) -> dict:
         obs_delivery_step = np.full((T,), -1, dtype=np.int32)
         obs_age_steps = np.full((T,), -1, dtype=np.int32)
         loss_frac = np.zeros((T,), dtype=np.float32)
+        usefulness_gap = np.zeros((T,), dtype=np.float32)
         # Residual/control primitives used by current dynamic policies
         # driver_cov := arrivals_frac (arrival-like / budget-like)
         # driver_info_true is the canonical information driver aligned to obs_apply cause
@@ -2539,7 +2540,19 @@ def run(req: RunRequest) -> dict:
         delta_mean_entropy = np.zeros_like(mean_entropy)
         if T > 1:
             delta_mean_entropy[:-1] = mean_entropy[1:] - mean_entropy[:-1]
+
+        # First minimal wedge-style diagnostic:
+        # arrivals_frac captures delivered observation activity, while
+        # max(0, -delta_mean_entropy) captures realized uncertainty reduction.
+        # A larger positive usefulness_gap means observations are still arriving
+        # but belief improvement is weak relative to that activity.
+        usefulness_gap = arrivals_frac - np.maximum(
+            0.0,
+            -delta_mean_entropy.astype(np.float32),
+        ).astype(np.float32)
+
         _write_1d("delta_mean_entropy", delta_mean_entropy.astype(np.float32), "f4")
+        _write_1d("usefulness_gap", usefulness_gap.astype(np.float32), "f4")
 
         # Persist drivers + residuals
         _write_1d("driver_info_true", driver_info_true.astype(np.float32), "f4")
@@ -2674,6 +2687,7 @@ def run(req: RunRequest) -> dict:
                     "obs_delivery_step": int(obs_delivery_step[t]),
                     "obs_age_steps": int(obs_age_steps[t]),
                     "loss_frac": float(loss_frac[t]),
+                    "usefulness_gap": float(usefulness_gap[t]),
                     "driver_info_true": float(driver_info_true[t]),
                     "regime_requal_support_score": float(regime_requal_support_score[t]),
                     "regime_requal_support_breadth": float(regime_requal_support_breadth[t]),
@@ -3026,6 +3040,7 @@ def series(opr_id: str) -> dict[str, Any]:
         "obs_delivery_step": _read_1d_int("obs_delivery_step"),
         "obs_age_steps": _read_1d_int("obs_age_steps"),
         "loss_frac": _read_1d("loss_frac"),
+        "usefulness_gap": _read_1d("usefulness_gap"),
         # Driver/residual series
         "driver_info_true": _read_1d("driver_info_true"),
         "residual_cov": _read_1d("residual_cov"),
