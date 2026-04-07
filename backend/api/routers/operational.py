@@ -53,6 +53,11 @@ from awsrt_core.metrics.basic import (
 
 router = APIRouter()
 
+# First Subgoal C pass:
+# compute recent-window usefulness support signals for logging only.
+# These do NOT yet affect control behavior.
+USEFULNESS_SUPPORT_WINDOW = 10
+
 class ComparePoliciesRequest(BaseModel):
     """
     Create + run multiple operational runs from the same base manifest, varying only policy.
@@ -108,6 +113,55 @@ def _frac_eq(x: np.ndarray, value: int) -> Optional[float]:
     return float(np.mean((x == int(value)).astype(np.float32)))
 
 
+def _rolling_mean_valid(x: np.ndarray, start: int, end: int) -> Optional[float]:
+    """
+    Mean over x[start:end] after dropping invalid entries:
+      - None
+      - non-finite values
+      - for integer age-style series, caller should pass only the raw slice and
+        rely on this helper's explicit nonnegative filter
+
+    Intended first use:
+      - obs_age_steps, where negative values mean "no valid age"
+    """
+    xs = np.asarray(x[start:end]).reshape(-1)
+    if xs.size == 0:
+        return None
+    xs = xs[np.isfinite(xs)]
+    if xs.size == 0:
+        return None
+    xs = xs[xs >= 0]
+    if xs.size == 0:
+        return None
+    return float(np.mean(xs.astype(np.float32)))
+
+
+def _rolling_mean(x: np.ndarray, start: int, end: int) -> Optional[float]:
+    """
+    Mean over x[start:end] after dropping non-finite values.
+    """
+    xs = np.asarray(x[start:end]).reshape(-1)
+    if xs.size == 0:
+        return None
+    xs = xs[np.isfinite(xs)]
+    if xs.size == 0:
+        return None
+    return float(np.mean(xs.astype(np.float32)))
+
+
+def _rolling_positive_fraction(x: np.ndarray, start: int, end: int) -> Optional[float]:
+    """
+    Fraction of valid entries in x[start:end] that are strictly positive.
+    """
+    xs = np.asarray(x[start:end]).reshape(-1)
+    if xs.size == 0:
+        return None
+    xs = xs[np.isfinite(xs)]
+    if xs.size == 0:
+        return None
+    return float(np.mean((xs > 0).astype(np.float32)))
+
+
 def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
     """
     Compact metrics payload for compare-policies.
@@ -157,6 +211,13 @@ def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
         "misleading_activity_ratio": s.get("misleading_activity_ratio", None),
         "obs_age_mean_valid": s.get("obs_age_mean_valid", None),
         "obs_age_max_valid": s.get("obs_age_max_valid", None),
+        # First Subgoal C rolling-support summaries
+        "recent_obs_age_mean_valid_last": s.get("recent_obs_age_mean_valid_last", None),
+        "recent_obs_age_mean_valid_max": s.get("recent_obs_age_mean_valid_max", None),
+        "recent_misleading_activity_mean_last": s.get("recent_misleading_activity_mean_last", None),
+        "recent_misleading_activity_mean_max": s.get("recent_misleading_activity_mean_max", None),
+        "recent_misleading_activity_pos_frac_last": s.get("recent_misleading_activity_pos_frac_last", None),
+        "recent_driver_info_true_mean_last": s.get("recent_driver_info_true_mean_last", None),
         "residual_cov_in_band_frac": s.get("residual_cov_in_band_frac", None),
         # Regime-management advisory summaries
         "regime_enabled": s.get("regime_enabled", None),
@@ -1543,6 +1604,12 @@ def run(req: RunRequest) -> dict:
         loss_frac = np.zeros((T,), dtype=np.float32)
         usefulness_gap = np.zeros((T,), dtype=np.float32)
         misleading_activity = np.zeros((T,), dtype=np.float32)
+        # First Subgoal C support signals: rolling usefulness/staleness summaries.
+        # Logging only for now; no control use yet.
+        recent_obs_age_mean_valid = np.full((T,), np.nan, dtype=np.float32)
+        recent_misleading_activity_mean = np.full((T,), np.nan, dtype=np.float32)
+        recent_misleading_activity_pos_frac = np.full((T,), np.nan, dtype=np.float32)
+        recent_driver_info_true_mean = np.full((T,), np.nan, dtype=np.float32)
         # Residual/control primitives used by current dynamic policies
         # driver_cov := arrivals_frac (arrival-like / budget-like)
         # driver_info_true is the canonical information driver aligned to obs_apply cause
@@ -2567,9 +2634,35 @@ def run(req: RunRequest) -> dict:
             * np.maximum(0.0, delta_mean_entropy.astype(np.float32))
         ).astype(np.float32)
 
+        # First Subgoal C rolling support signals.
+        # These are derived only after the raw per-step diagnostics exist.
+        for t in range(T):
+            recent_start = max(0, t - USEFULNESS_SUPPORT_WINDOW + 1)
+            recent_end = t + 1
+
+            v = _rolling_mean_valid(obs_age_steps, recent_start, recent_end)
+            if v is not None:
+                recent_obs_age_mean_valid[t] = np.float32(v)
+
+            v = _rolling_mean(misleading_activity, recent_start, recent_end)
+            if v is not None:
+                recent_misleading_activity_mean[t] = np.float32(v)
+
+            v = _rolling_positive_fraction(misleading_activity, recent_start, recent_end)
+            if v is not None:
+                recent_misleading_activity_pos_frac[t] = np.float32(v)
+
+            v = _rolling_mean(driver_info_true, recent_start, recent_end)
+            if v is not None:
+                recent_driver_info_true_mean[t] = np.float32(v)
+
         _write_1d("delta_mean_entropy", delta_mean_entropy.astype(np.float32), "f4")
         _write_1d("usefulness_gap", usefulness_gap.astype(np.float32), "f4")
         _write_1d("misleading_activity", misleading_activity.astype(np.float32), "f4")
+        _write_1d("recent_obs_age_mean_valid", recent_obs_age_mean_valid.astype(np.float32), "f4")
+        _write_1d("recent_misleading_activity_mean", recent_misleading_activity_mean.astype(np.float32), "f4")
+        _write_1d("recent_misleading_activity_pos_frac", recent_misleading_activity_pos_frac.astype(np.float32), "f4")
+        _write_1d("recent_driver_info_true_mean", recent_driver_info_true_mean.astype(np.float32), "f4")
 
         # Persist drivers + residuals
         _write_1d("driver_info_true", driver_info_true.astype(np.float32), "f4")
@@ -2694,6 +2787,37 @@ def run(req: RunRequest) -> dict:
             if valid_obs_age.size > 0 else None
         )
 
+        # First Subgoal C rolling-support summary aggregates.
+        valid_recent_obs_age = recent_obs_age_mean_valid[np.isfinite(recent_obs_age_mean_valid)]
+        valid_recent_misleading_mean = (
+            recent_misleading_activity_mean[np.isfinite(recent_misleading_activity_mean)]
+        )
+        valid_recent_misleading_pos_frac = (
+            recent_misleading_activity_pos_frac[np.isfinite(recent_misleading_activity_pos_frac)]
+        )
+        valid_recent_driver_info = (
+            recent_driver_info_true_mean[np.isfinite(recent_driver_info_true_mean)]
+        )
+
+        recent_obs_age_mean_valid_last = (
+            float(valid_recent_obs_age[-1]) if valid_recent_obs_age.size > 0 else None
+        )
+        recent_obs_age_mean_valid_max = (
+            float(np.max(valid_recent_obs_age)) if valid_recent_obs_age.size > 0 else None
+        )
+        recent_misleading_activity_mean_last = (
+            float(valid_recent_misleading_mean[-1]) if valid_recent_misleading_mean.size > 0 else None
+        )
+        recent_misleading_activity_mean_max = (
+            float(np.max(valid_recent_misleading_mean)) if valid_recent_misleading_mean.size > 0 else None
+        )
+        recent_misleading_activity_pos_frac_last = (
+            float(valid_recent_misleading_pos_frac[-1]) if valid_recent_misleading_pos_frac.size > 0 else None
+        )
+        recent_driver_info_true_mean_last = (
+            float(valid_recent_driver_info[-1]) if valid_recent_driver_info.size > 0 else None
+        )
+
         auc = entropy_auc(mean_entropy)
         ttf = time_to_first_detect(detections)
         ttf_true = int(np.argmax(true_detections_any > 0)) if int(np.any(true_detections_any > 0)) else None
@@ -2733,6 +2857,22 @@ def run(req: RunRequest) -> dict:
                     "usefulness_gap": float(usefulness_gap[t]),
                     "misleading_activity": float(misleading_activity[t]),
                     "driver_info_true": float(driver_info_true[t]),
+                    "recent_obs_age_mean_valid": (
+                        float(recent_obs_age_mean_valid[t])
+                        if np.isfinite(recent_obs_age_mean_valid[t]) else None
+                    ),
+                    "recent_misleading_activity_mean": (
+                        float(recent_misleading_activity_mean[t])
+                        if np.isfinite(recent_misleading_activity_mean[t]) else None
+                    ),
+                    "recent_misleading_activity_pos_frac": (
+                        float(recent_misleading_activity_pos_frac[t])
+                        if np.isfinite(recent_misleading_activity_pos_frac[t]) else None
+                    ),
+                    "recent_driver_info_true_mean": (
+                        float(recent_driver_info_true_mean[t])
+                        if np.isfinite(recent_driver_info_true_mean[t]) else None
+                    ),
                     "regime_requal_support_score": float(regime_requal_support_score[t]),
                     "regime_requal_support_breadth": float(regime_requal_support_breadth[t]),
                     "debug_requal_support_front": float(debug_requal_support_front[t]),
@@ -2917,6 +3057,31 @@ def run(req: RunRequest) -> dict:
                 "misleading_activity_ratio": float(misleading_activity_ratio),
                 "obs_age_mean_valid": float(obs_age_mean_valid) if obs_age_mean_valid is not None else None,
                 "obs_age_max_valid": int(obs_age_max_valid) if obs_age_max_valid is not None else None,
+                # First Subgoal C rolling-support summaries
+                "recent_obs_age_mean_valid_last": (
+                    float(recent_obs_age_mean_valid_last)
+                    if recent_obs_age_mean_valid_last is not None else None
+                ),
+                "recent_obs_age_mean_valid_max": (
+                    float(recent_obs_age_mean_valid_max)
+                    if recent_obs_age_mean_valid_max is not None else None
+                ),
+                "recent_misleading_activity_mean_last": (
+                    float(recent_misleading_activity_mean_last)
+                    if recent_misleading_activity_mean_last is not None else None
+                ),
+                "recent_misleading_activity_mean_max": (
+                    float(recent_misleading_activity_mean_max)
+                    if recent_misleading_activity_mean_max is not None else None
+                ),
+                "recent_misleading_activity_pos_frac_last": (
+                    float(recent_misleading_activity_pos_frac_last)
+                    if recent_misleading_activity_pos_frac_last is not None else None
+                ),
+                "recent_driver_info_true_mean_last": (
+                    float(recent_driver_info_true_mean_last)
+                    if recent_driver_info_true_mean_last is not None else None
+                ),
                 # Regime-management advisory summaries
                 "regime_enabled": bool(regime_enabled),
                 "regime_mode": str(regime_mode),
@@ -3094,6 +3259,10 @@ def series(opr_id: str) -> dict[str, Any]:
         "loss_frac": _read_1d("loss_frac"),
         "usefulness_gap": _read_1d("usefulness_gap"),
         "misleading_activity": _read_1d("misleading_activity"),
+        "recent_obs_age_mean_valid": _read_1d("recent_obs_age_mean_valid"),
+        "recent_misleading_activity_mean": _read_1d("recent_misleading_activity_mean"),
+        "recent_misleading_activity_pos_frac": _read_1d("recent_misleading_activity_pos_frac"),
+        "recent_driver_info_true_mean": _read_1d("recent_driver_info_true_mean"),
         # Driver/residual series
         "driver_info_true": _read_1d("driver_info_true"),
         "residual_cov": _read_1d("residual_cov"),
@@ -3179,7 +3348,26 @@ def series(opr_id: str) -> dict[str, Any]:
         "misleading_activity_pos_frac": _as_float_or_none(s.get("misleading_activity_pos_frac", None)),
         "misleading_activity_ratio": _as_float_or_none(s.get("misleading_activity_ratio", None)),
         "obs_age_mean_valid": _as_float_or_none(s.get("obs_age_mean_valid", None)),
-        "obs_age_max_valid": s.get("obs_age_max_valid", None),        
+        "obs_age_max_valid": s.get("obs_age_max_valid", None),
+        # First Subgoal C rolling-support summary scalars
+        "recent_obs_age_mean_valid_last": _as_float_or_none(
+            s.get("recent_obs_age_mean_valid_last", None)
+        ),
+        "recent_obs_age_mean_valid_max": _as_float_or_none(
+            s.get("recent_obs_age_mean_valid_max", None)
+        ),
+        "recent_misleading_activity_mean_last": _as_float_or_none(
+            s.get("recent_misleading_activity_mean_last", None)
+        ),
+        "recent_misleading_activity_mean_max": _as_float_or_none(
+            s.get("recent_misleading_activity_mean_max", None)
+        ),
+        "recent_misleading_activity_pos_frac_last": _as_float_or_none(
+            s.get("recent_misleading_activity_pos_frac_last", None)
+        ),
+        "recent_driver_info_true_mean_last": _as_float_or_none(
+            s.get("recent_driver_info_true_mean_last", None)
+        ),     
         # Regime-management summary scalars
         "regime_enabled": bool(s.get("regime_enabled", False)),
         "regime_mode": s.get("regime_mode", None),
