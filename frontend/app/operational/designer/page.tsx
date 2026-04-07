@@ -62,6 +62,7 @@ type Policy =
   | "uncertainty"
   | "mdc_info"
   | "mdc_arrival"
+  | "usefulness_proto"
   | "balance"
   | "rl"
   | "random_feasible";
@@ -148,6 +149,7 @@ type PresetId =
   | "baseline_random_feasible_dynamic_ideal"
   | "baseline_greedy_dynamic_ideal"
   | "baseline_uncertainty_dynamic_ideal"
+  | "usefulness_proto_diagnostic_ideal"
   | "mdc_info_reward_light_ideal"
   | "mdc_info_reward_strong_ideal"
   | "delay_moderate"
@@ -622,6 +624,13 @@ export default function OperationalDesignerPage() {
         setIdealObservationChannel();
         setCInfo(1.0);
         return;
+      case "usefulness_proto_diagnostic_ideal":
+        setRegimeEnabled(false);
+        setMode("dynamic");
+        setPolicy("usefulness_proto");
+        setIdealObservationChannel();
+        setCInfo(0.1);
+        return;
       case "mdc_info_reward_light_ideal":
         setRegimeEnabled(false);
         setMode("dynamic");
@@ -905,6 +914,12 @@ export default function OperationalDesignerPage() {
         "Dynamic MDC-style controller using an arrival/budget-style residual interpretation.",
       dynamicOnly: true,
     },
+    usefulness_proto: {
+      label: "Usefulness prototype (exploit/caution) · usefulness_proto",
+      title:
+        "Experimental usefulness-aware prototype. Current backend slice logs and tracks exploit/caution regime state from recent-window usefulness signals; behavior remapping may still be partial.",
+      dynamicOnly: true,
+    },
     balance: {
       label: "Balance (belief × entropy) · balance",
       title: "Per-cell score = belief × entropy (simple exploit/explore blend).",
@@ -1044,6 +1059,8 @@ export default function OperationalDesignerPage() {
       ? "Baseline · greedy belief · dynamic · ideal observation channel"
       : presetId === "baseline_uncertainty_dynamic_ideal"
       ? "Baseline · uncertainty entropy · dynamic · ideal observation channel"
+      : presetId === "usefulness_proto_diagnostic_ideal"
+      ? "Diagnostic · usefulness prototype · dynamic · ideal observation channel"
       : presetId === "mdc_info_reward_light_ideal"
       ? "MDC · info-driver · light reward · dynamic · ideal"
       : presetId === "mdc_info_reward_strong_ideal"
@@ -1196,6 +1213,9 @@ export default function OperationalDesignerPage() {
             </optgroup>
             <optgroup label="Diagnostic · Baseline checks">
               <option value="static_greedy_ideal">Baseline · greedy belief · static · ideal observation channel</option>
+              <option value="usefulness_proto_diagnostic_ideal">
+                Diagnostic · usefulness prototype · dynamic · ideal observation channel
+              </option>
             </optgroup>
             <optgroup label="Diagnostic · MDC stress tests">
               <option value="delay_moderate">Diagnostic · delay-focused · moderate delay · clean channel</option>
@@ -1256,7 +1276,10 @@ export default function OperationalDesignerPage() {
               {policyHelp.mdc_arrival.label}
               {!mdcAllowed ? " (dynamic only)" : ""}
             </option>
-
+            <option value="usefulness_proto" title={policyHelp.usefulness_proto.title} disabled={!mdcAllowed}>
+              {policyHelp.usefulness_proto.label}
+              {!mdcAllowed ? " (dynamic only)" : ""}
+            </option>
             <option value="balance" title={policyHelp.balance.title}>
               {policyHelp.balance.label}
             </option>

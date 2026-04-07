@@ -4,6 +4,7 @@ import json
 import math
 
 from typing import Any, Optional
+from collections import deque
 
 from pydantic import BaseModel, Field
 
@@ -57,6 +58,26 @@ router = APIRouter()
 # compute recent-window usefulness support signals for logging only.
 # These do NOT yet affect control behavior.
 USEFULNESS_SUPPORT_WINDOW = 10
+
+# First usefulness-aware controller prototype (logging/state only).
+# This is intentionally backend-local for the first pass.
+USEFULNESS_PROTO_POLICY = "usefulness_proto"
+USEFULNESS_STATE_EXPLOIT = 0
+USEFULNESS_STATE_CAUTION = 1
+
+# Enter caution when recent information quality looks risky.
+USEFULNESS_CAUTION_AGE_THRESHOLD = 2.0
+USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD = 0.30
+USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD = 1.0e-6
+USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD = 0.80
+
+# Return to exploit when recent conditions look healthy again.
+USEFULNESS_EXPLOIT_AGE_THRESHOLD = 0.5
+USEFULNESS_EXPLOIT_MISLEADING_POS_FRAC_THRESHOLD = 0.10
+USEFULNESS_EXPLOIT_DRIVER_INFO_RECOVER_THRESHOLD = 1.0e-5
+
+USEFULNESS_CAUTION_PERSISTENCE = 3
+USEFULNESS_EXPLOIT_PERSISTENCE = 3
 
 class ComparePoliciesRequest(BaseModel):
     """
@@ -162,6 +183,98 @@ def _rolling_positive_fraction(x: np.ndarray, start: int, end: int) -> Optional[
     return float(np.mean((xs > 0).astype(np.float32)))
 
 
+
+def _usefulness_trigger_caution(
+    *,
+    recent_obs_age_mean_valid: Optional[float],
+    recent_misleading_activity_pos_frac: Optional[float],
+    recent_driver_info_true_mean: Optional[float],
+    arrivals_frac_t: float,
+) -> bool:
+    """
+    First-pass caution trigger.
+
+    Intent:
+      - stale recent inputs should be enough to push into caution
+      - corruption-style caution should require coordinated evidence:
+        recent misleadingness is elevated AND useful recent information is weak
+        while arrivals are still active
+      - this keeps the trigger from being too eager in ideal runs where one
+        weak indicator may flicker briefly
+    """
+    age_bad = (
+        recent_obs_age_mean_valid is not None
+        and float(recent_obs_age_mean_valid) >= float(USEFULNESS_CAUTION_AGE_THRESHOLD)
+    )
+    misleading_bad = (
+        recent_misleading_activity_pos_frac is not None
+        and float(recent_misleading_activity_pos_frac)
+        >= float(USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD)
+    )
+    low_info_while_active = (
+        float(arrivals_frac_t) >= float(USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD)
+        and recent_driver_info_true_mean is not None
+        and float(recent_driver_info_true_mean)
+        <= float(USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD)
+    )
+    corruption_bad = bool(misleading_bad and low_info_while_active)
+    return bool(age_bad or corruption_bad)
+
+
+def _usefulness_trigger_exploit(
+    *,
+    recent_obs_age_mean_valid: Optional[float],
+    recent_misleading_activity_pos_frac: Optional[float],
+    recent_driver_info_true_mean: Optional[float],
+) -> bool:
+    """
+    First-pass exploit/recovery trigger from caution back to healthy tracking.
+    """
+    age_ok = (
+        recent_obs_age_mean_valid is not None
+        and float(recent_obs_age_mean_valid) <= float(USEFULNESS_EXPLOIT_AGE_THRESHOLD)
+    )
+    misleading_ok = (
+        recent_misleading_activity_pos_frac is not None
+        and float(recent_misleading_activity_pos_frac)
+        <= float(USEFULNESS_EXPLOIT_MISLEADING_POS_FRAC_THRESHOLD)
+    )
+    info_ok = (
+        recent_driver_info_true_mean is not None
+        and float(recent_driver_info_true_mean)
+        >= float(USEFULNESS_EXPLOIT_DRIVER_INFO_RECOVER_THRESHOLD)
+    )
+    return bool(age_ok and misleading_ok and info_ok)
+
+
+def _usefulness_transition(
+    *,
+    cur_state: int,
+    trig_caution: bool,
+    trig_exploit: bool,
+    caution_counter: int,
+    exploit_counter: int,
+) -> int:
+    """
+    Two-regime prototype transition rule.
+
+    States:
+      0 = exploit
+      1 = caution
+    """
+    st = int(cur_state)
+    if st == USEFULNESS_STATE_EXPLOIT:
+        if trig_caution and int(caution_counter) >= int(USEFULNESS_CAUTION_PERSISTENCE):
+            return USEFULNESS_STATE_CAUTION
+        return USEFULNESS_STATE_EXPLOIT
+
+    if st == USEFULNESS_STATE_CAUTION:
+        if trig_exploit and int(exploit_counter) >= int(USEFULNESS_EXPLOIT_PERSISTENCE):
+            return USEFULNESS_STATE_EXPLOIT
+        return USEFULNESS_STATE_CAUTION
+
+    return USEFULNESS_STATE_EXPLOIT
+
 def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
     """
     Compact metrics payload for compare-policies.
@@ -218,6 +331,13 @@ def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
         "recent_misleading_activity_mean_max": s.get("recent_misleading_activity_mean_max", None),
         "recent_misleading_activity_pos_frac_last": s.get("recent_misleading_activity_pos_frac_last", None),
         "recent_driver_info_true_mean_last": s.get("recent_driver_info_true_mean_last", None),
+        # First usefulness-aware prototype summaries
+        "usefulness_proto_enabled": s.get("usefulness_proto_enabled", None),
+        "usefulness_regime_state_last": s.get("usefulness_regime_state_last", None),
+        "usefulness_regime_state_exploit_frac": s.get("usefulness_regime_state_exploit_frac", None),
+        "usefulness_regime_state_caution_frac": s.get("usefulness_regime_state_caution_frac", None),
+        "usefulness_trigger_caution_hits": s.get("usefulness_trigger_caution_hits", None),
+        "usefulness_trigger_exploit_hits": s.get("usefulness_trigger_exploit_hits", None),
         "residual_cov_in_band_frac": s.get("residual_cov_in_band_frac", None),
         # Regime-management advisory summaries
         "regime_enabled": s.get("regime_enabled", None),
@@ -1610,6 +1730,12 @@ def run(req: RunRequest) -> dict:
         recent_misleading_activity_mean = np.full((T,), np.nan, dtype=np.float32)
         recent_misleading_activity_pos_frac = np.full((T,), np.nan, dtype=np.float32)
         recent_driver_info_true_mean = np.full((T,), np.nan, dtype=np.float32)
+        # First usefulness-aware prototype state/logging series
+        usefulness_regime_state = np.zeros((T,), dtype=np.int32)
+        usefulness_trigger_caution = np.zeros((T,), dtype=np.uint8)
+        usefulness_trigger_exploit = np.zeros((T,), dtype=np.uint8)
+        usefulness_caution_counter = np.zeros((T,), dtype=np.int32)
+        usefulness_exploit_counter = np.zeros((T,), dtype=np.int32)
         # Residual/control primitives used by current dynamic policies
         # driver_cov := arrivals_frac (arrival-like / budget-like)
         # driver_info_true is the canonical information driver aligned to obs_apply cause
@@ -1777,6 +1903,14 @@ def run(req: RunRequest) -> dict:
 
         active_level_idx_cur = 0 if regime_active_enabled and max_ladder_idx >= 0 else -1
 
+        usefulness_proto_enabled = str(m.network.policy) == USEFULNESS_PROTO_POLICY
+        usefulness_state_cur = USEFULNESS_STATE_EXPLOIT
+        caution_counter_cur = 0
+        exploit_counter_cur = 0
+        usefulness_recent_obs_age_window: deque[float] = deque(maxlen=USEFULNESS_SUPPORT_WINDOW)
+        usefulness_recent_misleading_window: deque[float] = deque(maxlen=USEFULNESS_SUPPORT_WINDOW)
+        usefulness_recent_driver_info_window: deque[float] = deque(maxlen=USEFULNESS_SUPPORT_WINDOW)
+
         belief_t = np.full((H, W), prior_p, dtype=np.float32)
         entropy_t = _binary_entropy(belief_t)
         # Uncertainty-policy memory:
@@ -1832,6 +1966,17 @@ def run(req: RunRequest) -> dict:
         prev_cov = np.zeros((H, W), dtype=np.uint8)
 
         for t in range(T):
+            # For usefulness_proto, choose an effective controller behavior
+            # causally from the CURRENT usefulness state, before movement.
+            if usefulness_proto_enabled:
+                effective_policy = (
+                    "greedy"
+                    if int(usefulness_state_cur) == USEFULNESS_STATE_EXPLOIT
+                    else "mdc_info"
+                )
+            else:
+                effective_policy = str(m.network.policy)
+
             # ---- effective control knobs from active regime state (Patch 3B) ----
             # These are computed from the PREVIOUS active state and affect the
             # controller choices for the current step. The new active state for
@@ -1876,7 +2021,7 @@ def run(req: RunRequest) -> dict:
             # Static runs still choose their placement at t=0, as before.
             if t == 0 and m.network.deployment_mode == "dynamic":
                 cur = clamp_rc(cur, H, W)
-            elif m.network.policy == "random_feasible":
+            elif effective_policy == "random_feasible":
                 # random within feasible region (baseline for budget emulation)
                 score = rng.random((H, W)).astype(np.float32)
                 if m.network.deployment_mode == "static":
@@ -1900,18 +2045,18 @@ def run(req: RunRequest) -> dict:
                         rng=rng,
                     )
                     cur = clamp_rc(cur, H, W)
-            elif m.network.policy in ("mdc_info", "mdc_arrival") and m.network.deployment_mode == "dynamic":
+            elif effective_policy in ("mdc_info", "mdc_arrival") and m.network.deployment_mode == "dynamic":
                 # MDC-live controller (O1): choose moves to minimize a residual-style objective.
                 # We keep this lightweight: predicted ΔH̄ is approximated from covered entropy mass.
                 k_update = 0.5 * float(alpha_pos + alpha_neg)
-                c_ctrl = float(c_info) if m.network.policy == "mdc_info" else float(c_cov)
+                c_ctrl = float(c_info) if effective_policy == "mdc_info" else float(c_cov)
                 cur = move_sensors_mdc_limited(
                     cur,
                     entropy_t=entropy_control_t,
                     offsets=offsets,
                     move_max_cells=move_budget_cells_eff,
                     min_sep_cells=min_sep_cells,
-                    policy=m.network.policy,
+                    policy=effective_policy,
                     c_coef=c_ctrl,
                     k_update=k_update,
                     deterministic=deterministic_eff,
@@ -1926,7 +2071,7 @@ def run(req: RunRequest) -> dict:
                 score = compute_score_map(
                     belief_t,
                     entropy_control_t,
-                    m.network.policy,
+                    effective_policy,
                     uncertainty_memory=uncertainty_memory,
                     uncertainty_gamma=uncertainty_gamma,
                     uncertainty_beta=uncertainty_beta,
@@ -1954,7 +2099,7 @@ def run(req: RunRequest) -> dict:
                     )
                     cur = clamp_rc(cur, H, W)
 
-                if str(m.network.policy) == "uncertainty":
+                if str(effective_policy) == "uncertainty":
                     dbg = get_uncertainty_score_debug_snapshot()
 
                     uncertainty_debug_variance_mean[t] = float(
@@ -2096,9 +2241,18 @@ def run(req: RunRequest) -> dict:
 
             mean_entropy_before_bits_per_cell = float(np.mean(entropy_t))
             mean_entropy_after_bits_per_cell = float(np.mean(entropy_tp1))
+            delta_mean_entropy_t = float(
+                mean_entropy_after_bits_per_cell - mean_entropy_before_bits_per_cell
+            )
             local_drift_rate_t = max(
                 0.0,
                 mean_entropy_before_bits_per_cell - mean_entropy_after_bits_per_cell,
+            )
+            # Causal corruption-sensitive usefulness diagnostic:
+            # positive only when observations are arriving and mean entropy worsens.
+            misleading_activity_t = float(arrivals_frac[t]) * max(
+                0.0,
+                float(delta_mean_entropy_t),
             )
             cumulative_exposure_running += mean_entropy_after_bits_per_cell
 
@@ -2507,6 +2661,76 @@ def run(req: RunRequest) -> dict:
 
             uncertainty_memory = np.clip(uncertainty_memory, 0.0, 1.0)
 
+            # Causal usefulness-aware rolling support + state update.
+            # This is the first realized exploit/caution prototype and is only
+            # active for policy == usefulness_proto.
+            if obs_age_steps[t] >= 0:
+                usefulness_recent_obs_age_window.append(float(obs_age_steps[t]))
+            misleading_activity[t] = np.float32(misleading_activity_t)
+            usefulness_recent_misleading_window.append(float(misleading_activity[t]))
+            usefulness_recent_driver_info_window.append(float(driver_info_true[t]))
+
+            if len(usefulness_recent_obs_age_window) > 0:
+                recent_obs_age_mean_valid[t] = np.float32(
+                    np.mean(np.asarray(usefulness_recent_obs_age_window, dtype=np.float32))
+                )
+            if len(usefulness_recent_misleading_window) > 0:
+                mis_arr = np.asarray(usefulness_recent_misleading_window, dtype=np.float32)
+                recent_misleading_activity_mean[t] = np.float32(np.mean(mis_arr))
+                recent_misleading_activity_pos_frac[t] = np.float32(np.mean((mis_arr > 0.0).astype(np.float32)))
+            if len(usefulness_recent_driver_info_window) > 0:
+                recent_driver_info_true_mean[t] = np.float32(
+                    np.mean(np.asarray(usefulness_recent_driver_info_window, dtype=np.float32))
+                )
+
+            age_recent_t = (
+                float(recent_obs_age_mean_valid[t])
+                if np.isfinite(recent_obs_age_mean_valid[t]) else None
+            )
+            misleading_pos_recent_t = (
+                float(recent_misleading_activity_pos_frac[t])
+                if np.isfinite(recent_misleading_activity_pos_frac[t]) else None
+            )
+            driver_recent_t = (
+                float(recent_driver_info_true_mean[t])
+                if np.isfinite(recent_driver_info_true_mean[t]) else None
+            )
+
+            trig_caution_t = False
+            trig_exploit_t = False
+            if usefulness_proto_enabled:
+                trig_caution_t = _usefulness_trigger_caution(
+                    recent_obs_age_mean_valid=age_recent_t,
+                    recent_misleading_activity_pos_frac=misleading_pos_recent_t,
+                    recent_driver_info_true_mean=driver_recent_t,
+                    arrivals_frac_t=float(arrivals_frac[t]),
+                )
+                trig_exploit_t = _usefulness_trigger_exploit(
+                    recent_obs_age_mean_valid=age_recent_t,
+                    recent_misleading_activity_pos_frac=misleading_pos_recent_t,
+                    recent_driver_info_true_mean=driver_recent_t,
+                )
+
+                caution_counter_cur = (int(caution_counter_cur) + 1) if trig_caution_t else 0
+                exploit_counter_cur = (int(exploit_counter_cur) + 1) if trig_exploit_t else 0
+                usefulness_state_cur = _usefulness_transition(
+                    cur_state=usefulness_state_cur,
+                    trig_caution=trig_caution_t,
+                    trig_exploit=trig_exploit_t,
+                    caution_counter=caution_counter_cur,
+                    exploit_counter=exploit_counter_cur,
+                )
+            else:
+                caution_counter_cur = 0
+                exploit_counter_cur = 0
+                usefulness_state_cur = USEFULNESS_STATE_EXPLOIT
+
+            usefulness_regime_state[t] = int(usefulness_state_cur)
+            usefulness_trigger_caution[t] = 1 if trig_caution_t else 0
+            usefulness_trigger_exploit[t] = 1 if trig_exploit_t else 0
+            usefulness_caution_counter[t] = int(caution_counter_cur)
+            usefulness_exploit_counter[t] = int(exploit_counter_cur)
+
             if t == 0:
                 movement_l1_mean[t] = 0.0
                 moves_per_step[t] = 0
@@ -2627,35 +2851,6 @@ def run(req: RunRequest) -> dict:
             -delta_mean_entropy.astype(np.float32),
         ).astype(np.float32)
 
-        # Complementary corruption-sensitive diagnostic:
-        # positive only when observations are arriving and mean entropy worsens.
-        misleading_activity = (
-            arrivals_frac
-            * np.maximum(0.0, delta_mean_entropy.astype(np.float32))
-        ).astype(np.float32)
-
-        # First Subgoal C rolling support signals.
-        # These are derived only after the raw per-step diagnostics exist.
-        for t in range(T):
-            recent_start = max(0, t - USEFULNESS_SUPPORT_WINDOW + 1)
-            recent_end = t + 1
-
-            v = _rolling_mean_valid(obs_age_steps, recent_start, recent_end)
-            if v is not None:
-                recent_obs_age_mean_valid[t] = np.float32(v)
-
-            v = _rolling_mean(misleading_activity, recent_start, recent_end)
-            if v is not None:
-                recent_misleading_activity_mean[t] = np.float32(v)
-
-            v = _rolling_positive_fraction(misleading_activity, recent_start, recent_end)
-            if v is not None:
-                recent_misleading_activity_pos_frac[t] = np.float32(v)
-
-            v = _rolling_mean(driver_info_true, recent_start, recent_end)
-            if v is not None:
-                recent_driver_info_true_mean[t] = np.float32(v)
-
         _write_1d("delta_mean_entropy", delta_mean_entropy.astype(np.float32), "f4")
         _write_1d("usefulness_gap", usefulness_gap.astype(np.float32), "f4")
         _write_1d("misleading_activity", misleading_activity.astype(np.float32), "f4")
@@ -2663,6 +2858,11 @@ def run(req: RunRequest) -> dict:
         _write_1d("recent_misleading_activity_mean", recent_misleading_activity_mean.astype(np.float32), "f4")
         _write_1d("recent_misleading_activity_pos_frac", recent_misleading_activity_pos_frac.astype(np.float32), "f4")
         _write_1d("recent_driver_info_true_mean", recent_driver_info_true_mean.astype(np.float32), "f4")
+        _write_1d("usefulness_regime_state", usefulness_regime_state.astype(np.int32), "i4")
+        _write_1d("usefulness_trigger_caution", usefulness_trigger_caution.astype(np.uint8), "u1")
+        _write_1d("usefulness_trigger_exploit", usefulness_trigger_exploit.astype(np.uint8), "u1")
+        _write_1d("usefulness_caution_counter", usefulness_caution_counter.astype(np.int32), "i4")
+        _write_1d("usefulness_exploit_counter", usefulness_exploit_counter.astype(np.int32), "i4")
 
         # Persist drivers + residuals
         _write_1d("driver_info_true", driver_info_true.astype(np.float32), "f4")
@@ -2873,6 +3073,12 @@ def run(req: RunRequest) -> dict:
                         float(recent_driver_info_true_mean[t])
                         if np.isfinite(recent_driver_info_true_mean[t]) else None
                     ),
+                    "usefulness_proto_enabled": int(usefulness_proto_enabled),
+                    "usefulness_regime_state": int(usefulness_regime_state[t]),
+                    "usefulness_trigger_caution": int(usefulness_trigger_caution[t]),
+                    "usefulness_trigger_exploit": int(usefulness_trigger_exploit[t]),
+                    "usefulness_caution_counter": int(usefulness_caution_counter[t]),
+                    "usefulness_exploit_counter": int(usefulness_exploit_counter[t]),
                     "regime_requal_support_score": float(regime_requal_support_score[t]),
                     "regime_requal_support_breadth": float(regime_requal_support_breadth[t]),
                     "debug_requal_support_front": float(debug_requal_support_front[t]),
@@ -3082,6 +3288,19 @@ def run(req: RunRequest) -> dict:
                     float(recent_driver_info_true_mean_last)
                     if recent_driver_info_true_mean_last is not None else None
                 ),
+                # First usefulness-aware prototype summaries
+                "usefulness_proto_enabled": bool(usefulness_proto_enabled),
+                "usefulness_regime_state_last": int(usefulness_regime_state[-1]) if T > 0 else 0,
+                "usefulness_regime_state_exploit_frac": _frac_eq(
+                    usefulness_regime_state,
+                    USEFULNESS_STATE_EXPLOIT,
+                ),
+                "usefulness_regime_state_caution_frac": _frac_eq(
+                    usefulness_regime_state,
+                    USEFULNESS_STATE_CAUTION,
+                ),
+                "usefulness_trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
+                "usefulness_trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
                 # Regime-management advisory summaries
                 "regime_enabled": bool(regime_enabled),
                 "regime_mode": str(regime_mode),
@@ -3263,6 +3482,11 @@ def series(opr_id: str) -> dict[str, Any]:
         "recent_misleading_activity_mean": _read_1d("recent_misleading_activity_mean"),
         "recent_misleading_activity_pos_frac": _read_1d("recent_misleading_activity_pos_frac"),
         "recent_driver_info_true_mean": _read_1d("recent_driver_info_true_mean"),
+        "usefulness_regime_state": _read_1d_int("usefulness_regime_state"),
+        "usefulness_trigger_caution": _read_1d_int("usefulness_trigger_caution"),
+        "usefulness_trigger_exploit": _read_1d_int("usefulness_trigger_exploit"),
+        "usefulness_caution_counter": _read_1d_int("usefulness_caution_counter"),
+        "usefulness_exploit_counter": _read_1d_int("usefulness_exploit_counter"),
         # Driver/residual series
         "driver_info_true": _read_1d("driver_info_true"),
         "residual_cov": _read_1d("residual_cov"),
@@ -3367,7 +3591,19 @@ def series(opr_id: str) -> dict[str, Any]:
         ),
         "recent_driver_info_true_mean_last": _as_float_or_none(
             s.get("recent_driver_info_true_mean_last", None)
-        ),     
+        ),
+        # First usefulness-aware prototype summary scalars
+        "usefulness_proto_enabled": bool(s.get("usefulness_proto_enabled", False)),
+        "usefulness_regime_state_last": s.get("usefulness_regime_state_last", None),
+        "usefulness_regime_state_exploit_frac": _as_float_or_none(
+            s.get("usefulness_regime_state_exploit_frac", None)
+        ),
+        "usefulness_regime_state_caution_frac": _as_float_or_none(
+            s.get("usefulness_regime_state_caution_frac", None)
+        ),
+        "usefulness_trigger_caution_hits": s.get("usefulness_trigger_caution_hits", None),
+        "usefulness_trigger_exploit_hits": s.get("usefulness_trigger_exploit_hits", None),
+     
         # Regime-management summary scalars
         "regime_enabled": bool(s.get("regime_enabled", False)),
         "regime_mode": s.get("regime_mode", None),

@@ -167,6 +167,10 @@ class NetworkSpec(BaseModel):
       - `random_feasible` is a key baseline: it samples feasible deployments
         under the SAME operational constraints, enabling "budget emulation"
         baselines (random sensing under realized action-interface budget).
+      - `usefulness_proto` is the first usefulness-aware controller prototype.
+        Current Subgoal C scope is intentionally minimal: first log/track a
+        usefulness-aware exploit/caution regime scaffold, then later map that
+        state to realized control behavior.
     """
     policy: Literal[
         "greedy",
@@ -176,6 +180,7 @@ class NetworkSpec(BaseModel):
         "mdc_info",
         "mdc_arrival",
         "random_feasible",
+        "usefulness_proto",
     ] = "greedy"
 
     deployment_mode: Literal["static", "dynamic"] = "dynamic"
