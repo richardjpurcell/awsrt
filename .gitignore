@@ -59,6 +59,7 @@ data/fields/
 data/metrics/
 data/renders/
 data/temp/
+data/manifests/
 
 # Generated results dirs: ignored
 results/analysis_studies/

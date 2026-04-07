@@ -149,6 +149,14 @@ def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
         "residual_info_pos_frac": s.get("residual_info_pos_frac", None),
         "residual_cov_pos_frac": s.get("residual_cov_pos_frac", None),
         "residual_info_in_band_frac": s.get("residual_info_in_band_frac", None),
+        "usefulness_gap_mean": s.get("usefulness_gap_mean", None),
+        "usefulness_gap_max": s.get("usefulness_gap_max", None),
+        "misleading_activity_mean": s.get("misleading_activity_mean", None),
+        "misleading_activity_max": s.get("misleading_activity_max", None),
+        "misleading_activity_pos_frac": s.get("misleading_activity_pos_frac", None),
+        "misleading_activity_ratio": s.get("misleading_activity_ratio", None),
+        "obs_age_mean_valid": s.get("obs_age_mean_valid", None),
+        "obs_age_max_valid": s.get("obs_age_max_valid", None),
         "residual_cov_in_band_frac": s.get("residual_cov_in_band_frac", None),
         # Regime-management advisory summaries
         "regime_enabled": s.get("regime_enabled", None),
@@ -1534,6 +1542,7 @@ def run(req: RunRequest) -> dict:
         obs_age_steps = np.full((T,), -1, dtype=np.int32)
         loss_frac = np.zeros((T,), dtype=np.float32)
         usefulness_gap = np.zeros((T,), dtype=np.float32)
+        misleading_activity = np.zeros((T,), dtype=np.float32)
         # Residual/control primitives used by current dynamic policies
         # driver_cov := arrivals_frac (arrival-like / budget-like)
         # driver_info_true is the canonical information driver aligned to obs_apply cause
@@ -1751,7 +1760,7 @@ def run(req: RunRequest) -> dict:
         delay = int(m.impairments.delay_steps or 0)
         delay = max(0, delay)
         empty_obs = np.full((m.network.n_sensors,), -1, dtype=np.int8)
-        obs_queue: list[np.ndarray] = [empty_obs.copy() for _ in range(delay + 1)]
+        obs_queue: list[np.ndarray] = [empty_obs.copy() for _ in range(delay)]
 
         prev_cov = np.zeros((H, W), dtype=np.uint8)
 
@@ -2551,8 +2560,16 @@ def run(req: RunRequest) -> dict:
             -delta_mean_entropy.astype(np.float32),
         ).astype(np.float32)
 
+        # Complementary corruption-sensitive diagnostic:
+        # positive only when observations are arriving and mean entropy worsens.
+        misleading_activity = (
+            arrivals_frac
+            * np.maximum(0.0, delta_mean_entropy.astype(np.float32))
+        ).astype(np.float32)
+
         _write_1d("delta_mean_entropy", delta_mean_entropy.astype(np.float32), "f4")
         _write_1d("usefulness_gap", usefulness_gap.astype(np.float32), "f4")
+        _write_1d("misleading_activity", misleading_activity.astype(np.float32), "f4")
 
         # Persist drivers + residuals
         _write_1d("driver_info_true", driver_info_true.astype(np.float32), "f4")
@@ -2649,7 +2666,33 @@ def run(req: RunRequest) -> dict:
         residual_info_min = float(np.min(residual_info[:-1])) if T > 1 else float(residual_info[0])
         residual_info_max = float(np.max(residual_info[:-1])) if T > 1 else float(residual_info[0])
 
+        # First usefulness / misleadingness summary aggregates
+        usefulness_gap_mean = float(np.mean(usefulness_gap[:-1])) if T > 1 else float(np.mean(usefulness_gap))
+        usefulness_gap_max = float(np.max(usefulness_gap[:-1])) if T > 1 else float(np.max(usefulness_gap))
+        misleading_activity_mean = (
+            float(np.mean(misleading_activity[:-1])) if T > 1 else float(np.mean(misleading_activity))
+        )
+        misleading_activity_max = (
+            float(np.max(misleading_activity[:-1])) if T > 1 else float(np.max(misleading_activity))
+        )
+        misleading_activity_pos_frac = (
+            float(np.mean((misleading_activity[:-1] > 0.0).astype(np.float32)))
+            if T > 1 else float(np.mean((misleading_activity > 0.0).astype(np.float32)))
+        )
+        misleading_activity_ratio = float(misleading_activity_mean) / max(
+            float(usefulness_gap_mean),
+            1e-12,
+        )
 
+        valid_obs_age = obs_age_steps[obs_age_steps >= 0]
+        obs_age_mean_valid = (
+            float(np.mean(valid_obs_age.astype(np.float32)))
+            if valid_obs_age.size > 0 else None
+        )
+        obs_age_max_valid = (
+            int(np.max(valid_obs_age))
+            if valid_obs_age.size > 0 else None
+        )
 
         auc = entropy_auc(mean_entropy)
         ttf = time_to_first_detect(detections)
@@ -2688,6 +2731,7 @@ def run(req: RunRequest) -> dict:
                     "obs_age_steps": int(obs_age_steps[t]),
                     "loss_frac": float(loss_frac[t]),
                     "usefulness_gap": float(usefulness_gap[t]),
+                    "misleading_activity": float(misleading_activity[t]),
                     "driver_info_true": float(driver_info_true[t]),
                     "regime_requal_support_score": float(regime_requal_support_score[t]),
                     "regime_requal_support_breadth": float(regime_requal_support_breadth[t]),
@@ -2865,6 +2909,14 @@ def run(req: RunRequest) -> dict:
                 "residual_cov_max": float(residual_cov_max),
                 "residual_info_min": float(residual_info_min),
                 "residual_info_max": float(residual_info_max),
+                "usefulness_gap_mean": float(usefulness_gap_mean),
+                "usefulness_gap_max": float(usefulness_gap_max),
+                "misleading_activity_mean": float(misleading_activity_mean),
+                "misleading_activity_max": float(misleading_activity_max),
+                "misleading_activity_pos_frac": float(misleading_activity_pos_frac),
+                "misleading_activity_ratio": float(misleading_activity_ratio),
+                "obs_age_mean_valid": float(obs_age_mean_valid) if obs_age_mean_valid is not None else None,
+                "obs_age_max_valid": int(obs_age_max_valid) if obs_age_max_valid is not None else None,
                 # Regime-management advisory summaries
                 "regime_enabled": bool(regime_enabled),
                 "regime_mode": str(regime_mode),
@@ -3041,6 +3093,7 @@ def series(opr_id: str) -> dict[str, Any]:
         "obs_age_steps": _read_1d_int("obs_age_steps"),
         "loss_frac": _read_1d("loss_frac"),
         "usefulness_gap": _read_1d("usefulness_gap"),
+        "misleading_activity": _read_1d("misleading_activity"),
         # Driver/residual series
         "driver_info_true": _read_1d("driver_info_true"),
         "residual_cov": _read_1d("residual_cov"),
@@ -3119,6 +3172,14 @@ def series(opr_id: str) -> dict[str, Any]:
         "residual_cov_max": _as_float_or_none(s.get("residual_cov_max", None)),
         "residual_info_min": _as_float_or_none(s.get("residual_info_min", None)),
         "residual_info_max": _as_float_or_none(s.get("residual_info_max", None)),
+        "usefulness_gap_mean": _as_float_or_none(s.get("usefulness_gap_mean", None)),
+        "usefulness_gap_max": _as_float_or_none(s.get("usefulness_gap_max", None)),
+        "misleading_activity_mean": _as_float_or_none(s.get("misleading_activity_mean", None)),
+        "misleading_activity_max": _as_float_or_none(s.get("misleading_activity_max", None)),
+        "misleading_activity_pos_frac": _as_float_or_none(s.get("misleading_activity_pos_frac", None)),
+        "misleading_activity_ratio": _as_float_or_none(s.get("misleading_activity_ratio", None)),
+        "obs_age_mean_valid": _as_float_or_none(s.get("obs_age_mean_valid", None)),
+        "obs_age_max_valid": s.get("obs_age_max_valid", None),        
         # Regime-management summary scalars
         "regime_enabled": bool(s.get("regime_enabled", False)),
         "regime_mode": s.get("regime_mode", None),
