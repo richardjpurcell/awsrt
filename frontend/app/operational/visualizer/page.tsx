@@ -44,9 +44,13 @@ type SeriesRes = {
   recent_misleading_activity_pos_frac?: number[];
   recent_driver_info_true_mean?: number[];
   usefulness_regime_state?: number[];
+  usefulness_trigger_recover?: number[];
   usefulness_trigger_caution?: number[];
+  usefulness_trigger_recover_from_caution?: number[];
   usefulness_trigger_exploit?: number[];
+  usefulness_recover_counter?: number[];
   usefulness_caution_counter?: number[];
+  usefulness_recover_exit_counter?: number[];
   usefulness_exploit_counter?: number[];
   driver_info_true?: number[];
   residual_cov?: number[];
@@ -122,8 +126,11 @@ type SeriesRes = {
   usefulness_proto_enabled?: boolean;
   usefulness_regime_state_last?: number | null;
   usefulness_regime_state_exploit_frac?: number | null;
+  usefulness_regime_state_recover_frac?: number | null;
   usefulness_regime_state_caution_frac?: number | null;
+  usefulness_trigger_recover_hits?: number | null;
   usefulness_trigger_caution_hits?: number | null;
+  usefulness_trigger_recover_from_caution_hits?: number | null;
   usefulness_trigger_exploit_hits?: number | null;
   recent_obs_age_mean_valid_last?: number | null;
   recent_obs_age_mean_valid_max?: number | null;
@@ -268,6 +275,8 @@ function usefulnessStateLabel(code: number | null | undefined): string {
     case 0:
       return "exploit";
     case 1:
+      return "recover";
+    case 2:
       return "caution";
     default:
       return "—";
@@ -337,21 +346,55 @@ function SparkLine({
   const W = 980;
   const H = height;
 
-  const n = values.length;
-  const rawMin = n ? Math.min(...values) : 0;
-  const rawMax = n ? Math.max(...values) : 1;
+  const cleaned = values.map((v) => (Number.isFinite(v) ? Number(v) : NaN));
+  const finiteVals = cleaned.filter((v) => Number.isFinite(v));
+  const n = cleaned.length;
+  const hasFinite = finiteVals.length > 0;
 
-  const minV = Math.min(rawMin, include01 ? 0 : rawMin, include0 ? 0 : rawMin);
-  const maxV = Math.max(rawMax, include01 ? 1 : rawMax, include0 ? 0 : rawMax);
-  const span = maxV - minV || 1;
+  const rawMin = hasFinite ? Math.min(...finiteVals) : 0;
+  const rawMax = hasFinite ? Math.max(...finiteVals) : 1;
 
-  const pts = values
-    .map((v, i) => {
-      const x = n <= 1 ? 0 : (i / (n - 1)) * (W - 1);
-      const y = H - 1 - ((v - minV) / span) * (H - 1);
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
+  let minV = Math.min(rawMin, include01 ? 0 : rawMin, include0 ? 0 : rawMin);
+  let maxV = Math.max(rawMax, include01 ? 1 : rawMax, include0 ? 0 : rawMax);
+
+  // Visual padding so flat / boundary-hugging traces do not disappear into
+  // the frame edge or the zero/one reference lines.
+  if (maxV === minV) {
+    const pad = Math.abs(maxV) > 1e-12 ? 0.08 * Math.abs(maxV) : 0.5;
+    minV -= pad;
+    maxV += pad;
+  } else {
+    const pad = 0.06 * (maxV - minV);
+    minV -= pad;
+    maxV += pad;
+  }
+
+  // Preserve the semantic anchors after padding.
+  if (include0) minV = Math.min(minV, 0);
+  if (include01) {
+    minV = Math.min(minV, 0);
+    maxV = Math.max(maxV, 1);
+  }
+  const span = maxV - minV;
+
+  // Break the line across NaN runs instead of poisoning the whole plot.
+  const segments: string[] = [];
+  let curSeg: string[] = [];
+  cleaned.forEach((v, i) => {
+    const x = n <= 1 ? 0 : (i / (n - 1)) * (W - 1);
+    if (!Number.isFinite(v)) {
+      if (curSeg.length) {
+        segments.push(curSeg.join(" "));
+        curSeg = [];
+      }
+      return;
+    }
+    const y = H - 1 - ((v - minV) / span) * (H - 1);
+    curSeg.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+  });
+  if (curSeg.length) {
+    segments.push(curSeg.join(" "));
+  }
 
   const iCur = clamp(cursorT, 0, Math.max(0, n - 1));
   const cx = n <= 1 ? 0 : (iCur / (n - 1)) * (W - 1);
@@ -411,7 +454,15 @@ function SparkLine({
             </>
           ) : null}
 
-          <polyline fill="none" stroke="rgba(0,0,0,0.55)" strokeWidth="2" points={pts} />
+          {segments.map((pts, i) => (
+            <polyline
+              key={`seg-${i}`}
+              fill="none"
+              stroke="rgba(0,0,0,0.55)"
+              strokeWidth="3"
+              points={pts}
+            />
+          ))}
           <line x1={cx} x2={cx} y1={0} y2={H} stroke="rgba(0,0,0,0.25)" strokeWidth="2" />
           <circle cx={cx} cy={0} r={5} fill="rgba(0,0,0,0.55)" />
         </svg>
@@ -717,9 +768,13 @@ export default function OperationalVisualizerPage() {
       (s.recent_misleading_activity_pos_frac?.length ?? 0) ||
       (s.recent_driver_info_true_mean?.length ?? 0) ||
       (s.usefulness_regime_state?.length ?? 0) ||
+      (s.usefulness_trigger_recover?.length ?? 0) ||
       (s.usefulness_trigger_caution?.length ?? 0) ||
+      (s.usefulness_trigger_recover_from_caution?.length ?? 0) ||
       (s.usefulness_trigger_exploit?.length ?? 0) ||
+      (s.usefulness_recover_counter?.length ?? 0) ||
       (s.usefulness_caution_counter?.length ?? 0) ||
+      (s.usefulness_recover_exit_counter?.length ?? 0) ||
       (s.usefulness_exploit_counter?.length ?? 0) ||
 
       (s.driver_info_true?.length ?? 0) ||
@@ -745,7 +800,6 @@ export default function OperationalVisualizerPage() {
       (s.debug_down_counter?.length ?? 0) ||
       (s.debug_switch_counter?.length ?? 0) ||
       (s.debug_recovery_counter?.length ?? 0) ||
-      (s.debug_recovery_block_counter?.length ?? 0);
       (s.debug_recovery_block_counter?.length ?? 0) ||
       (s.debug_leave_certified_counter?.length ?? 0) ||
       (s.debug_trig_leave_certified_final?.length ?? 0);
@@ -791,9 +845,13 @@ export default function OperationalVisualizerPage() {
       recent_misleading_activity_pos_frac: at(series.recent_misleading_activity_pos_frac),
       recent_driver_info_true_mean: at(series.recent_driver_info_true_mean),
       usefulness_regime_state: atInt(series.usefulness_regime_state),
+      usefulness_trigger_recover: atInt(series.usefulness_trigger_recover),
       usefulness_trigger_caution: atInt(series.usefulness_trigger_caution),
+      usefulness_trigger_recover_from_caution: atInt(series.usefulness_trigger_recover_from_caution),
       usefulness_trigger_exploit: atInt(series.usefulness_trigger_exploit),
+      usefulness_recover_counter: atInt(series.usefulness_recover_counter),
       usefulness_caution_counter: atInt(series.usefulness_caution_counter),
+      usefulness_recover_exit_counter: atInt(series.usefulness_recover_exit_counter),
       usefulness_exploit_counter: atInt(series.usefulness_exploit_counter),
 
       driver_info_true: at(series.driver_info_true),
@@ -902,7 +960,9 @@ export default function OperationalVisualizerPage() {
     !!series?.debug_down_counter?.length ||
     !!series?.debug_switch_counter?.length ||
     !!series?.debug_recovery_counter?.length ||
-    !!series?.debug_recovery_block_counter?.length;
+    !!series?.debug_recovery_block_counter?.length ||
+    !!series?.debug_leave_certified_counter?.length ||
+    !!series?.debug_trig_leave_certified_final?.length;
 
   // Match Epistemic Visualizer delete messaging:
   // treat DELETE failure / 409 conflict as an error box, otherwise show muted info.
@@ -1078,9 +1138,13 @@ export default function OperationalVisualizerPage() {
                     </div>
                     <div>
                       usefulness_state=<b>{usefulnessStateLabel(cursorSummary.usefulness_regime_state)}</b>
+                      {" "}· trig_recover=<b>{fmtInt(cursorSummary.usefulness_trigger_recover)}</b>
                       {" "}· trig_caution=<b>{fmtInt(cursorSummary.usefulness_trigger_caution)}</b>
+                      {" "}· trig_recover_from_caution=<b>{fmtInt(cursorSummary.usefulness_trigger_recover_from_caution)}</b>
                       {" "}· trig_exploit=<b>{fmtInt(cursorSummary.usefulness_trigger_exploit)}</b>
+                      {" "}· recover_counter=<b>{fmtInt(cursorSummary.usefulness_recover_counter)}</b>
                       {" "}· caution_counter=<b>{fmtInt(cursorSummary.usefulness_caution_counter)}</b>
+                      {" "}· recover_exit_counter=<b>{fmtInt(cursorSummary.usefulness_recover_exit_counter)}</b>
                       {" "}· exploit_counter=<b>{fmtInt(cursorSummary.usefulness_exploit_counter)}</b>
                     </div>
 
@@ -1118,7 +1182,7 @@ export default function OperationalVisualizerPage() {
                   <h2 style={{ marginTop: 0 }}>Usefulness prototype summary</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>
                     <div style={{ opacity: 0.82 }}>
-                      This section summarizes the exploit/caution usefulness prototype rather than the advisory/active regime-management machinery.
+                      This section summarizes the compact usefulness-regime scaffold rather than the advisory/active regime-management machinery.
                     </div>
                     <div style={{ marginTop: 8 }}>
                       usefulness_proto_enabled=<b>{series.usefulness_proto_enabled ? "yes" : "no"}</b>
@@ -1126,10 +1190,13 @@ export default function OperationalVisualizerPage() {
                     </div>
                     <div>
                       exploit_frac=<b>{fmtNum(series.usefulness_regime_state_exploit_frac, 3)}</b>
+                      {" "}· recover_frac=<b>{fmtNum(series.usefulness_regime_state_recover_frac, 3)}</b>
                       {" "}· caution_frac=<b>{fmtNum(series.usefulness_regime_state_caution_frac, 3)}</b>
                     </div>
                     <div>
-                      caution_hits=<b>{fmtInt(series.usefulness_trigger_caution_hits)}</b>
+                      recover_hits=<b>{fmtInt(series.usefulness_trigger_recover_hits)}</b>
+                      {" "}· caution_hits=<b>{fmtInt(series.usefulness_trigger_caution_hits)}</b>
+                      {" "}· recover_from_caution_hits=<b>{fmtInt(series.usefulness_trigger_recover_from_caution_hits)}</b>
                       {" "}· exploit_hits=<b>{fmtInt(series.usefulness_trigger_exploit_hits)}</b>
                     </div>
                     <div>
@@ -1400,7 +1467,7 @@ export default function OperationalVisualizerPage() {
 
               <SectionCard
                 title="Usefulness support and regime traces"
-                subtitle="Direct Subgoal D view: recent-window support quantities and the exploit/caution prototype state and triggers."
+                subtitle="Direct Subgoal D view: recent-window support quantities and the exploit/recover/caution prototype state and triggers."
               >
                 {series?.recent_obs_age_mean_valid?.length ? (
                   <SparkLine
@@ -1452,7 +1519,7 @@ export default function OperationalVisualizerPage() {
                     height={PLOT_H}
                     precision={0}
                     include0
-                    subtitle="0 = exploit, 1 = caution"
+                    subtitle="0 = exploit, 1 = recover, 2 = caution"
                   />
                 ) : (
                   <div />
@@ -1472,6 +1539,33 @@ export default function OperationalVisualizerPage() {
                   <div />
                 )}
 
+                {series?.usefulness_trigger_recover?.length ? (
+                  <SparkLine
+                    title="Usefulness trigger: recover"
+                    values={series.usefulness_trigger_recover.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_trigger_recover.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include01
+                    subtitle="1 means weakened support is sufficient to leave exploit and enter recover"
+                  />
+                ) : (
+                  <div />
+                )}
+                {series?.usefulness_trigger_recover_from_caution?.length ? (
+                  <SparkLine
+                    title="Usefulness trigger: recover from caution"
+                    values={series.usefulness_trigger_recover_from_caution.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_trigger_recover_from_caution.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include01
+                    subtitle="1 means partial requalification out of caution is firing"
+                  />
+                ) : (
+                  <div />
+                )}
+
                 {series?.usefulness_trigger_exploit?.length ? (
                   <SparkLine
                     title="Usefulness trigger: exploit"
@@ -1480,7 +1574,7 @@ export default function OperationalVisualizerPage() {
                     height={PLOT_H}
                     precision={0}
                     include01
-                    subtitle="1 means the exploit/recovery condition is firing at that step"
+                    subtitle="1 means strong healthy requalification for exploit is firing"
                   />
                 ) : (
                   <div />
@@ -1514,6 +1608,48 @@ export default function OperationalVisualizerPage() {
                   <div />
                 )}
 
+                {series?.usefulness_recover_counter?.length ? (
+                  <SparkLine
+                    title="Recover persistence counter"
+                    values={series.usefulness_recover_counter.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_recover_counter.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include0
+                    subtitle="Consecutive steps for the recover trigger"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.usefulness_caution_counter?.length ? (
+                  <SparkLine
+                    title="Caution persistence counter"
+                    values={series.usefulness_caution_counter.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_caution_counter.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include0
+                    subtitle="Consecutive steps for the caution trigger"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.usefulness_recover_exit_counter?.length ? (
+                  <SparkLine
+                    title="Recover-exit persistence counter"
+                    values={series.usefulness_recover_exit_counter.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_recover_exit_counter.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include0
+                    subtitle="Consecutive steps for recover-from-caution requalification"
+                  />
+                ) : (
+                  <div />
+                )}
+
                 {series?.obs_age_steps?.length ? (
                   <SparkLine
                     title="Observation age steps"
@@ -1523,6 +1659,20 @@ export default function OperationalVisualizerPage() {
                     precision={0}
                     include0
                     subtitle="Raw delivered-observation age; negative means no valid age at that step"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.usefulness_exploit_counter?.length ? (
+                  <SparkLine
+                    title="Exploit persistence counter"
+                    values={series.usefulness_exploit_counter.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_exploit_counter.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include0
+                    subtitle="Consecutive steps for strong exploit requalification"
                   />
                 ) : (
                   <div />

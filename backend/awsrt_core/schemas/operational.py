@@ -167,10 +167,9 @@ class NetworkSpec(BaseModel):
       - `random_feasible` is a key baseline: it samples feasible deployments
         under the SAME operational constraints, enabling "budget emulation"
         baselines (random sensing under realized action-interface budget).
-      - `usefulness_proto` is the first usefulness-aware controller prototype.
-        Current Subgoal C scope is intentionally minimal: first log/track a
-        usefulness-aware exploit/caution regime scaffold, then later map that
-        state to realized control behavior.
+      - `usefulness_proto` is the compact usefulness-aware controller family.
+        In Subgoal E it is interpreted as a three-regime usefulness scaffold
+        (exploit / middle / caution) with manifest-backed transition logic.
     """
     policy: Literal[
         "greedy",
@@ -228,6 +227,93 @@ class NetworkSpec(BaseModel):
     )
 
 
+class UsefulnessRegimePoliciesSpec(BaseModel):
+    exploit_policy: Literal["greedy", "uncertainty", "mdc_info", "mdc_arrival"] = Field(
+        default="greedy",
+        description="Effective controller policy used while the usefulness regime is in exploit.",
+    )
+    recover_policy: Literal["greedy", "uncertainty", "mdc_info", "mdc_arrival"] = Field(
+        default="uncertainty",
+        description="Effective controller policy used while the usefulness regime is in the middle regime.",
+    )
+    caution_policy: Literal["greedy", "uncertainty", "mdc_info", "mdc_arrival"] = Field(
+        default="mdc_info",
+        description="Effective controller policy used while the usefulness regime is in caution.",
+    )
+
+
+class UsefulnessRegimeThresholdsSpec(BaseModel):
+    age_threshold: float = Field(default=0.0, ge=0.0)
+    misleading_pos_frac_threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+    driver_info_threshold: float = Field(default=0.0, ge=0.0)
+    arrivals_high_threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+    persistence_steps: int = Field(default=1, ge=1)
+
+
+class UsefulnessExploitThresholdsSpec(BaseModel):
+    age_threshold: float = Field(default=0.5, ge=0.0)
+    misleading_pos_frac_threshold: float = Field(default=0.10, ge=0.0, le=1.0)
+    driver_info_recover_threshold: float = Field(default=1.0e-5, ge=0.0)
+    persistence_steps: int = Field(default=3, ge=1)
+
+
+class UsefulnessRegimeLoggingSpec(BaseModel):
+    store_step_trace: bool = Field(
+        default=True,
+        description="Persist per-step usefulness-regime series for audit and trace inspection.",
+    )
+    store_transition_counters: bool = Field(
+        default=True,
+        description="Persist usefulness trigger/counter series for mechanism inspection.",
+    )
+
+
+class UsefulnessRegimeTransitionLogicSpec(BaseModel):
+    recover_entry: UsefulnessRegimeThresholdsSpec = Field(
+        default_factory=lambda: UsefulnessRegimeThresholdsSpec(
+            age_threshold=1.0,
+            misleading_pos_frac_threshold=0.15,
+            driver_info_threshold=5.0e-4,
+            arrivals_high_threshold=0.80,
+            persistence_steps=2,
+        )
+    )
+    caution_entry: UsefulnessRegimeThresholdsSpec = Field(
+        default_factory=lambda: UsefulnessRegimeThresholdsSpec(
+            age_threshold=2.0,
+            misleading_pos_frac_threshold=0.30,
+            driver_info_threshold=2.0e-4,
+            arrivals_high_threshold=0.80,
+            persistence_steps=3,
+        )
+    )
+    recover_exit: UsefulnessExploitThresholdsSpec = Field(
+        default_factory=lambda: UsefulnessExploitThresholdsSpec(
+            age_threshold=1.0,
+            misleading_pos_frac_threshold=0.20,
+            driver_info_recover_threshold=1.0e-5,
+            persistence_steps=2,
+        )
+    )
+    exploit_entry: UsefulnessExploitThresholdsSpec = Field(
+        default_factory=UsefulnessExploitThresholdsSpec
+    )
+
+
+class UsefulnessRegimeSpec(BaseModel):
+    enabled: bool = Field(
+        default=False,
+        description="Enable the three-regime usefulness-aware controller scaffold.",
+    )
+    middle_label: Literal["recover", "guarded"] = Field(
+        default="recover",
+        description="Semantic label for the middle usefulness regime.",
+    )
+    policies: UsefulnessRegimePoliciesSpec = Field(default_factory=UsefulnessRegimePoliciesSpec)
+    transition_logic: UsefulnessRegimeTransitionLogicSpec = Field(
+        default_factory=UsefulnessRegimeTransitionLogicSpec
+    )
+    logging: UsefulnessRegimeLoggingSpec = Field(default_factory=UsefulnessRegimeLoggingSpec)
 class HealthyUtilizationRangeSpec(BaseModel):
     min: float = Field(default=0.0, ge=0.0, le=1.0)
     max: float = Field(default=1.0, ge=0.0, le=1.0)
@@ -421,6 +507,7 @@ class OperationalManifest(BaseModel):
 
     # Closed-loop configuration (only used when run_mode='closed_loop')
     o1: O1Spec = Field(default_factory=O1Spec)
+    usefulness_regime: UsefulnessRegimeSpec = Field(default_factory=UsefulnessRegimeSpec)
     regime_management: RegimeManagementSpec = Field(default_factory=RegimeManagementSpec)
 
     @model_validator(mode="after")

@@ -1,636 +1,530 @@
 # AWSRT v0.2 Usefulness Regime Extension
 
-**Status:** Draft design note  
+**Status:** Frozen checkpoint design note  
 **Applies to:** `v0.2-subgoal-e`  
-**Purpose:** Define the next disciplined controller step after Subgoal D by extending the current two-state usefulness-aware prototype into a slightly richer, still-auditable usefulness-regime controller.
+**Purpose:** Record the Subgoal E controller extension, its intended scope, its implemented mechanism, and the main conclusions from the first compact audit.
 
 ---
 
 ## 1. Scope
 
-This note defines **Subgoal E** for AWSRT `v0.2`: extending the currently validated usefulness-aware controller beyond the minimal two-state exploit/caution prototype used in Subgoal D.
+This note freezes the **Subgoal E** usefulness-aware controller checkpoint for AWSRT `v0.2`.
 
-The purpose of Subgoal E is **not** to redesign AWSRT broadly, and it is **not** to jump immediately to a fully elaborate controller architecture. Its purpose is narrower:
+Subgoal E extends the earlier validated two-state usefulness-aware prototype into a compact **three-regime** controller scaffold while preserving the same development discipline used across prior subgoals:
 
-- preserve what Subgoal D has already validated,
-- address the main limitations of the current two-state prototype,
-- introduce one disciplined next-step regime extension,
-- and keep the resulting controller interpretable, auditable, and experimentally manageable.
+- small before broad,
+- controlled before sweeping,
+- interpretable before optimized,
+- auditable before elaborate,
+- one new mechanism at a time.
 
-This note follows three earlier design notes:
+This note is a **checkpoint document**, not an open-ended concept note. It records what Subgoal E was intended to do, what was actually implemented, and what the first compact audit shows.
+
+It does **not** define:
+
+- a final paper-ready controller,
+- a theorem-linked final operational policy,
+- a broad v0.2 controller family,
+- exhaustive calibration,
+- or a full publication study.
+
+It defines the current frozen controller step.
+
+---
+
+## 2. Position in the v0.2 sequence
+
+Subgoal E follows three earlier design notes:
 
 - `docs/design/operational_usefulness_diagnostics_v0_2.md`
 - `docs/design/usefulness_aware_control_v0_2.md`
 - `docs/design/usefulness_validation_v0_2.md`
 
-Together, those notes established:
+Those earlier notes established:
+
 - a first usefulness-diagnostic layer,
-- a first exploit/caution control bridge,
-- and a compact first-pass validation of that bridge.
+- a first usefulness-aware control bridge,
+- and a compact validation of that first bridge.
 
-Subgoal E begins **after** that validation checkpoint.
+Subgoal D validated the usefulness-aware bridge as real and interpretable. It showed that:
 
-It does **not** define:
-- a final paper-ready controller,
-- a final theorem-linked operational policy,
-- a full v0.2 study campaign,
-- or a large family of regime-management variants.
+- ideal runs remained exploitative,
+- delay-heavy runs became caution-dominant for staleness-side reasons,
+- noise-impaired runs became caution-dominant for corruption-side reasons,
+- and the compact usefulness diagnostics remained readable across representative cases.
 
-It defines the next compact controller step.
-
----
-
-## 2. Motivation
-
-Subgoal D established a useful and important first result:
-
-- ideal runs remain exploitative,
-- delay-heavy runs become caution-dominant for staleness-driven reasons,
-- noise-impaired runs become caution-dominant for corruption-driven reasons,
-- the same compact usefulness diagnostics remain interpretable across several fixed baselines,
-- and the core qualitative story survives a limited harder-world check.
-
-That is enough to say the current usefulness bridge is **real**.
-
-However, Subgoal D also clarified a key limitation of the present prototype:
-
-- the controller is still fundamentally **two-state**,
-- corruption-side cases can compress into broadly similar caution occupancy,
-- and the current exploit/caution split is useful for first validation but still coarse for the next design step.
-
-In other words, Subgoal D did what it needed to do:
-it showed that the usefulness-aware bridge is worth extending.
-
-The main development question is now no longer:
-
-> is there any interpretable usefulness-aware signal worth using?
-
-That question has been answered in the affirmative.
-
-The new question is:
-
-> what is the smallest next controller extension that preserves interpretability while giving the controller a more legible internal structure than simple exploit versus caution?
-
-Subgoal E addresses that question.
+Subgoal E begins **after** that checkpoint.
 
 ---
 
-## 3. Development stance
+## 3. Motivation
 
-Subgoal E should follow the same overall v0.2 development discipline already used in earlier subgoals:
+The main limitation of the Subgoal D controller was not that it failed to react. The limitation was that its reaction remained too coarse.
 
-- **small before broad**
-- **controlled before sweeping**
-- **interpretable before optimized**
-- **auditable before elaborate**
-- **one new mechanism at a time**
+The earlier controller mainly distinguished:
 
-This means Subgoal E should avoid:
+- a healthy / exploit-like condition,
+- versus a degraded / caution-like condition.
 
-- immediately adding many new controller states,
-- mixing several unrelated new diagnostics into one step,
-- introducing a large preset taxonomy before the mechanism is clear,
-- or chasing policy-performance claims before the new regime logic is readable.
+That was sufficient for a first validation pass, but it left several useful operational distinctions only partially expressed. In particular:
 
-Subgoal E should remain a compact design increment.
+- a run may no longer justify full exploit, but may not yet warrant strong caution;
+- a run may be partially requalifying after degradation;
+- moderate corruption and strong corruption should not necessarily collapse into the same regime expression;
+- a direct exploit/caution split can hide intermediate controller logic that is better expressed explicitly.
 
-The right question is not:
-> how much richer can we make the controller right away?
+The design question for Subgoal E was therefore:
 
-The right question is:
-> what is the smallest regime extension that makes the controller’s response more expressive without making it harder to understand?
+> what is the smallest controller extension that adds meaningful structure without sacrificing auditability?
+
+Subgoal E answers that question with a three-regime scaffold.
 
 ---
 
-## 4. What Subgoal E is trying to improve
+## 4. Subgoal E controller definition
 
-The current two-state prototype has already shown value. Its core limitation is not that it fails to react. Rather, its limitation is that its reaction is still too coarse.
+### 4.1 Regime set
 
-At present, the controller mainly distinguishes:
-
-- a healthy / exploit-like operating condition,
-- versus a degraded / caution-like operating condition.
-
-That is enough for first validation, but it leaves several operational distinctions only partially expressed.
-
-For example:
-
-- a run may no longer be fully healthy, but also may not yet warrant strong caution;
-- a run may be emerging from caution, but not yet be ready for full exploit;
-- delay-heavy and corruption-heavy cases may both be caution-dominant, even though their operational implications differ;
-- the transition logic may benefit from a more explicit intermediate regime rather than a direct exploit/caution flip.
-
-Subgoal E therefore aims to add a modest internal structure between those extremes.
-
-The central goal is:
-
-> retain the validated usefulness-aware logic from Subgoal D, but introduce a more expressive regime scaffold that remains compact and auditable.
-
----
-
-## 5. Proposed Subgoal E controller increment
-
-### 5.1 High-level proposal
-
-Subgoal E should extend the current two-state exploit/caution controller into a **three-regime usefulness-aware scaffold**.
-
-A recommended first-pass regime set is:
+Subgoal E extends the earlier two-state controller into the following three-regime scaffold:
 
 - **exploit**
-- **recover** (or guarded / stabilization)
+- **recover**
 - **caution**
 
-The precise naming can be adjusted, but the intended semantics should be:
+These are encoded as:
+
+- `exploit = 0`
+- `recover = 1`
+- `caution = 2`
+
+### 4.2 Regime semantics
+
+The intended semantics are:
 
 - **exploit**  
-  healthy, sufficiently useful operating conditions; controller can act aggressively / opportunistically
+  healthy, sufficiently useful conditions; aggressive or opportunistic behavior remains justified
 
 - **recover**  
-  intermediate regime for partial support, stabilization, or requalification; controller is not fully healthy but is not in strong caution either
+  weakened but not fully collapsed support; full exploit is no longer justified, but strong caution is not yet required, or the controller is partially requalifying after degradation
 
 - **caution**  
-  degraded usefulness conditions; controller acts conservatively because support has weakened for staleness or corruption-side reasons
+  clearly degraded usefulness conditions; conservative behavior is justified because usefulness support has weakened materially
 
-This is the smallest meaningful extension beyond the current prototype.
+The middle regime is intentionally compact and should be read as an intermediate usefulness condition, not as a vague miscellaneous state.
 
-### 5.2 Why a three-regime scaffold
+### 4.3 Effective control mapping
 
-A three-regime scaffold is preferable to a direct jump to a much larger controller because it offers three advantages:
+The implemented Subgoal E controller uses the following policy bridge:
 
-1. it introduces more controller structure without overwhelming interpretability,
-2. it lets the controller express intermediate support conditions explicitly,
-3. it provides a better bridge to later regime-management or certified-style ideas without collapsing everything into those ideas too early.
+- **exploit** → `greedy`
+- **recover** → `uncertainty`
+- **caution** → `mdc_info`
 
-In particular, a middle regime is useful because Subgoal D already suggested that the current two-state response may be too compressed in some corruption-side cases. A middle regime creates room for:
-
-- partial recovery,
-- guarded continuation,
-- or a stabilization phase,
-
-without forcing every non-ideal condition immediately into the strongest degraded state.
-
-### 5.3 Recommended semantic stance for the middle regime
-
-The middle regime should **not** be treated as a vague catch-all.
-
-It should have a clear operational meaning. A good first-pass interpretation is:
-
-> the controller is seeing enough weakening or uncertainty that full exploit is no longer justified, but support is not degraded enough to require full caution.
-
-This can be described as:
-
-- guarded exploit,
-- stabilization,
-- recovery,
-- or intermediate support.
-
-For v0.2, **recover** is a useful name if the regime is mainly about requalification after degraded conditions.  
-**guarded** is a useful name if the regime is mainly about moderated operation under partial support.
-
-Either can work. The important point is that the semantics must remain explicit.
+This mapping is a compact operational bridge for v0.2 experimentation. It should not be treated as a final scientific claim about optimal policy structure.
 
 ---
 
-## 6. Recommended mechanism shape
+## 5. Mechanism shape
 
-### 6.1 Reuse the existing usefulness supports first
+### 5.1 Support quantities reused from earlier work
 
-Subgoal E should, as much as possible, reuse the already validated support quantities from Subgoal D rather than inventing a fresh signal family.
+Subgoal E intentionally reuses the already validated usefulness-support quantities from Subgoal D rather than introducing a new signal family.
 
-That means the new regime logic should continue to draw primarily from quantities such as:
+The regime logic is driven primarily by rolling recent-window summaries of:
 
-- recent observation age support,
-- recent misleadingness support,
-- recent driver-information support,
-- and their already established compact summaries.
+- valid observation age,
+- misleading activity,
+- misleading-activity positive fraction,
+- and delayed-aligned driver-information support.
 
-This is important because Subgoal D already established that these signals are interpretable across:
+This preserves continuity with the validated usefulness-diagnostic layer.
 
-- the usefulness-aware prototype,
-- fixed-policy baselines,
-- and a limited harder-world subset.
+### 5.2 Trigger structure
 
-The controller extension should build on that validated diagnostic core.
+The first implemented three-regime scaffold includes explicit trigger booleans for:
 
-### 6.2 Avoid overfitting to one impairment type
+- **recover entry**
+- **caution entry**
+- **recover-from-caution requalification**
+- **exploit requalification**
 
-The new regime logic should not become:
+and explicit persistence counters for each trigger direction.
 
-- merely a delay detector,
-- or merely a corruption detector.
-
-It should remain usefulness-oriented.
-
-That means the regime logic should respond to **support quality**, not only to impairment labels. Delay and corruption should still be distinguishable in interpretation, but they should influence the controller through support degradation rather than through special-case hardcoding whenever possible.
-
-### 6.3 Keep the transition logic explicit
-
-The Subgoal E controller should make transition logic easy to inspect.
-
-At minimum, the controller should support plainly interpretable answers to questions like:
+The design intent is that the controller should support direct audit questions such as:
 
 - why did the run leave exploit?
-- why did it not go all the way to caution?
+- why did it enter recover instead of caution?
+- why did it remain in caution?
 - why did it leave caution?
-- why did it remain in the middle regime?
-- what support quantity made the difference?
+- why did it fail to re-enter exploit?
 
-This means transition logic should favor:
+### 5.3 Transition stance
 
-- explicit thresholds,
-- recent-window support conditions,
-- persistence where needed,
-- and clearly named regime states.
+The transition logic is deliberately explicit and threshold-based. It favors:
 
-It should avoid opaque composite logic unless that composite is still easy to audit.
+- recent-window support quantities,
+- named trigger conditions,
+- named persistence counters,
+- and directly inspectable regime-state traces.
+
+This is intentional. Subgoal E is meant to be auditable first, not optimized first.
 
 ---
 
-## 7. Recommended Subgoal E behavior
+## 6. What was implemented and verified
 
-The controller extension should aim for the following first-pass behavioral pattern.
+The Subgoal E implementation included:
+
+- backend regime-state extension from two states to three,
+- explicit usefulness trigger series,
+- explicit persistence-counter series,
+- summary fields for regime fractions and trigger-hit counts,
+- and frontend visualizer support for the expanded usefulness traces.
+
+A frontend plotting issue initially hid some of the intended usefulness traces. That issue was repaired during Subgoal E debugging. This is part of the practical checkpoint record: the implemented controller is now trace-visible rather than only summary-visible.
+
+The resulting controller can now be inspected through:
+
+- regime-state traces,
+- trigger traces,
+- persistence-counter traces,
+- rolling support traces,
+- and compact summary fields.
+
+---
+
+## 7. Compact audit result
+
+The first compact audit used representative cases including:
+
+- ideal,
+- delay-impaired,
+- and noise-impaired runs,
+
+with several severity levels examined during the implementation cycle.
+
+The important outcome is that the three-regime controller is **doing real work**. It is not a cosmetic refactor.
 
 ### 7.1 Ideal case
-Expected behavior:
 
-- mostly or entirely **exploit**
-- little or no time in recover / guarded
-- little or no time in caution
+Observed pattern:
 
-Interpretation:
-
-- healthy conditions should still read as healthy
-- the new middle regime must not appear merely because a middle regime exists
-
-### 7.2 Delay-heavy case
-Expected behavior:
-
-- exploit should weaken or disappear
-- the controller may pass through **recover/guarded**
-- sustained degradation should still justify **caution**
+- exploit-dominant or fully exploit-dominant
+- negligible or zero recover occupancy
+- negligible or zero caution occupancy
 
 Interpretation:
 
-- the controller should still clearly recognize stale-but-active degradation
-- if recovery or guarded behavior appears, it should be explainable as an intermediate stage rather than noise
+- healthy conditions still read as healthy
+- the added regime structure does not create spurious intermediate-state behavior in ideal runs
 
-### 7.3 Noise-heavy case
-Expected behavior:
+This is a strong success condition and was met.
 
-- exploit should weaken under corruption-side degradation
-- moderate corruption may occupy **recover/guarded**
-- stronger corruption may still occupy **caution**
+### 7.2 Moderate noise case
 
-Interpretation:
+Observed pattern:
 
-- Subgoal E should create room for a more legible corruption ladder than the current two-state compression, if possible
-- but only insofar as that can be done without ad hoc over-tuning
-
-### 7.4 Mixed case
-Expected behavior:
-
-- the regime logic should remain interpretable
-- mixed degraded support may move between recover and caution depending on severity and persistence
+- exploit collapses quickly,
+- recover becomes the dominant regime,
+- caution is present but not dominant.
 
 Interpretation:
 
-- mixed cases should not become opaque simply because multiple support channels move at once
+- this is the clearest success of Subgoal E
+- the new middle regime is doing useful work
+- moderate corruption no longer has to collapse immediately into the strongest degraded state
+
+This is the main evidence that the three-regime extension adds genuine explanatory value over the earlier two-state controller.
+
+### 7.3 Strong noise case
+
+Observed pattern:
+
+- exploit is negligible,
+- recover is brief,
+- caution becomes dominant.
+
+Interpretation:
+
+- the controller still has a meaningful degraded end-state
+- caution remains operationally distinct and appropriate for strong corruption-side degradation
+
+This is also a success.
+
+### 7.4 Delay-impaired cases
+
+Observed pattern:
+
+- exploit weakens or disappears,
+- recover is usually brief,
+- caution becomes dominant.
+
+Interpretation:
+
+- the controller clearly recognizes stale-but-active degradation
+- however, delay response still appears somewhat **saturated**
+- delay severity does not yet produce as clean or as smoothly graded an internal ladder as desired
+
+This is the main remaining limitation of the current checkpoint.
 
 ---
 
-## 8. Validation goals for Subgoal E
+## 8. Main checkpoint conclusion
 
-Subgoal E validation should be narrower than a full study campaign.
+The Subgoal E controller should be considered a **successful qualitative extension** of the earlier two-state usefulness-aware prototype.
 
-The first question is not:
-> does the new controller outperform everything else?
+The key reasons are:
 
-The first questions are:
+- ideal runs remain quiet and exploitive,
+- the new middle regime is real rather than decorative,
+- moderate noise now occupies recover in a legible way,
+- strong noise still maps to caution,
+- delay still maps away from exploit in the correct qualitative direction,
+- and the full mechanism is visible in trace form.
+
+The strongest substantive gain is:
+
+> the controller now expresses a meaningful corruption-side ladder: ideal → recover-dominant moderate corruption → caution-dominant strong corruption.
+
+The main remaining caveat is:
+
+> the delay path still tends to saturate into caution rather quickly, so delay severity is not yet expressed as smoothly as the corruption ladder.
+
+That caveat does **not** invalidate the checkpoint. It limits the claims that should be made from it.
+
+---
+
+## 9. What Subgoal E achieved
+
+Subgoal E achieved the following:
+
+### 9.1 Added controller structure
+The usefulness-aware controller is no longer limited to a direct exploit/caution split.
+
+### 9.2 Preserved healthy-case behavior
+Ideal runs still read as healthy and remain exploit-dominant.
+
+### 9.3 Reduced two-state compression
+The clearest reduction in compression occurs on the corruption side, especially under moderate noise.
+
+### 9.4 Preserved degraded caution semantics
+Caution remains meaningful under strongly degraded conditions.
+
+### 9.5 Preserved auditability
+The controller is still readable through compact tables and aligned traces.
+
+---
+
+## 10. What Subgoal E did not achieve
+
+Subgoal E did **not** yet achieve:
+
+### 10.1 Smooth delay severity grading
+Delay-heavy runs are recognized, but delay severity is not yet expressed through a clean internal ladder.
+
+### 10.2 Final regime calibration
+The present thresholds and persistence values are checkpoint-quality, not final-quality.
+
+### 10.3 Final semantic refinement of recover
+The middle regime is already useful, but its semantics are still somewhat broad: weakened support, guarded operation, stabilization, and requalification remain close together in the current implementation.
+
+### 10.4 Final publication-ready controller logic
+This remains an experimental, auditable v0.2 controller step.
+
+---
+
+## 11. Validation stance at freeze
+
+The correct validation question for Subgoal E was never:
+
+> does this now outperform everything?
+
+The right questions were:
 
 1. Is the three-regime logic interpretable?
 2. Does the middle regime appear for understandable reasons?
-3. Does it reduce the most obvious compression of the current two-state controller?
-4. Does the added structure survive compact audit inspection?
+3. Does it reduce the most obvious compression of the earlier two-state controller?
+4. Does the added structure remain compact and auditable?
 
-These are the right validation goals for this subgoal.
+At this checkpoint, the answers are:
 
----
+- **yes, qualitatively**
+- **yes, especially on the corruption side**
+- **yes**
+- **yes**
 
-## 9. Subgoal E validation layers
+with one explicit caveat:
 
-Validation should proceed in compact layers.
+- **delay-side calibration remains somewhat coarse**
 
-### 9.1 Layer 1 — mechanism sanity check
-Purpose:
-- verify that the new regime states exist and transition as intended in controlled runs
-
-Questions:
-- do all intended regime states appear when expected?
-- does the middle regime actually mean something, or is it effectively unused?
-- are transitions auditable?
-
-### 9.2 Layer 2 — compact impairment audit
-Purpose:
-- compare ideal, delay-heavy, and noise-heavy cases under the new regime logic
-
-Questions:
-- does ideal remain mostly exploit?
-- does delay remain clearly caution-oriented or pass through a meaningful middle regime?
-- does noise now gain a more legible intermediate regime where appropriate?
-
-### 9.3 Layer 3 — representative trace inspection
-Purpose:
-- inspect one representative delay run and one representative noise run in detail
-
-Questions:
-- why did the controller enter recover or caution?
-- what support quantities explain the timing?
-- does the middle regime improve interpretability rather than reduce it?
-
-### 9.4 Layer 4 — compact cross-policy context
-Purpose:
-- compare the new Subgoal E controller against the already validated Subgoal D fixed-policy context
-
-Questions:
-- does the new regime structure still sit coherently on top of the established usefulness-diagnostic story?
-- does it appear to use the diagnostic layer rather than fight it?
-
-### 9.5 Layer 5 — limited harder-world confirmation
-Purpose:
-- ensure the new regime structure is not purely an artifact of the easiest geometry
-
-Questions:
-- do exploit / recover / caution remain legible under the harder-world compact subset?
-- does the middle regime remain interpretable there?
+That is the right frozen reading of this checkpoint.
 
 ---
 
-## 10. Recommended experiment family
+## 12. Frozen interpretation of the regimes
 
-Subgoal E should keep a deliberately small experiment family.
+At this checkpoint, the regimes should be interpreted as follows.
 
-### Experiment Group 1 — regime mechanism sanity check
-**Purpose:** verify that the new regime logic behaves as designed.
+### Exploit
+Healthy usefulness support. Full exploitive control remains justified.
 
-**Recommended cases:**
-- one ideal case
-- one delay-heavy case
-- one noise-heavy case
+### Recover
+Intermediate usefulness support. This regime currently covers:
+- weakened but not collapsed support,
+- guarded operation,
+- partial requalification,
+- and intermediate corruption-side conditions.
 
-**Primary quantities to inspect:**
-- regime state fractions
-- trigger counts
-- final regime state
-- recent support summaries
-- transition timing
+### Caution
+Clearly degraded usefulness support. Conservative control remains justified.
 
-### Experiment Group 2 — compact controller audit
-**Purpose:** audit the new three-regime controller directly.
-
-**Recommended controller under test:**
-- Subgoal E usefulness-aware regime extension
-
-**Recommended cases:**
-- ideal
-- delay = 4
-- noise = 0.1
-- noise = 0.2
-- noise = 0.3
-- optionally one mixed case
-
-**Primary quantities to inspect:**
-- exploit fraction
-- recover/guarded fraction
-- caution fraction
-- trigger counts by regime direction
-- recent age support
-- recent misleadingness support
-- recent driver-information support
-
-### Experiment Group 3 — representative trace audit
-**Purpose:** inspect controller causality.
-
-**Recommended cases:**
-- one representative delay run
-- one representative moderate-noise run
-- optionally one stronger-noise run
-
-**Primary outputs:**
-- aligned support traces
-- regime-state timeline
-- transition markers
-
-### Experiment Group 4 — limited harder-world confirmation
-**Purpose:** confirm that the new regime logic survives beyond the easiest geometry.
-
-**Recommended subset:**
-- ideal
-- delay-heavy
-- noise-heavy
-
-**Recommended scope:**
-- keep compact
-- do not broaden until the simple-world controller logic is clearly validated
+This interpretation is intentionally modest. It is enough to support v0.2 experimental reading without over-claiming that the regime semantics are already final.
 
 ---
 
-## 11. Recommended outputs
+## 13. Recommended frozen experiment set
 
-Subgoal E should produce a small and stable output set.
+The minimal frozen comparison set for this checkpoint is:
 
-### 11.1 Compact regime audit table
+- **ideal**
+- **delay = 2**
+- **delay = 8**
+- **noise = 0.1**
+- **noise = 0.45**
+
+These runs are sufficient to support the checkpoint-level conclusions:
+
+- ideal remains exploit-dominant,
+- moderate noise becomes recover-dominant,
+- stronger noise becomes caution-dominant,
+- delay becomes caution-dominant,
+- and the controller’s internal logic is visible in traces.
+
+Broader expansion should wait until a later step.
+
+---
+
+## 14. Recommended frozen outputs
+
+The stable output set for this checkpoint should be:
+
+### 14.1 Compact regime audit table
 Recommended columns:
 - case
 - exploit_frac
-- recover_frac (or guarded_frac)
+- recover_frac
 - caution_frac
 - final_state
-- transition counts
+- trigger counts
 - recent_age_last
-- recent_misleading_last
+- recent_misleading_pos_frac_last
 - recent_driver_info_last
 
-### 11.2 Representative transition figure
+### 14.2 Representative trace figure
 Recommended aligned panels:
-- recent age support
-- recent misleadingness support
-- recent driver-info support
-- regime state over time
-- trigger activity over time
+- recent valid observation age
+- recent misleading-activity positive fraction
+- recent driver-info mean
+- regime state
+- recover trigger
+- caution trigger
+- recover-from-caution trigger
+- exploit trigger
+- persistence counters
 
-Purpose:
-- show why the controller moved among the three regimes
-
-### 11.3 Compact comparison note
-A short written synthesis explaining:
-- whether the new middle regime is doing useful work,
-- whether it improves interpretability,
-- and whether it reduces the most obvious two-state compression
-
----
-
-## 12. Success criteria
-
-Subgoal E should be considered successful if the following hold.
-
-### 12.1 Regime interpretability
-The new regime set must remain easy to explain in operational terms.
-
-### 12.2 Healthy-case quietness
-Ideal runs should remain predominantly exploitative.
-
-### 12.3 Intermediate-regime usefulness
-The new middle regime should appear for understandable reasons and should not merely act as noise.
-
-### 12.4 Degraded-case responsiveness
-Delay-heavy and corruption-heavy cases should still move away from exploit in a way that matches the support signals.
-
-### 12.5 Compactness
-The new controller should still be understandable through compact audit tables and representative traces.
-
-### 12.6 Incremental value
-Subgoal E should provide a real improvement over the Subgoal D two-state controller, either by:
-- improving interpretability,
-- reducing compression,
-- or clarifying transition structure.
+### 14.3 Short written synthesis
+Recommended content:
+- what the middle regime is doing,
+- where the controller clearly improved,
+- and where delay response remains coarse.
 
 ---
 
-## 13. Failure conditions / warning signs
+## 15. Success criteria for this frozen checkpoint
 
-Subgoal E should be treated as incomplete if one or more of the following occurs:
+This checkpoint should be considered successful because:
 
-- ideal runs spend substantial unexplained time outside exploit,
-- the new middle regime appears frequently but cannot be interpreted,
-- delay and noise become less distinguishable than they were in Subgoal D,
-- the new logic requires many ad hoc exceptions,
-- the extra regime adds complexity without adding explanatory value,
-- or the traces become harder, not easier, to read.
+- the regime set remains interpretable,
+- ideal runs remain mostly or entirely exploit,
+- the middle regime is meaningful rather than noisy,
+- degraded cases still leave exploit appropriately,
+- the traces remain readable,
+- and the controller offers real incremental value over the earlier two-state version.
 
-These would indicate that the extension is not yet a useful improvement over the Subgoal D checkpoint.
+This checkpoint should **not** be described as fully calibrated. It should be described as:
 
----
-
-## 14. Non-goals
-
-Subgoal E is **not** intended to deliver:
-
-- the final usefulness-aware controller,
-- a production-grade regime-management stack,
-- exhaustive tuning,
-- broad policy-comparison claims,
-- full paper-ready figures,
-- or final thesis-stage controller conclusions.
-
-It is also **not** intended to erase the value of the Subgoal D checkpoint.  
-Subgoal D remains the validated baseline against which Subgoal E should be judged.
+> a successful qualitative three-regime extension with the clearest gains on the corruption side and an identifiable remaining limitation on the delay side.
 
 ---
 
-## 15. Expected implementation touchpoints
+## 16. Failure conditions that remain relevant later
 
-The likely implementation touchpoints for Subgoal E are:
+Future work should treat the following as warning signs if they persist:
+
+- ideal runs spending unexplained time outside exploit,
+- recover becoming frequent but hard to interpret,
+- delay severity remaining poorly ordered,
+- traces becoming harder rather than easier to read,
+- or added regime structure ceasing to add explanatory value.
+
+At the Subgoal E freeze point, the main live warning sign is still:
+
+- **delay-side saturation / coarse grading**
+
+Everything else is currently consistent with a successful checkpoint.
+
+---
+
+## 17. Implementation touchpoints
+
+The principal Subgoal E touchpoints are:
 
 - `backend/api/routers/operational.py`
 - `backend/awsrt_core/schemas/operational.py`
 - `frontend/app/operational/designer/page.tsx`
 - `frontend/app/operational/visualizer/page.tsx`
 
-### Expected backend work
-Backend work will likely include:
+### Backend
+Implemented:
+- three-regime usefulness state,
+- trigger logic,
+- persistence counters,
+- summary fields,
+- step-level trace persistence.
 
-- extending usefulness-regime state representation,
-- adding new summary fields for the middle regime,
-- preserving compact summary outputs,
-- and ensuring per-step traces remain interpretable.
+### Schema
+Implemented:
+- threshold and persistence exposure for the new usefulness scaffold.
 
-### Expected schema work
-Schema work will likely include:
+### Designer
+Implemented:
+- controlled exposure of the new usefulness parameters.
 
-- adding any new controller parameters,
-- keeping defaults disciplined,
-- and preserving backward clarity in manifests.
+### Visualizer
+Implemented:
+- regime-state trace,
+- trigger traces,
+- persistence-counter traces,
+- rolling support traces.
 
-### Expected designer work
-Designer work will likely include:
-
-- exposing the new regime settings without overwhelming the page,
-- preserving preset discipline,
-- and keeping the page focused on authoring rather than interpretation overload.
-
-### Expected visualizer work
-Visualizer work will likely include:
-
-- showing the new regime-state timeline,
-- surfacing the main interpretation there rather than overloading the designer,
-- and keeping mechanism-audit detail available but secondary.
-
----
-
-## 16. Artifact and checkpoint discipline
-
-Subgoal E should preserve the same artifact discipline used earlier in v0.2.
-
-Recommended categories:
-
-- regime extension mechanism checks
-- compact controller audit
-- representative trace audit
-- limited harder-world confirmation
-
-A new design note should exist before major controller edits proceed.  
-This note is that design note.
-
-A new checkpoint should be made once:
-- the controller logic is stable enough to run compact audits,
-- and the resulting regime structure is at least minimally interpretable.
-
----
-
-## 17. Recommended working sequence
-
-### Step 1
-Freeze the Subgoal D checkpoint and treat it as the comparison baseline.
-
-### Step 2
-Implement the smallest viable three-regime extension.
-
-### Step 3
-Run a mechanism sanity subset on ideal, delay-heavy, and noise-heavy cases.
-
-### Step 4
-Inspect representative traces to verify transition causality.
-
-### Step 5
-Run the compact audit ladder for the new controller.
-
-### Step 6
-Run a limited harder-world confirmation.
-
-### Step 7
-Decide whether the Subgoal E extension is:
-- good enough to freeze,
-- still needs calibration,
-- or should be simplified before further expansion.
+The visualizer repair that restored missing usefulness plots is part of the practical implementation record of this checkpoint.
 
 ---
 
 ## 18. Relation to later development
 
-If Subgoal E succeeds, likely next directions include:
+If later development continues from this checkpoint, the most natural next directions are:
 
-1. refining the semantics of the middle regime,
-2. improving bounded support calibration,
-3. integrating the usefulness-aware regime logic more cleanly with broader operational control structure,
-4. and widening the study family for a more publication-oriented v0.2 controller story.
+1. refine the semantics of the recover regime,
+2. improve delay-side grading,
+3. tighten threshold and persistence calibration,
+4. preserve the current auditability while making the controller slightly more discriminating,
+5. and only then broaden the experiment family.
 
-If Subgoal E fails, the correct response should usually be:
-- simplify,
-- re-audit,
-- and avoid adding more controller complexity on top of an unclear intermediate design.
+The wrong next step would be to add substantial new controller complexity before the current three-regime interpretation is fully absorbed.
 
 ---
 
-## 19. Short summary
+## 19. Frozen summary
 
-Subgoal E is the next disciplined controller step after the validated Subgoal D checkpoint. Its purpose is to extend the current two-state usefulness-aware prototype into a small, interpretable three-regime scaffold that remains auditable and experimentally compact. The intended value of this step is not broad performance optimization, but improved controller structure: preserving healthy exploit behavior, retaining clear degraded caution behavior, and introducing a meaningful intermediate regime that better expresses partial support, guarded operation, or recovery. Success means the added structure is genuinely useful, readable in traces, and an improvement over the Subgoal D two-state baseline.
+Subgoal E freezes as a compact, auditable three-regime usefulness-aware controller extension for AWSRT `v0.2`. The controller now distinguishes **exploit, recover, and caution**, and this added structure is genuinely useful rather than cosmetic. Ideal runs remain exploit-dominant. Moderate noise runs are now expressed primarily through **recover**, which is the clearest improvement over the earlier two-state controller. Strong noise and delay-heavy runs remain caution-dominant, preserving a clear degraded regime. The mechanism is readable in trace form through support quantities, triggers, and persistence counters. The main remaining limitation is that delay response still appears somewhat saturated rather than smoothly graded. Accordingly, this checkpoint should be treated as a successful qualitative controller extension and an appropriate Subgoal E freeze point, with later refinement focused primarily on delay-side calibration rather than on expanding controller complexity.

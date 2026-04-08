@@ -63,9 +63,17 @@ USEFULNESS_SUPPORT_WINDOW = 10
 # This is intentionally backend-local for the first pass.
 USEFULNESS_PROTO_POLICY = "usefulness_proto"
 USEFULNESS_STATE_EXPLOIT = 0
-USEFULNESS_STATE_CAUTION = 1
+USEFULNESS_STATE_RECOVER = 1
+USEFULNESS_STATE_CAUTION = 2
 
-# Enter caution when recent information quality looks risky.
+# Enter recover when recent support has weakened enough that full exploit is
+# no longer justified, but strong caution is not yet required.
+USEFULNESS_RECOVER_AGE_THRESHOLD = 1.0
+USEFULNESS_RECOVER_MISLEADING_POS_FRAC_THRESHOLD = 0.15
+USEFULNESS_RECOVER_DRIVER_INFO_LOW_THRESHOLD = 2.0e-4
+USEFULNESS_RECOVER_ARRIVALS_HIGH_THRESHOLD = 0.80
+
+# Enter caution when recent information quality looks strongly degraded.
 USEFULNESS_CAUTION_AGE_THRESHOLD = 2.0
 USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD = 0.30
 # Corruption-side caution should fire under materially weakened useful
@@ -76,12 +84,20 @@ USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD = 0.30
 USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD = 2.0e-4
 USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD = 0.80
 
-# Return to exploit when recent conditions look healthy again.
+# Return from caution to recover when support has partially requalified but is
+# not yet clean enough for full exploit.
+USEFULNESS_RECOVER_EXIT_AGE_THRESHOLD = 1.0
+USEFULNESS_RECOVER_EXIT_MISLEADING_POS_FRAC_THRESHOLD = 0.20
+USEFULNESS_RECOVER_EXIT_DRIVER_INFO_RECOVER_THRESHOLD = 1.0e-5
+
+# Return to exploit only when recent conditions look clearly healthy again.
 USEFULNESS_EXPLOIT_AGE_THRESHOLD = 0.5
-USEFULNESS_EXPLOIT_MISLEADING_POS_FRAC_THRESHOLD = 0.10
+USEFULNESS_EXPLOIT_MISLEADING_POS_FRAC_THRESHOLD = 0.15
 USEFULNESS_EXPLOIT_DRIVER_INFO_RECOVER_THRESHOLD = 1.0e-5
 
+USEFULNESS_RECOVER_PERSISTENCE = 2
 USEFULNESS_CAUTION_PERSISTENCE = 3
+USEFULNESS_RECOVER_EXIT_PERSISTENCE = 2
 USEFULNESS_EXPLOIT_PERSISTENCE = 3
 
 class ComparePoliciesRequest(BaseModel):
@@ -189,6 +205,32 @@ def _rolling_positive_fraction(x: np.ndarray, start: int, end: int) -> Optional[
 
 
 
+def _usefulness_trigger_recover(
+    *,
+    recent_obs_age_mean_valid: Optional[float],
+    recent_misleading_activity_pos_frac: Optional[float],
+    recent_driver_info_true_mean: Optional[float],
+    arrivals_frac_t: float,
+) -> bool:
+    age_weakened = (
+        recent_obs_age_mean_valid is not None
+        and float(recent_obs_age_mean_valid) >= float(USEFULNESS_RECOVER_AGE_THRESHOLD)
+    )
+    misleading_weakened = (
+        recent_misleading_activity_pos_frac is not None
+        and float(recent_misleading_activity_pos_frac)
+        >= float(USEFULNESS_RECOVER_MISLEADING_POS_FRAC_THRESHOLD)
+    )
+    low_info_while_active = (
+        float(arrivals_frac_t) >= float(USEFULNESS_RECOVER_ARRIVALS_HIGH_THRESHOLD)
+        and recent_driver_info_true_mean is not None
+        and float(recent_driver_info_true_mean)
+        <= float(USEFULNESS_RECOVER_DRIVER_INFO_LOW_THRESHOLD)
+    )
+    corruption_weakened = bool(misleading_weakened and low_info_while_active)
+    return bool(age_weakened or corruption_weakened)
+
+
 def _usefulness_trigger_caution(
     *,
     recent_obs_age_mean_valid: Optional[float],
@@ -196,17 +238,6 @@ def _usefulness_trigger_caution(
     recent_driver_info_true_mean: Optional[float],
     arrivals_frac_t: float,
 ) -> bool:
-    """
-    First-pass caution trigger.
-
-    Intent:
-      - stale recent inputs should be enough to push into caution
-      - corruption-style caution should require coordinated evidence:
-        recent misleadingness is elevated AND useful recent information is weak
-        while arrivals are still active
-      - this keeps the trigger from being too eager in ideal runs where one
-        weak indicator may flicker briefly
-    """
     age_bad = (
         recent_obs_age_mean_valid is not None
         and float(recent_obs_age_mean_valid) >= float(USEFULNESS_CAUTION_AGE_THRESHOLD)
@@ -225,6 +256,28 @@ def _usefulness_trigger_caution(
     corruption_bad = bool(misleading_bad and low_info_while_active)
     return bool(age_bad or corruption_bad)
 
+
+def _usefulness_trigger_recover_from_caution(
+    *,
+    recent_obs_age_mean_valid: Optional[float],
+    recent_misleading_activity_pos_frac: Optional[float],
+    recent_driver_info_true_mean: Optional[float],
+) -> bool:
+    age_ok = (
+        recent_obs_age_mean_valid is not None
+        and float(recent_obs_age_mean_valid) <= float(USEFULNESS_RECOVER_EXIT_AGE_THRESHOLD)
+    )
+    misleading_ok = (
+        recent_misleading_activity_pos_frac is not None
+        and float(recent_misleading_activity_pos_frac)
+        <= float(USEFULNESS_RECOVER_EXIT_MISLEADING_POS_FRAC_THRESHOLD)
+    )
+    info_ok = (
+        recent_driver_info_true_mean is not None
+        and float(recent_driver_info_true_mean)
+        >= float(USEFULNESS_RECOVER_EXIT_DRIVER_INFO_RECOVER_THRESHOLD)
+    )
+    return bool(age_ok and misleading_ok and info_ok)
 
 def _usefulness_trigger_exploit(
     *,
@@ -255,27 +308,45 @@ def _usefulness_trigger_exploit(
 def _usefulness_transition(
     *,
     cur_state: int,
+    trig_recover: bool,
     trig_caution: bool,
+    trig_recover_from_caution: bool,
     trig_exploit: bool,
+    recover_counter: int,
     caution_counter: int,
+    recover_exit_counter: int,
     exploit_counter: int,
 ) -> int:
     """
-    Two-regime prototype transition rule.
+    Three-regime usefulness transition rule.
 
     States:
       0 = exploit
-      1 = caution
+      1 = recover
+      2 = caution
     """
     st = int(cur_state)
     if st == USEFULNESS_STATE_EXPLOIT:
         if trig_caution and int(caution_counter) >= int(USEFULNESS_CAUTION_PERSISTENCE):
             return USEFULNESS_STATE_CAUTION
+        if trig_recover and int(recover_counter) >= int(USEFULNESS_RECOVER_PERSISTENCE):
+            return USEFULNESS_STATE_RECOVER
         return USEFULNESS_STATE_EXPLOIT
 
-    if st == USEFULNESS_STATE_CAUTION:
+    if st == USEFULNESS_STATE_RECOVER:
+        if trig_caution and int(caution_counter) >= int(USEFULNESS_CAUTION_PERSISTENCE):
+            return USEFULNESS_STATE_CAUTION
+
         if trig_exploit and int(exploit_counter) >= int(USEFULNESS_EXPLOIT_PERSISTENCE):
             return USEFULNESS_STATE_EXPLOIT
+        return USEFULNESS_STATE_RECOVER
+
+    if st == USEFULNESS_STATE_CAUTION:
+        if (
+            trig_recover_from_caution
+            and int(recover_exit_counter) >= int(USEFULNESS_RECOVER_EXIT_PERSISTENCE)
+        ):
+            return USEFULNESS_STATE_RECOVER
         return USEFULNESS_STATE_CAUTION
 
     return USEFULNESS_STATE_EXPLOIT
@@ -340,8 +411,14 @@ def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
         "usefulness_proto_enabled": s.get("usefulness_proto_enabled", None),
         "usefulness_regime_state_last": s.get("usefulness_regime_state_last", None),
         "usefulness_regime_state_exploit_frac": s.get("usefulness_regime_state_exploit_frac", None),
+        "usefulness_regime_state_recover_frac": s.get("usefulness_regime_state_recover_frac", None),
         "usefulness_regime_state_caution_frac": s.get("usefulness_regime_state_caution_frac", None),
+        "usefulness_trigger_recover_hits": s.get("usefulness_trigger_recover_hits", None),
         "usefulness_trigger_caution_hits": s.get("usefulness_trigger_caution_hits", None),
+        "usefulness_trigger_recover_from_caution_hits": s.get(
+            "usefulness_trigger_recover_from_caution_hits",
+            None,
+        ),
         "usefulness_trigger_exploit_hits": s.get("usefulness_trigger_exploit_hits", None),
         "residual_cov_in_band_frac": s.get("residual_cov_in_band_frac", None),
         # Regime-management advisory summaries
@@ -1737,9 +1814,13 @@ def run(req: RunRequest) -> dict:
         recent_driver_info_true_mean = np.full((T,), np.nan, dtype=np.float32)
         # First usefulness-aware prototype state/logging series
         usefulness_regime_state = np.zeros((T,), dtype=np.int32)
+        usefulness_trigger_recover = np.zeros((T,), dtype=np.uint8)
         usefulness_trigger_caution = np.zeros((T,), dtype=np.uint8)
+        usefulness_trigger_recover_from_caution = np.zeros((T,), dtype=np.uint8)
         usefulness_trigger_exploit = np.zeros((T,), dtype=np.uint8)
+        usefulness_recover_counter = np.zeros((T,), dtype=np.int32)
         usefulness_caution_counter = np.zeros((T,), dtype=np.int32)
+        usefulness_recover_exit_counter = np.zeros((T,), dtype=np.int32)
         usefulness_exploit_counter = np.zeros((T,), dtype=np.int32)
         # Residual/control primitives used by current dynamic policies
         # driver_cov := arrivals_frac (arrival-like / budget-like)
@@ -1910,7 +1991,9 @@ def run(req: RunRequest) -> dict:
 
         usefulness_proto_enabled = str(m.network.policy) == USEFULNESS_PROTO_POLICY
         usefulness_state_cur = USEFULNESS_STATE_EXPLOIT
+        recover_counter_cur = 0
         caution_counter_cur = 0
+        recover_exit_counter_cur = 0
         exploit_counter_cur = 0
         usefulness_recent_obs_age_window: deque[float] = deque(maxlen=USEFULNESS_SUPPORT_WINDOW)
         usefulness_recent_misleading_window: deque[float] = deque(maxlen=USEFULNESS_SUPPORT_WINDOW)
@@ -1974,11 +2057,12 @@ def run(req: RunRequest) -> dict:
             # For usefulness_proto, choose an effective controller behavior
             # causally from the CURRENT usefulness state, before movement.
             if usefulness_proto_enabled:
-                effective_policy = (
-                    "greedy"
-                    if int(usefulness_state_cur) == USEFULNESS_STATE_EXPLOIT
-                    else "mdc_info"
-                )
+                if int(usefulness_state_cur) == USEFULNESS_STATE_EXPLOIT:
+                    effective_policy = "greedy"
+                elif int(usefulness_state_cur) == USEFULNESS_STATE_RECOVER:
+                    effective_policy = "uncertainty"
+                else:
+                    effective_policy = "mdc_info"
             else:
                 effective_policy = str(m.network.policy)
 
@@ -2667,7 +2751,7 @@ def run(req: RunRequest) -> dict:
             uncertainty_memory = np.clip(uncertainty_memory, 0.0, 1.0)
 
             # Causal usefulness-aware rolling support + state update.
-            # This is the first realized exploit/caution prototype and is only
+            # This is the compact three-regime Subgoal E scaffold and is only
             # active for policy == usefulness_proto.
             if obs_age_steps[t] >= 0:
                 usefulness_recent_obs_age_window.append(float(obs_age_steps[t]))
@@ -2701,39 +2785,106 @@ def run(req: RunRequest) -> dict:
                 if np.isfinite(recent_driver_info_true_mean[t]) else None
             )
 
+            trig_recover_t = False
             trig_caution_t = False
+            trig_recover_from_caution_t = False
             trig_exploit_t = False
             if usefulness_proto_enabled:
-                trig_caution_t = _usefulness_trigger_caution(
+                # Compute raw support conditions first.
+                raw_trig_recover_t = _usefulness_trigger_recover(
                     recent_obs_age_mean_valid=age_recent_t,
                     recent_misleading_activity_pos_frac=misleading_pos_recent_t,
                     recent_driver_info_true_mean=driver_recent_t,
                     arrivals_frac_t=float(arrivals_frac[t]),
                 )
-                trig_exploit_t = _usefulness_trigger_exploit(
+                raw_trig_caution_t = _usefulness_trigger_caution(
+                    recent_obs_age_mean_valid=age_recent_t,
+                    recent_misleading_activity_pos_frac=misleading_pos_recent_t,
+                    recent_driver_info_true_mean=driver_recent_t,
+                    arrivals_frac_t=float(arrivals_frac[t]),
+                )
+                raw_trig_recover_from_caution_t = _usefulness_trigger_recover_from_caution(
+                    recent_obs_age_mean_valid=age_recent_t,
+                    recent_misleading_activity_pos_frac=misleading_pos_recent_t,
+                    recent_driver_info_true_mean=driver_recent_t,
+                )
+                raw_trig_exploit_t = _usefulness_trigger_exploit(
                     recent_obs_age_mean_valid=age_recent_t,
                     recent_misleading_activity_pos_frac=misleading_pos_recent_t,
                     recent_driver_info_true_mean=driver_recent_t,
                 )
 
-                caution_counter_cur = (int(caution_counter_cur) + 1) if trig_caution_t else 0
-                exploit_counter_cur = (int(exploit_counter_cur) + 1) if trig_exploit_t else 0
+                # State-gate triggers so only meaningful transitions accumulate persistence.
+                cur_usefulness_state = int(usefulness_state_cur)
+
+                # exploit -> recover
+                trig_recover_t = bool(
+                    cur_usefulness_state == USEFULNESS_STATE_EXPLOIT
+                    and raw_trig_recover_t
+                )
+
+                # exploit/recover -> caution
+                trig_caution_t = bool(
+                    cur_usefulness_state in (
+                        USEFULNESS_STATE_EXPLOIT,
+                        USEFULNESS_STATE_RECOVER,
+                    )
+                    and raw_trig_caution_t
+                )
+
+                # caution -> recover
+                trig_recover_from_caution_t = bool(
+                    cur_usefulness_state == USEFULNESS_STATE_CAUTION
+                    and raw_trig_recover_from_caution_t
+                )
+
+                # recover -> exploit
+                trig_exploit_t = bool(
+                    cur_usefulness_state == USEFULNESS_STATE_RECOVER
+                    and raw_trig_exploit_t
+                )
+
+                # State-aware persistence counters.
+                recover_counter_cur = (
+                    int(recover_counter_cur) + 1 if trig_recover_t else 0
+                )
+                caution_counter_cur = (
+                    int(caution_counter_cur) + 1 if trig_caution_t else 0
+                )
+                recover_exit_counter_cur = (
+                    int(recover_exit_counter_cur) + 1
+                    if trig_recover_from_caution_t else 0
+                )
+                exploit_counter_cur = (
+                    int(exploit_counter_cur) + 1 if trig_exploit_t else 0
+                )
+
                 usefulness_state_cur = _usefulness_transition(
                     cur_state=usefulness_state_cur,
+                    trig_recover=trig_recover_t,
                     trig_caution=trig_caution_t,
+                    trig_recover_from_caution=trig_recover_from_caution_t,
                     trig_exploit=trig_exploit_t,
+                    recover_counter=recover_counter_cur,
                     caution_counter=caution_counter_cur,
+                    recover_exit_counter=recover_exit_counter_cur,
                     exploit_counter=exploit_counter_cur,
                 )
             else:
+                recover_counter_cur = 0
                 caution_counter_cur = 0
+                recover_exit_counter_cur = 0
                 exploit_counter_cur = 0
                 usefulness_state_cur = USEFULNESS_STATE_EXPLOIT
 
             usefulness_regime_state[t] = int(usefulness_state_cur)
+            usefulness_trigger_recover[t] = 1 if trig_recover_t else 0
             usefulness_trigger_caution[t] = 1 if trig_caution_t else 0
+            usefulness_trigger_recover_from_caution[t] = 1 if trig_recover_from_caution_t else 0
             usefulness_trigger_exploit[t] = 1 if trig_exploit_t else 0
+            usefulness_recover_counter[t] = int(recover_counter_cur)
             usefulness_caution_counter[t] = int(caution_counter_cur)
+            usefulness_recover_exit_counter[t] = int(recover_exit_counter_cur)
             usefulness_exploit_counter[t] = int(exploit_counter_cur)
 
             if t == 0:
@@ -2864,9 +3015,13 @@ def run(req: RunRequest) -> dict:
         _write_1d("recent_misleading_activity_pos_frac", recent_misleading_activity_pos_frac.astype(np.float32), "f4")
         _write_1d("recent_driver_info_true_mean", recent_driver_info_true_mean.astype(np.float32), "f4")
         _write_1d("usefulness_regime_state", usefulness_regime_state.astype(np.int32), "i4")
+        _write_1d("usefulness_trigger_recover", usefulness_trigger_recover.astype(np.uint8), "u1")
         _write_1d("usefulness_trigger_caution", usefulness_trigger_caution.astype(np.uint8), "u1")
+        _write_1d("usefulness_trigger_recover_from_caution", usefulness_trigger_recover_from_caution.astype(np.uint8), "u1")
         _write_1d("usefulness_trigger_exploit", usefulness_trigger_exploit.astype(np.uint8), "u1")
+        _write_1d("usefulness_recover_counter", usefulness_recover_counter.astype(np.int32), "i4")
         _write_1d("usefulness_caution_counter", usefulness_caution_counter.astype(np.int32), "i4")
+        _write_1d("usefulness_recover_exit_counter", usefulness_recover_exit_counter.astype(np.int32), "i4")
         _write_1d("usefulness_exploit_counter", usefulness_exploit_counter.astype(np.int32), "i4")
 
         # Persist drivers + residuals
@@ -3080,9 +3235,15 @@ def run(req: RunRequest) -> dict:
                     ),
                     "usefulness_proto_enabled": int(usefulness_proto_enabled),
                     "usefulness_regime_state": int(usefulness_regime_state[t]),
+                    "usefulness_trigger_recover": int(usefulness_trigger_recover[t]),
                     "usefulness_trigger_caution": int(usefulness_trigger_caution[t]),
+                    "usefulness_trigger_recover_from_caution": int(
+                        usefulness_trigger_recover_from_caution[t]
+                    ),
                     "usefulness_trigger_exploit": int(usefulness_trigger_exploit[t]),
+                    "usefulness_recover_counter": int(usefulness_recover_counter[t]),
                     "usefulness_caution_counter": int(usefulness_caution_counter[t]),
+                    "usefulness_recover_exit_counter": int(usefulness_recover_exit_counter[t]),
                     "usefulness_exploit_counter": int(usefulness_exploit_counter[t]),
                     "regime_requal_support_score": float(regime_requal_support_score[t]),
                     "regime_requal_support_breadth": float(regime_requal_support_breadth[t]),
@@ -3300,11 +3461,19 @@ def run(req: RunRequest) -> dict:
                     usefulness_regime_state,
                     USEFULNESS_STATE_EXPLOIT,
                 ),
+                "usefulness_regime_state_recover_frac": _frac_eq(
+                    usefulness_regime_state,
+                    USEFULNESS_STATE_RECOVER,
+                ),
                 "usefulness_regime_state_caution_frac": _frac_eq(
                     usefulness_regime_state,
                     USEFULNESS_STATE_CAUTION,
                 ),
+                "usefulness_trigger_recover_hits": int(np.count_nonzero(usefulness_trigger_recover)),
                 "usefulness_trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
+                "usefulness_trigger_recover_from_caution_hits": int(
+                    np.count_nonzero(usefulness_trigger_recover_from_caution)
+                ),
                 "usefulness_trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
                 # Regime-management advisory summaries
                 "regime_enabled": bool(regime_enabled),
@@ -3439,11 +3608,19 @@ def run(req: RunRequest) -> dict:
                             usefulness_regime_state,
                             USEFULNESS_STATE_EXPLOIT,
                         ),
+                        "regime_state_recover_frac": _frac_eq(
+                            usefulness_regime_state,
+                            USEFULNESS_STATE_RECOVER,
+                        ),
                         "regime_state_caution_frac": _frac_eq(
                             usefulness_regime_state,
                             USEFULNESS_STATE_CAUTION,
                         ),
+                        "trigger_recover_hits": int(np.count_nonzero(usefulness_trigger_recover)),
                         "trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
+                        "trigger_recover_from_caution_hits": int(
+                            np.count_nonzero(usefulness_trigger_recover_from_caution)
+                        ),
                         "trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
                     },
                 },
@@ -3534,9 +3711,13 @@ def series(opr_id: str) -> dict[str, Any]:
         "recent_misleading_activity_pos_frac": _read_1d("recent_misleading_activity_pos_frac"),
         "recent_driver_info_true_mean": _read_1d("recent_driver_info_true_mean"),
         "usefulness_regime_state": _read_1d_int("usefulness_regime_state"),
+        "usefulness_trigger_recover": _read_1d_int("usefulness_trigger_recover"),
         "usefulness_trigger_caution": _read_1d_int("usefulness_trigger_caution"),
+        "usefulness_trigger_recover_from_caution": _read_1d_int("usefulness_trigger_recover_from_caution"),
         "usefulness_trigger_exploit": _read_1d_int("usefulness_trigger_exploit"),
+        "usefulness_recover_counter": _read_1d_int("usefulness_recover_counter"),
         "usefulness_caution_counter": _read_1d_int("usefulness_caution_counter"),
+        "usefulness_recover_exit_counter": _read_1d_int("usefulness_recover_exit_counter"),
         "usefulness_exploit_counter": _read_1d_int("usefulness_exploit_counter"),
         # Driver/residual series
         "driver_info_true": _read_1d("driver_info_true"),
@@ -3649,10 +3830,18 @@ def series(opr_id: str) -> dict[str, Any]:
         "usefulness_regime_state_exploit_frac": _as_float_or_none(
             s.get("usefulness_regime_state_exploit_frac", None)
         ),
+        "usefulness_regime_state_recover_frac": _as_float_or_none(
+            s.get("usefulness_regime_state_recover_frac", None)
+        ),
         "usefulness_regime_state_caution_frac": _as_float_or_none(
             s.get("usefulness_regime_state_caution_frac", None)
         ),
+        "usefulness_trigger_recover_hits": s.get("usefulness_trigger_recover_hits", None),
         "usefulness_trigger_caution_hits": s.get("usefulness_trigger_caution_hits", None),
+        "usefulness_trigger_recover_from_caution_hits": s.get(
+            "usefulness_trigger_recover_from_caution_hits",
+            None,
+        ),
         "usefulness_trigger_exploit_hits": s.get("usefulness_trigger_exploit_hits", None),
      
         # Regime-management summary scalars
