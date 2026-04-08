@@ -68,7 +68,12 @@ USEFULNESS_STATE_CAUTION = 1
 # Enter caution when recent information quality looks risky.
 USEFULNESS_CAUTION_AGE_THRESHOLD = 2.0
 USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD = 0.30
-USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD = 1.0e-6
+# Corruption-side caution should fire under materially weakened useful
+# information, not only near-total collapse. The previous 1e-6 threshold was
+# too strict relative to observed delayed-aligned driver magnitudes in
+# moderate/strong noise runs, so noisy-but-still-active cases stayed in
+# exploit even when misleadingness was clearly elevated.
+USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD = 2.0e-4
 USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD = 0.80
 
 # Return to exploit when recent conditions look healthy again.
@@ -3396,6 +3401,52 @@ def run(req: RunRequest) -> dict:
                     float(np.nanmax(debug_recovery_utilization_margin))
                     if np.any(np.isfinite(debug_recovery_utilization_margin)) else None
                 ),
+                # Subgoal D compact validation bundle.
+                # Keep existing flat summary keys unchanged for compatibility;
+                # this nested block provides a stable audit-facing surface for
+                # compact tables and validation-oriented visual summaries.
+                "subgoal_d_validation": {
+                    "impairment_audit": {
+                        "ttfd_true": ttf_true,
+                        "ttfd_arrived": ttf_arrived,
+                        "arrivals_frac_mean": float(np.mean(arrivals_frac)) if T > 0 else None,
+                        "obs_age_mean_valid": (
+                            float(obs_age_mean_valid) if obs_age_mean_valid is not None else None
+                        ),
+                        "obs_age_max_valid": (
+                            int(obs_age_max_valid) if obs_age_max_valid is not None else None
+                        ),
+                        "driver_info_true_mean": float(np.mean(driver_info_true)) if T > 0 else None,
+                        "misleading_activity_pos_frac": float(misleading_activity_pos_frac),
+                        "misleading_activity_ratio": float(misleading_activity_ratio),
+                        "recent_obs_age_mean_valid_last": (
+                            float(recent_obs_age_mean_valid_last)
+                            if recent_obs_age_mean_valid_last is not None else None
+                        ),
+                        "recent_misleading_activity_pos_frac_last": (
+                            float(recent_misleading_activity_pos_frac_last)
+                            if recent_misleading_activity_pos_frac_last is not None else None
+                        ),
+                        "recent_driver_info_true_mean_last": (
+                            float(recent_driver_info_true_mean_last)
+                            if recent_driver_info_true_mean_last is not None else None
+                        ),
+                    },
+                    "usefulness_proto_audit": {
+                        "enabled": bool(usefulness_proto_enabled),
+                        "regime_state_last": int(usefulness_regime_state[-1]) if T > 0 else 0,
+                        "regime_state_exploit_frac": _frac_eq(
+                            usefulness_regime_state,
+                            USEFULNESS_STATE_EXPLOIT,
+                        ),
+                        "regime_state_caution_frac": _frac_eq(
+                            usefulness_regime_state,
+                            USEFULNESS_STATE_CAUTION,
+                        ),
+                        "trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
+                        "trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
+                    },
+                },
             },
         )
 

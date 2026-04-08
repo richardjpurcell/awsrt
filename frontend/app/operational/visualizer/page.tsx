@@ -33,6 +33,21 @@ type SeriesRes = {
   delta_mean_entropy?: number[];
   arrivals_frac?: number[];
   detections_arrived_frac?: number[];
+  obs_generation_step?: number[];
+  obs_delivery_step?: number[];
+  obs_age_steps?: number[];
+  loss_frac?: number[];
+  usefulness_gap?: number[];
+  misleading_activity?: number[];
+  recent_obs_age_mean_valid?: number[];
+  recent_misleading_activity_mean?: number[];
+  recent_misleading_activity_pos_frac?: number[];
+  recent_driver_info_true_mean?: number[];
+  usefulness_regime_state?: number[];
+  usefulness_trigger_caution?: number[];
+  usefulness_trigger_exploit?: number[];
+  usefulness_caution_counter?: number[];
+  usefulness_exploit_counter?: number[];
   driver_info_true?: number[];
   residual_cov?: number[];
   residual_info?: number[];
@@ -104,6 +119,18 @@ type SeriesRes = {
   driver_info_true_kind?: string | null;
   residual_info_driver?: string | null;
   residual_cov_driver?: string | null;
+  usefulness_proto_enabled?: boolean;
+  usefulness_regime_state_last?: number | null;
+  usefulness_regime_state_exploit_frac?: number | null;
+  usefulness_regime_state_caution_frac?: number | null;
+  usefulness_trigger_caution_hits?: number | null;
+  usefulness_trigger_exploit_hits?: number | null;
+  recent_obs_age_mean_valid_last?: number | null;
+  recent_obs_age_mean_valid_max?: number | null;
+  recent_misleading_activity_mean_last?: number | null;
+  recent_misleading_activity_mean_max?: number | null;
+  recent_misleading_activity_pos_frac_last?: number | null;
+  recent_driver_info_true_mean_last?: number | null;
   regime_enabled?: boolean;
   regime_mode?: string | null;
   regime_stage_ids?: string[];
@@ -231,6 +258,17 @@ function activeRegimeStateLabel(code: number | null | undefined): string {
       return "opportunistic_downshift";
     case 3:
       return "certified_descent";
+    default:
+      return "—";
+  }
+}
+
+function usefulnessStateLabel(code: number | null | undefined): string {
+  switch (Number(code)) {
+    case 0:
+      return "exploit";
+    case 1:
+      return "caution";
     default:
       return "—";
   }
@@ -670,6 +708,19 @@ export default function OperationalVisualizerPage() {
       (s.delta_mean_entropy?.length ?? 0) ||
       (s.arrivals_frac?.length ?? 0) ||
       (s.detections_arrived_frac?.length ?? 0) ||
+      (s.obs_age_steps?.length ?? 0) ||
+      (s.loss_frac?.length ?? 0) ||
+      (s.usefulness_gap?.length ?? 0) ||
+      (s.misleading_activity?.length ?? 0) ||
+      (s.recent_obs_age_mean_valid?.length ?? 0) ||
+      (s.recent_misleading_activity_mean?.length ?? 0) ||
+      (s.recent_misleading_activity_pos_frac?.length ?? 0) ||
+      (s.recent_driver_info_true_mean?.length ?? 0) ||
+      (s.usefulness_regime_state?.length ?? 0) ||
+      (s.usefulness_trigger_caution?.length ?? 0) ||
+      (s.usefulness_trigger_exploit?.length ?? 0) ||
+      (s.usefulness_caution_counter?.length ?? 0) ||
+      (s.usefulness_exploit_counter?.length ?? 0) ||
 
       (s.driver_info_true?.length ?? 0) ||
       (s.residual_cov?.length ?? 0) ||
@@ -731,6 +782,19 @@ export default function OperationalVisualizerPage() {
       delta_mean_entropy: at(series.delta_mean_entropy),
       arrivals_frac: at(series.arrivals_frac),
       detections_arrived_frac: at(series.detections_arrived_frac),
+      obs_age_steps: atInt(series.obs_age_steps),
+      loss_frac: at(series.loss_frac),
+      usefulness_gap: at(series.usefulness_gap),
+      misleading_activity: at(series.misleading_activity),
+      recent_obs_age_mean_valid: at(series.recent_obs_age_mean_valid),
+      recent_misleading_activity_mean: at(series.recent_misleading_activity_mean),
+      recent_misleading_activity_pos_frac: at(series.recent_misleading_activity_pos_frac),
+      recent_driver_info_true_mean: at(series.recent_driver_info_true_mean),
+      usefulness_regime_state: atInt(series.usefulness_regime_state),
+      usefulness_trigger_caution: atInt(series.usefulness_trigger_caution),
+      usefulness_trigger_exploit: atInt(series.usefulness_trigger_exploit),
+      usefulness_caution_counter: atInt(series.usefulness_caution_counter),
+      usefulness_exploit_counter: atInt(series.usefulness_exploit_counter),
 
       driver_info_true: at(series.driver_info_true),
       residual_cov: at(series.residual_cov),
@@ -813,6 +877,11 @@ export default function OperationalVisualizerPage() {
     typeof series?.regime_advisory_recovery_trigger_hits === "number"
       ? series.regime_advisory_recovery_trigger_hits
       : null;
+
+  const usefulnessSummaryAvailable =
+    !!series?.usefulness_proto_enabled ||
+    (typeof series?.usefulness_regime_state_last === "number") ||
+    !!series?.usefulness_regime_state?.length;
 
   const activeStateSummaryAvailable =
     !!series?.regime_active_enabled ||
@@ -995,6 +1064,25 @@ export default function OperationalVisualizerPage() {
                       mean_entropy=<b>{fmtNum(cursorSummary.mean_entropy, 4)}</b>
                       {" "}· Δmean_entropy=<b>{fmtNum(cursorSummary.delta_mean_entropy, 5)}</b>
                     </div>
+                    <div>
+                      obs_age=<b>{fmtInt(cursorSummary.obs_age_steps)}</b>
+                      {" "}· loss_frac=<b>{fmtNum(cursorSummary.loss_frac, 3)}</b>
+                      {" "}· usefulness_gap=<b>{fmtNum(cursorSummary.usefulness_gap, 5)}</b>
+                      {" "}· misleading_activity=<b>{fmtNum(cursorSummary.misleading_activity, 5)}</b>
+                    </div>
+                    <div>
+                      recent_age=<b>{fmtNum(cursorSummary.recent_obs_age_mean_valid, 3)}</b>
+                      {" "}· recent_mislead_mean=<b>{fmtNum(cursorSummary.recent_misleading_activity_mean, 5)}</b>
+                      {" "}· recent_mislead_pos_frac=<b>{fmtNum(cursorSummary.recent_misleading_activity_pos_frac, 3)}</b>
+                      {" "}· recent_driver_info=<b>{fmtNum(cursorSummary.recent_driver_info_true_mean, 6)}</b>
+                    </div>
+                    <div>
+                      usefulness_state=<b>{usefulnessStateLabel(cursorSummary.usefulness_regime_state)}</b>
+                      {" "}· trig_caution=<b>{fmtInt(cursorSummary.usefulness_trigger_caution)}</b>
+                      {" "}· trig_exploit=<b>{fmtInt(cursorSummary.usefulness_trigger_exploit)}</b>
+                      {" "}· caution_counter=<b>{fmtInt(cursorSummary.usefulness_caution_counter)}</b>
+                      {" "}· exploit_counter=<b>{fmtInt(cursorSummary.usefulness_exploit_counter)}</b>
+                    </div>
 
                     <div style={{ marginTop: 8, fontWeight: 600 }}>MDC diagnostics at current frame</div>
                     <div>
@@ -1023,6 +1111,35 @@ export default function OperationalVisualizerPage() {
                   </div>
                 </div>
 
+              ) : null}
+
+              {usefulnessSummaryAvailable ? (
+                <div className="card" style={{ marginTop: 12 }}>
+                  <h2 style={{ marginTop: 0 }}>Usefulness prototype summary</h2>
+                  <div className="small" style={{ lineHeight: 1.45 }}>
+                    <div style={{ opacity: 0.82 }}>
+                      This section summarizes the exploit/caution usefulness prototype rather than the advisory/active regime-management machinery.
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      usefulness_proto_enabled=<b>{series.usefulness_proto_enabled ? "yes" : "no"}</b>
+                      {" "}· last_state=<b>{usefulnessStateLabel(series.usefulness_regime_state_last)}</b>
+                    </div>
+                    <div>
+                      exploit_frac=<b>{fmtNum(series.usefulness_regime_state_exploit_frac, 3)}</b>
+                      {" "}· caution_frac=<b>{fmtNum(series.usefulness_regime_state_caution_frac, 3)}</b>
+                    </div>
+                    <div>
+                      caution_hits=<b>{fmtInt(series.usefulness_trigger_caution_hits)}</b>
+                      {" "}· exploit_hits=<b>{fmtInt(series.usefulness_trigger_exploit_hits)}</b>
+                    </div>
+                    <div>
+                      recent_age_last=<b>{fmtNum(series.recent_obs_age_mean_valid_last, 3)}</b>
+                      {" "}· recent_misleading_mean_last=<b>{fmtNum(series.recent_misleading_activity_mean_last, 5)}</b>
+                      {" "}· recent_misleading_pos_frac_last=<b>{fmtNum(series.recent_misleading_activity_pos_frac_last, 3)}</b>
+                      {" "}· recent_driver_info_last=<b>{fmtNum(series.recent_driver_info_true_mean_last, 6)}</b>
+                    </div>
+                  </div>
+                </div>
               ) : null}
 
               {advisorySummaryAvailable ? (
@@ -1280,6 +1397,137 @@ export default function OperationalVisualizerPage() {
                   </div>
                 </div>
               ) : null}
+
+              <SectionCard
+                title="Usefulness support and regime traces"
+                subtitle="Direct Subgoal D view: recent-window support quantities and the exploit/caution prototype state and triggers."
+              >
+                {series?.recent_obs_age_mean_valid?.length ? (
+                  <SparkLine
+                    title="Recent valid observation age"
+                    values={series.recent_obs_age_mean_valid.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.recent_obs_age_mean_valid.length - 1))}
+                    height={PLOT_H}
+                    precision={4}
+                    include0
+                    subtitle="Rolling recent-window mean age over valid delivered observations"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.recent_misleading_activity_pos_frac?.length ? (
+                  <SparkLine
+                    title="Recent misleading-activity positive fraction"
+                    values={series.recent_misleading_activity_pos_frac.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.recent_misleading_activity_pos_frac.length - 1))}
+                    height={PLOT_H}
+                    precision={4}
+                    include01
+                    subtitle="Rolling fraction of recent steps with strictly positive misleading activity"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.recent_driver_info_true_mean?.length ? (
+                  <SparkLine
+                    title="Recent driver-info mean"
+                    values={series.recent_driver_info_true_mean.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.recent_driver_info_true_mean.length - 1))}
+                    height={PLOT_H}
+                    precision={6}
+                    include0
+                    subtitle="Rolling recent-window mean of the delayed-aligned truthier information driver"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.usefulness_regime_state?.length ? (
+                  <SparkLine
+                    title="Usefulness regime state"
+                    values={series.usefulness_regime_state.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_regime_state.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include0
+                    subtitle="0 = exploit, 1 = caution"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.usefulness_trigger_caution?.length ? (
+                  <SparkLine
+                    title="Usefulness trigger: caution"
+                    values={series.usefulness_trigger_caution.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_trigger_caution.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include01
+                    subtitle="1 means the caution condition is firing at that step"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.usefulness_trigger_exploit?.length ? (
+                  <SparkLine
+                    title="Usefulness trigger: exploit"
+                    values={series.usefulness_trigger_exploit.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_trigger_exploit.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include01
+                    subtitle="1 means the exploit/recovery condition is firing at that step"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.misleading_activity?.length ? (
+                  <SparkLine
+                    title="Misleading activity"
+                    values={series.misleading_activity.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.misleading_activity.length - 1))}
+                    height={PLOT_H}
+                    precision={6}
+                    include0
+                    subtitle="Per-step corruption-sensitive activity: positive when arrivals occur while mean entropy worsens"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.usefulness_gap?.length ? (
+                  <SparkLine
+                    title="Usefulness gap"
+                    values={series.usefulness_gap.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.usefulness_gap.length - 1))}
+                    height={PLOT_H}
+                    precision={6}
+                    include0
+                    subtitle="Delivered activity minus realized entropy-reduction proxy"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.obs_age_steps?.length ? (
+                  <SparkLine
+                    title="Observation age steps"
+                    values={series.obs_age_steps.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.obs_age_steps.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include0
+                    subtitle="Raw delivered-observation age; negative means no valid age at that step"
+                  />
+                ) : (
+                  <div />
+                )}
+              </SectionCard>
 
               <SectionCard
                 title="Operational sensing and motion"
