@@ -475,7 +475,7 @@ export default function OperationalDesignerPage() {
   const [storeTransitionDetails, setStoreTransitionDetails] = useState(true);
 
   // Usefulness regime (Subgoal E)
-  const [usefulnessRegimeEnabled, setUsefulnessRegimeEnabled] = useState(true);
+  const [usefulnessRegimeEnabled, setUsefulnessRegimeEnabled] = useState(false);
   const [usefulnessMiddleLabel, setUsefulnessMiddleLabel] = useState<UsefulnessMiddleLabel>("recover");
   const [usefulnessExploitPolicy, setUsefulnessExploitPolicy] = useState<UsefulnessPolicyChoice>("greedy");
   const [usefulnessRecoverPolicy, setUsefulnessRecoverPolicy] = useState<UsefulnessPolicyChoice>("uncertainty");
@@ -996,9 +996,9 @@ export default function OperationalDesignerPage() {
       dynamicOnly: true,
     },
     usefulness_proto: {
-      label: "Usefulness regime scaffold (exploit/middle/caution) · usefulness_proto",
+      label: "Usefulness prototype scaffold · usefulness_proto",
       title:
-        "Experimental usefulness-aware controller scaffold. Subgoal E uses a compact three-regime usefulness structure with explicit middle-regime semantics and recent-window support thresholds.",
+        "Experimental usefulness-aware controller scaffold. The live backend behavior currently comes primarily from a compact router-side usefulness prototype; the richer usefulness_regime manifest surface below is retained for alignment and future convergence, but is not yet the full authoritative controller interface.",
       dynamicOnly: true,
     },
     balance: {
@@ -1488,8 +1488,19 @@ export default function OperationalDesignerPage() {
         <div className="card" style={{ marginTop: 10 }}>
           <h2 style={{ marginTop: 0 }}>Usefulness regime</h2>
           <div className="small" style={{ opacity: 0.85, lineHeight: 1.4 }}>
-            Compact Subgoal E usefulness-aware scaffold. This is separate from the broader regime-management system:
-            it maps recent support quality into a three-regime controller structure.
+            Experimental usefulness-aware surface for the compact usefulness prototype.
+            This is separate from the broader regime-management system.
+          </div>
+          <div className="small" style={{ opacity: 0.82, lineHeight: 1.4, marginTop: 6 }}>
+            Important status note: the current live backend behavior is still driven mainly by the
+            compact router-side <b>usefulness_proto</b> scaffold. The editable fields in this section
+            are retained for alignment and future convergence, but should currently be treated as
+            <b> partially wired experimental surface</b>, not yet as the fully authoritative controller API.
+          </div>
+          <div className="small" style={{ opacity: 0.8, lineHeight: 1.4, marginTop: 6 }}>
+            Practical reading for now:
+            <b> policy selection is live;</b> the richer exploit/recover/caution manifest controls below
+            are still ahead of the compact backend implementation.
           </div>
 
           <div className="row" style={{ marginTop: 10 }}>
@@ -1512,6 +1523,9 @@ export default function OperationalDesignerPage() {
               <option value="recover">recover</option>
               <option value="guarded">guarded</option>
             </select>
+            <div className="small" style={{ opacity: 0.75, alignSelf: "center" }}>
+              Experimental / partially wired
+            </div>
           </div>
 
           <div className="row">

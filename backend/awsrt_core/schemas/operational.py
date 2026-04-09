@@ -168,8 +168,10 @@ class NetworkSpec(BaseModel):
         under the SAME operational constraints, enabling "budget emulation"
         baselines (random sensing under realized action-interface budget).
       - `usefulness_proto` is the compact usefulness-aware controller family.
-        In Subgoal E it is interpreted as a three-regime usefulness scaffold
-        (exploit / middle / caution) with manifest-backed transition logic.
+        In the current v0.2 backend, this is the main live usefulness-aware
+        deployment policy. Its effective transition logic and regime-to-policy
+        mapping remain compact and backend-led rather than fully driven by the
+        richer `usefulness_regime` manifest surface below.
     """
     policy: Literal[
         "greedy",
@@ -199,7 +201,10 @@ class NetworkSpec(BaseModel):
     movement_budget_m: float = Field(
         default=0.0,
         ge=0.0,
-        description="If >0, cap total movement per episode (meters).",
+        description=(
+            "Reserved realism knob. Intended to cap total movement per episode "
+            "(meters), but not currently part of the main live backend control path."
+        ),
     )
     max_moves_per_step: int = Field(
         default=0,
@@ -208,22 +213,34 @@ class NetworkSpec(BaseModel):
     )
     collision_model: Literal["none", "overlap_drop", "one_per_cell"] = Field(
         default="none",
-        description="Collision/channel contention model.",
+        description=(
+            "Reserved realism knob for future collision/channel contention semantics. "
+            "Not currently part of the main live backend control path."
+        ),
     )
     collision_strength: float = Field(
         default=0.0,
         ge=0.0,
         le=1.0,
-        description="Strength parameter for collision models (if used).",
+        description=(
+            "Reserved realism knob for future collision semantics. "
+            "Not currently part of the main live backend control path."
+        ),
     )
     battery_model: Literal["none", "active_time", "movement_energy"] = Field(
         default="none",
-        description="Battery model.",
+        description=(
+            "Reserved realism knob for future battery semantics. "
+            "Not currently part of the main live backend control path."
+        ),
     )
     battery_capacity: float = Field(
         default=0.0,
         ge=0.0,
-        description="Capacity for battery model (units depend on model).",
+        description=(
+            "Reserved realism knob for future battery semantics. "
+            "Not currently part of the main live backend control path."
+        ),
     )
 
 
@@ -301,13 +318,29 @@ class UsefulnessRegimeTransitionLogicSpec(BaseModel):
 
 
 class UsefulnessRegimeSpec(BaseModel):
+    """
+    Experimental usefulness-regime surface.
+
+    Important Subgoal H status note:
+      - this schema block preserves the intended manifest-backed usefulness
+        controller surface,
+      - but in the current v0.2 backend the main live usefulness-aware
+        deployment behavior is still the compact `network.policy="usefulness_proto"`
+        scaffold implemented in the router,
+      - therefore this block should currently be read as partially wired /
+        experimental rather than as the fully authoritative controller API.
+    """
     enabled: bool = Field(
         default=False,
-        description="Enable the three-regime usefulness-aware controller scaffold.",
+        description=(
+            "Experimental flag for the richer usefulness-regime surface. "
+            "The current main live usefulness-aware deployment behavior is still "
+            "primarily selected via network.policy='usefulness_proto'."
+        ),
     )
     middle_label: Literal["recover", "guarded"] = Field(
         default="recover",
-        description="Semantic label for the middle usefulness regime.",
+        description="Experimental semantic label for the middle usefulness regime.",
     )
     policies: UsefulnessRegimePoliciesSpec = Field(default_factory=UsefulnessRegimePoliciesSpec)
     transition_logic: UsefulnessRegimeTransitionLogicSpec = Field(
@@ -487,6 +520,15 @@ class OperationalManifest(BaseModel):
 
     O0 replay mode is kept as an advanced/debug mode:
       - set run_mode="replay" and provide epi_id
+
+    Subgoal H surface note:
+      - the core active surface for ordinary runs is the combination of
+        run_mode / phy_id / impairments / network / o1,
+      - `regime_management` is an implemented but still experimental control layer,
+      - `usefulness_regime` is retained as an intended richer usefulness surface,
+        but the current main live usefulness-aware deployment behavior is still
+        centered on the compact backend usefulness prototype selected by
+        `network.policy="usefulness_proto"`.
     """
     run_mode: Literal["closed_loop", "replay"] = Field(default="closed_loop")
 

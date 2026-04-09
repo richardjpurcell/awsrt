@@ -271,6 +271,9 @@ def _usefulness_trigger_caution(
     severe_delay_bad = bool(
         recent_obs_age_mean_valid is not None
         and float(recent_obs_age_mean_valid) >= float(USEFULNESS_SEVERE_DELAY_AGE_THRESHOLD)
+        and recent_misleading_activity_pos_frac is not None
+        and float(recent_misleading_activity_pos_frac)
+        >= float(USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD)
         and float(arrivals_frac_t) >= float(USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD)
         and recent_driver_info_true_mean is not None
         and float(recent_driver_info_true_mean)
@@ -1617,6 +1620,32 @@ def _resolve_active_entropy_for_control(
     weights = np.where(in_band > 0.0, np.float32(1.0), out_band_weight)
     return (entropy_t.astype(np.float32) * weights.astype(np.float32)).astype(np.float32)
 
+def _classify_mdc_info_reward_strength(
+    *,
+    c_info: float,
+    alpha_pos: float,
+    alpha_neg: float,
+) -> str:
+    """
+    Classify the current mdc_info reward setting using the same semantic surface
+    now shown in the frontend designer.
+
+    This intentionally replaces the older explore/neutral/suppress wording.
+    The current interpretation is magnitude-oriented:
+      - off
+      - light
+      - moderate
+      - strong
+    """
+    k_update = 0.5 * float(alpha_pos + alpha_neg)
+    c = float(c_info)
+    if abs(c) <= 1e-12:
+        return "off"
+    if c < k_update:
+        return "light"
+    if c < 2.0 * k_update:
+        return "moderate"
+    return "strong"
 
 # ----------------------------
 # Endpoints
@@ -1751,6 +1780,17 @@ def run(req: RunRequest) -> dict:
 
     run_mode = getattr(m, "run_mode", "closed_loop")
 
+    # Safe defaults for regime-management locals.
+    # These are overridden inside the closed-loop setup once the manifest-backed
+    # regime configuration is unpacked, but defining them here prevents
+    # refactor-order bugs where an audit/helper flag is computed before the
+    # regime block runs.
+    regime_enabled = False
+    regime_mode = "advisory"
+    regime_active_enabled = False
+    active_verify_style = False
+    rgm = None
+
     # ----------------------------
     # O1: closed-loop mode
     # ----------------------------
@@ -1813,6 +1853,12 @@ def run(req: RunRequest) -> dict:
         sensors = np.zeros((T, m.network.n_sensors, 2), dtype=np.int32)
         detections = np.zeros((T, m.network.n_sensors), dtype=np.uint8)  # arrived detections (0/1)
 
+        mechanism_audit_available = bool(
+            regime_enabled
+            and (
+                getattr(rgm, "logging", None) is not None
+            )
+        )
         # Operational series
         detections_any = np.zeros((T,), dtype=np.uint8)
         # Detection semantics:
@@ -3428,10 +3474,10 @@ def run(req: RunRequest) -> dict:
                 ),
                 # Proxy calibration helper for interpreting mdc_info behavior
                 "k_update_proxy": float(0.5 * float(alpha_pos + alpha_neg)),
-                "mdc_info_regime": (
-                    "explore"
-                    if float(c_info) < float(0.5 * float(alpha_pos + alpha_neg)) - 1e-12
-                    else ("neutral" if abs(float(c_info) - float(0.5 * float(alpha_pos + alpha_neg))) <= 1e-12 else "suppress")
+                "mdc_info_regime": _classify_mdc_info_reward_strength(
+                    c_info=float(c_info),
+                    alpha_pos=float(alpha_pos),
+                    alpha_neg=float(alpha_neg),
                 )
                 if str(m.network.policy) == "mdc_info"
                 else None,
@@ -3523,6 +3569,7 @@ def run(req: RunRequest) -> dict:
                 # Regime-management advisory summaries
                 "regime_enabled": bool(regime_enabled),
                 "regime_mode": str(regime_mode),
+                "regime_advisory_enabled": bool(regime_enabled),
                 "regime_stage_ids": [str(getattr(x, "stage_id", "")) for x in rgm_stages],
                 "regime_opportunistic_level_ids": [str(getattr(x, "level_id", "")) for x in rgm_ladder],
                 "regime_utilization_mean": float(np.mean(regime_utilization)) if T > 0 else None,
@@ -3542,7 +3589,15 @@ def run(req: RunRequest) -> dict:
                 "regime_last_state": int(regime_state[-1]) if T > 0 else 0,
                 "regime_last_certified_stage_index": int(regime_certified_stage_index[-1]) if T > 0 else -1,
                 "regime_last_opportunistic_level_index": int(regime_opportunistic_level_index[-1]) if T > 0 else -1,
+                "regime_advisory_last_state": int(regime_state[-1]) if T > 0 else 0,
+                "regime_advisory_last_certified_stage_index": int(regime_certified_stage_index[-1]) if T > 0 else -1,
+                "regime_advisory_last_opportunistic_level_index": int(regime_opportunistic_level_index[-1]) if T > 0 else -1,
                 "regime_last_certified_stage_id": (
+                    str(rgm_stages[int(regime_certified_stage_index[-1])].stage_id)
+                    if T > 0 and 0 <= int(regime_certified_stage_index[-1]) < len(rgm_stages)
+                    else None
+                ),
+                "regime_advisory_last_certified_stage_id": (
                     str(rgm_stages[int(regime_certified_stage_index[-1])].stage_id)
                     if T > 0 and 0 <= int(regime_certified_stage_index[-1]) < len(rgm_stages)
                     else None
@@ -3550,6 +3605,11 @@ def run(req: RunRequest) -> dict:
                 "regime_advisory_stage_eta_mean": float(np.mean(regime_advisory_stage_eta)) if T > 0 else None,
                 "regime_advisory_stage_eta_last": float(regime_advisory_stage_eta[-1]) if T > 0 else None,
                 "regime_last_opportunistic_level_id": (
+                    str(rgm_ladder[int(regime_opportunistic_level_index[-1])].level_id)
+                    if T > 0 and 0 <= int(regime_opportunistic_level_index[-1]) < len(rgm_ladder)
+                    else None
+                ),
+                "regime_advisory_last_opportunistic_level_id": (
                     str(rgm_ladder[int(regime_opportunistic_level_index[-1])].level_id)
                     if T > 0 and 0 <= int(regime_opportunistic_level_index[-1]) < len(rgm_ladder)
                     else None
@@ -3588,6 +3648,7 @@ def run(req: RunRequest) -> dict:
                     int(np.max(debug_leave_certified_counter)) if T > 0 else 0
                 ),
                 "debug_leave_certified_trigger_hits": int(np.count_nonzero(debug_trig_leave_certified_final)),
+                "regime_mechanism_audit_available": bool(mechanism_audit_available),
 
                 # Mechanism diagnostics kept intentionally lightweight at summary
                 # level; detailed inspection should use step series / CSV.
@@ -3892,6 +3953,7 @@ def series(opr_id: str) -> dict[str, Any]:
         # Regime-management summary scalars
         "regime_enabled": bool(s.get("regime_enabled", False)),
         "regime_mode": s.get("regime_mode", None),
+        "regime_advisory_enabled": bool(s.get("regime_advisory_enabled", s.get("regime_enabled", False))),
         "regime_stage_ids": s.get("regime_stage_ids", []),
         "regime_opportunistic_level_ids": s.get("regime_opportunistic_level_ids", []),
         "regime_utilization_mean": _as_float_or_none(s.get("regime_utilization_mean", None)),
@@ -3917,10 +3979,27 @@ def series(opr_id: str) -> dict[str, Any]:
         "regime_last_state": s.get("regime_last_state", None),
         "regime_last_certified_stage_index": s.get("regime_last_certified_stage_index", None),
         "regime_last_opportunistic_level_index": s.get("regime_last_opportunistic_level_index", None),
+        "regime_advisory_last_state": s.get("regime_advisory_last_state", s.get("regime_last_state", None)),
+        "regime_advisory_last_certified_stage_index": s.get(
+            "regime_advisory_last_certified_stage_index",
+            s.get("regime_last_certified_stage_index", None),
+        ),
+        "regime_advisory_last_opportunistic_level_index": s.get(
+            "regime_advisory_last_opportunistic_level_index",
+            s.get("regime_last_opportunistic_level_index", None),
+        ),
         "regime_last_certified_stage_id": s.get("regime_last_certified_stage_id", None),
+        "regime_advisory_last_certified_stage_id": s.get(
+            "regime_advisory_last_certified_stage_id",
+            s.get("regime_last_certified_stage_id", None),
+        ),
         "regime_advisory_stage_eta_mean": _as_float_or_none(s.get("regime_advisory_stage_eta_mean", None)),
         "regime_advisory_stage_eta_last": _as_float_or_none(s.get("regime_advisory_stage_eta_last", None)),
         "regime_last_opportunistic_level_id": s.get("regime_last_opportunistic_level_id", None),
+        "regime_advisory_last_opportunistic_level_id": s.get(
+            "regime_advisory_last_opportunistic_level_id",
+            s.get("regime_last_opportunistic_level_id", None),
+        ),
         "regime_active_enabled": bool(s.get("regime_active_enabled", False)),
         "regime_active_verify_style": bool(s.get("regime_active_verify_style", False)),
         "regime_active_transition_count": s.get("regime_active_transition_count", None),
@@ -3949,6 +4028,7 @@ def series(opr_id: str) -> dict[str, Any]:
         "debug_switch_utilization_margin_max": _as_float_or_none(s.get("debug_switch_utilization_margin_max", None)),
         "debug_recovery_utilization_margin_min": _as_float_or_none(s.get("debug_recovery_utilization_margin_min", None)),
         "debug_recovery_utilization_margin_max": _as_float_or_none(s.get("debug_recovery_utilization_margin_max", None)),
+        "regime_mechanism_audit_available": bool(s.get("regime_mechanism_audit_available", False)),
     }
 
     return out

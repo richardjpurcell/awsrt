@@ -1211,7 +1211,7 @@ export default function OperationalVisualizerPage() {
 
               {advisorySummaryAvailable ? (
                 <div className="card" style={{ marginTop: 12 }}>
-                  <h2 style={{ marginTop: 0 }}>Regime management summary</h2>
+                  <h2 style={{ marginTop: 0 }}>Advisory regime summary</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>
                     <div>
                       mode=<b>{series.regime_mode ?? "—"}</b>
@@ -1304,7 +1304,7 @@ export default function OperationalVisualizerPage() {
 
               {cursorSummary && (advisorySummaryAvailable || activeStateSummaryAvailable) ? (
                 <div className="card" style={{ marginTop: 12 }}>
-                  <h2 style={{ marginTop: 0 }}>Regime snapshot at current frame</h2>
+                  <h2 style={{ marginTop: 0 }}>Regime snapshot at current frame (diagnostic)</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>
                     <div style={{ opacity: 0.82 }}>
                       Advisory entries are suggested state/level selections and per-step trigger booleans. Active entries are realized applied state/level selections and realized transition events.
@@ -1439,7 +1439,7 @@ export default function OperationalVisualizerPage() {
 
               {mechanismSummaryAvailable ? (
                 <div className="card" style={{ marginTop: 12 }}>
-                  <h2 style={{ marginTop: 0 }}>Regime mechanism audit summary</h2>
+                  <h2 style={{ marginTop: 0 }}>Regime mechanism audit summary (diagnostic)</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>
                     <div style={{ opacity: 0.82 }}>
                       This section is specifically for hysteresis / persistence / cooldown inspection.
@@ -1466,8 +1466,8 @@ export default function OperationalVisualizerPage() {
               ) : null}
 
               <SectionCard
-                title="Usefulness support and regime traces"
-                subtitle="Direct Subgoal D view: recent-window support quantities and the exploit/recover/caution prototype state and triggers."
+                title="Usefulness scaffold traces"
+                subtitle="Compact usefulness-prototype view: recent-window support quantities plus the exploit / recover / caution state and trigger traces."
               >
                 {series?.recent_obs_age_mean_valid?.length ? (
                   <SparkLine
@@ -1889,8 +1889,8 @@ export default function OperationalVisualizerPage() {
               </SectionCard>
  
               <SectionCard
-                title="Advisory regime traces"
-                subtitle="Suggested regime state, suggested certified stage / opportunistic ladder level, and advisory trigger booleans. These are not realized active-state quantities."
+                title="Advisory regime-management traces"
+                subtitle="Suggested regime state, suggested certified stage / opportunistic ladder level, and advisory trigger booleans. These are recommendation-side traces, not realized active-state quantities."
               >
 
                 {series?.regime_utilization?.length ? (
@@ -2035,8 +2035,8 @@ export default function OperationalVisualizerPage() {
               </SectionCard>
  
               <SectionCard
-                title="Active realized regime traces"
-                subtitle="Realized active state, realized transition events, and the effective controls actually applied."
+                title="Active regime-management traces"
+                subtitle="Realized active state, realized transition events, and the effective controls actually applied. This is the realized active-control layer, distinct from advisory suggestions."
               >
                 {series?.regime_active_state?.length ? (
                   <SparkLine
@@ -2110,8 +2110,8 @@ export default function OperationalVisualizerPage() {
               </SectionCard>
 
               <SectionCard
-                title="Threshold-neighborhood and counter inspection"
-                subtitle="Main hysteresis-inspection view: signal, effective threshold neighborhood, realized active state, and persistence / cooldown traces."
+                title="Threshold-neighborhood and counter inspection (mechanism audit)"
+                subtitle="Diagnostic hysteresis / persistence / cooldown view: signal, effective threshold neighborhood, realized active state, and persistence / cooldown traces."
               >
                 {series?.regime_utilization?.length ? (
                   <SparkLine
