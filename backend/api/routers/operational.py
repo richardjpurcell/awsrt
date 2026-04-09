@@ -84,6 +84,15 @@ USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD = 0.30
 USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD = 2.0e-4
 USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD = 0.80
 
+# Subgoal G:
+# Delay-heavy cases should default to recover, not caution.
+# Reserve caution for either:
+#   1) corruption-style degraded activity, or
+#   2) explicitly severe stale-but-still-active delay.
+#
+# Keep this backend-local and compact for the first semantic pass.
+USEFULNESS_SEVERE_DELAY_AGE_THRESHOLD = 4.0
+
 # Return from caution to recover when support has partially requalified but is
 # not yet clean enough for full exploit.
 USEFULNESS_RECOVER_EXIT_AGE_THRESHOLD = 1.0
@@ -254,7 +263,21 @@ def _usefulness_trigger_caution(
         <= float(USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD)
     )
     corruption_bad = bool(misleading_bad and low_info_while_active)
-    return bool(age_bad or corruption_bad)
+
+    # Subgoal G semantics:
+    # age-driven degradation should map to recover by default.
+    # Pure staleness should only promote to caution when it is explicitly
+    # severe AND still reflects stale-but-active weak information flow.
+    severe_delay_bad = bool(
+        recent_obs_age_mean_valid is not None
+        and float(recent_obs_age_mean_valid) >= float(USEFULNESS_SEVERE_DELAY_AGE_THRESHOLD)
+        and float(arrivals_frac_t) >= float(USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD)
+        and recent_driver_info_true_mean is not None
+        and float(recent_driver_info_true_mean)
+        <= float(USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD)
+    )
+
+    return bool(corruption_bad or severe_delay_bad)
 
 
 def _usefulness_trigger_recover_from_caution(
@@ -262,6 +285,7 @@ def _usefulness_trigger_recover_from_caution(
     recent_obs_age_mean_valid: Optional[float],
     recent_misleading_activity_pos_frac: Optional[float],
     recent_driver_info_true_mean: Optional[float],
+    arrivals_frac_t: float,
 ) -> bool:
     age_ok = (
         recent_obs_age_mean_valid is not None
@@ -277,7 +301,27 @@ def _usefulness_trigger_recover_from_caution(
         and float(recent_driver_info_true_mean)
         >= float(USEFULNESS_RECOVER_EXIT_DRIVER_INFO_RECOVER_THRESHOLD)
     )
-    return bool(age_ok and misleading_ok and info_ok)
+    healthy_recover_exit = bool(age_ok and misleading_ok and info_ok)
+
+    # Subgoal G refinement:
+    # allow caution -> recover when the run is still stale, but the condition
+    # reads as stale-but-active rather than corruption-like breakdown.
+    #
+    # This prevents moderate/strong delay runs from getting trapped in caution
+    # solely because age stays high after an early caution entry.
+    stale_but_active_recover = bool(
+        recent_obs_age_mean_valid is not None
+        and float(recent_obs_age_mean_valid) >= float(USEFULNESS_RECOVER_AGE_THRESHOLD)
+        and recent_misleading_activity_pos_frac is not None
+        and float(recent_misleading_activity_pos_frac)
+        <= float(USEFULNESS_RECOVER_EXIT_MISLEADING_POS_FRAC_THRESHOLD)
+        and float(arrivals_frac_t) >= float(USEFULNESS_RECOVER_ARRIVALS_HIGH_THRESHOLD)
+        and recent_driver_info_true_mean is not None
+        and float(recent_driver_info_true_mean)
+        > float(USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD)
+    )
+
+    return bool(healthy_recover_exit or stale_but_active_recover)
 
 def _usefulness_trigger_exploit(
     *,
@@ -2807,6 +2851,7 @@ def run(req: RunRequest) -> dict:
                     recent_obs_age_mean_valid=age_recent_t,
                     recent_misleading_activity_pos_frac=misleading_pos_recent_t,
                     recent_driver_info_true_mean=driver_recent_t,
+                    arrivals_frac_t=float(arrivals_frac[t]),
                 )
                 raw_trig_exploit_t = _usefulness_trigger_exploit(
                     recent_obs_age_mean_valid=age_recent_t,
