@@ -494,9 +494,14 @@ def _usefulness_trigger_exploit(
     recent_obs_age_mean_valid: Optional[float],
     recent_misleading_activity_pos_frac: Optional[float],
     recent_driver_info_true_mean: Optional[float],
+    arrivals_frac_t: float,
 ) -> bool:
     """
-    First-pass exploit/recovery trigger from caution back to healthy tracking.
+    First-pass exploit re-entry trigger for recover -> exploit.
+
+    Subgoal I refinement:
+    require arrivals-side health as well, so recover -> exploit is gated by
+    both "clean recent conditions" and "still-active delivered opportunity".
     """
     age_ok = (
         recent_obs_age_mean_valid is not None
@@ -512,7 +517,10 @@ def _usefulness_trigger_exploit(
         and float(recent_driver_info_true_mean)
         >= float(USEFULNESS_EXPLOIT_DRIVER_INFO_RECOVER_THRESHOLD)
     )
-    return bool(age_ok and misleading_ok and info_ok)
+    arrivals_ok = (
+        float(arrivals_frac_t) >= float(USEFULNESS_RECOVER_ARRIVALS_HIGH_THRESHOLD)
+    )
+    return bool(age_ok and misleading_ok and info_ok and arrivals_ok)
 
 
 def _usefulness_transition(
@@ -2016,12 +2024,6 @@ def run(req: RunRequest) -> dict:
         sensors = np.zeros((T, m.network.n_sensors, 2), dtype=np.int32)
         detections = np.zeros((T, m.network.n_sensors), dtype=np.uint8)  # arrived detections (0/1)
 
-        mechanism_audit_available = bool(
-            regime_enabled
-            and (
-                getattr(rgm, "logging", None) is not None
-            )
-        )
         # Operational series
         detections_any = np.zeros((T,), dtype=np.uint8)
         # Detection semantics:
@@ -3066,6 +3068,7 @@ def run(req: RunRequest) -> dict:
                     recent_obs_age_mean_valid=age_recent_t,
                     recent_misleading_activity_pos_frac=misleading_pos_recent_t,
                     recent_driver_info_true_mean=driver_recent_t,
+                    arrivals_frac_t=float(arrivals_frac[t]),
                 )
 
                 # State-gate triggers so only meaningful transitions accumulate persistence.
@@ -3430,6 +3433,36 @@ def run(req: RunRequest) -> dict:
         )
         recent_driver_info_true_mean_last = (
             float(valid_recent_driver_info[-1]) if valid_recent_driver_info.size > 0 else None
+        )
+
+        # Mechanism-audit availability should reflect whether meaningful
+        # regime mechanism diagnostics were actually produced for this run,
+        # not whether an early/default config local happened to be populated.
+        #
+        # Keep this compact and truthfulness-oriented:
+        #   - require regime machinery to be enabled
+        #   - then check for actual nontrivial mechanism-audit content
+        #
+        # This intentionally uses emitted series/diagnostics rather than a
+        # manifest-only logging flag, because the frontend/summary question is:
+        # "does this run contain meaningful mechanism-audit content?"
+        mechanism_audit_available = bool(
+            regime_enabled
+            and (
+                int(np.count_nonzero(regime_active_transition_event)) > 0
+                or int(np.count_nonzero(debug_trig_down_final)) > 0
+                or int(np.count_nonzero(debug_trig_switch_final)) > 0
+                or int(np.count_nonzero(debug_trig_leave_certified_final)) > 0
+                or int(np.count_nonzero(debug_down_counter)) > 0
+                or int(np.count_nonzero(debug_switch_counter)) > 0
+                or int(np.count_nonzero(debug_recovery_counter)) > 0
+                or int(np.count_nonzero(debug_leave_certified_counter)) > 0
+                or np.any(np.isfinite(debug_down_utilization_margin))
+                or np.any(np.isfinite(debug_switch_utilization_margin))
+                or np.any(np.isfinite(debug_recovery_utilization_margin))
+                or float(np.max(regime_requal_support_score)) > 0.0
+                or float(np.max(regime_requal_support_breadth)) > 0.0
+            )
         )
 
         auc = entropy_auc(mean_entropy)
