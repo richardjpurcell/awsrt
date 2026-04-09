@@ -442,6 +442,7 @@ export default function OperationalDesignerPage() {
   const [cCov, setCCov] = useState(1.0);
   const [epsRef, setEpsRef] = useState(0.0);
   const [showRegimeAdvanced, setShowRegimeAdvanced] = useState(false);
+  const [showUsefulnessAdvanced, setShowUsefulnessAdvanced] = useState(false);
 
   // Uncertainty policy parameters
   const [uncertaintyDecay, setUncertaintyDecay] = useState(0.985);
@@ -1486,7 +1487,7 @@ export default function OperationalDesignerPage() {
       </div>
       {policy === "usefulness_proto" ? (
         <div className="card" style={{ marginTop: 10 }}>
-          <h2 style={{ marginTop: 0 }}>Usefulness regime</h2>
+          <h2 style={{ marginTop: 0 }}>Usefulness regime manifest surface</h2>
           <div className="small" style={{ opacity: 0.85, lineHeight: 1.4 }}>
             Experimental usefulness-aware surface for the compact usefulness prototype.
             This is separate from the broader regime-management system.
@@ -1501,6 +1502,20 @@ export default function OperationalDesignerPage() {
             Practical reading for now:
             <b> policy selection is live;</b> the richer exploit/recover/caution manifest controls below
             are still ahead of the compact backend implementation.
+          </div>
+
+          <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
+            <div className="small" style={{ opacity: 0.82 }}>
+              Status: <b>partially wired experimental manifest surface</b>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowUsefulnessAdvanced((v) => !v)}
+              disabled={busy}
+              style={{ marginLeft: "auto" }}
+            >
+              {showUsefulnessAdvanced ? "Hide experimental controls" : "Show experimental controls"}
+            </button>
           </div>
 
           <div className="row" style={{ marginTop: 10 }}>
@@ -1528,170 +1543,185 @@ export default function OperationalDesignerPage() {
             </div>
           </div>
 
-          <div className="row">
-            <label>exploit policy</label>
-            <select
-              value={usefulnessExploitPolicy}
-              onChange={(e) => setUsefulnessExploitPolicy(e.target.value as UsefulnessPolicyChoice)}
-              disabled={busy}
-            >
-              <option value="greedy">greedy</option>
-              <option value="uncertainty">uncertainty</option>
-              <option value="mdc_info">mdc_info</option>
-              <option value="mdc_arrival">mdc_arrival</option>
-            </select>
-
-            <label>{usefulnessMiddleLabel} policy</label>
-            <select
-              value={usefulnessRecoverPolicy}
-              onChange={(e) => setUsefulnessRecoverPolicy(e.target.value as UsefulnessPolicyChoice)}
-              disabled={busy}
-            >
-              <option value="greedy">greedy</option>
-              <option value="uncertainty">uncertainty</option>
-              <option value="mdc_info">mdc_info</option>
-              <option value="mdc_arrival">mdc_arrival</option>
-            </select>
-
-            <label>caution policy</label>
-            <select
-              value={usefulnessCautionPolicy}
-              onChange={(e) => setUsefulnessCautionPolicy(e.target.value as UsefulnessPolicyChoice)}
-              disabled={busy}
-            >
-              <option value="greedy">greedy</option>
-              <option value="uncertainty">uncertainty</option>
-              <option value="mdc_info">mdc_info</option>
-              <option value="mdc_arrival">mdc_arrival</option>
-            </select>
+          <div className="small" style={{ marginTop: 8, opacity: 0.82, lineHeight: 1.4 }}>
+            Current manifest summary:
+            {" "}exploit=<b>{usefulnessExploitPolicy}</b>,
+            {" "}{usefulnessMiddleLabel}=<b>{usefulnessRecoverPolicy}</b>,
+            {" "}caution=<b>{usefulnessCautionPolicy}</b>.
+            {" "}Recover entry p=<b>{usefulnessRecoverEntry.persistence_steps}</b>,
+            {" "}caution entry p=<b>{usefulnessCautionEntry.persistence_steps}</b>,
+            {" "}recover exit p=<b>{usefulnessRecoverExit.persistence_steps}</b>,
+            {" "}exploit entry p=<b>{usefulnessExploitEntry.persistence_steps}</b>.
           </div>
 
-          {[
-            ["Recover entry", usefulnessRecoverEntry, setUsefulnessRecoverEntry],
-            ["Caution entry", usefulnessCautionEntry, setUsefulnessCautionEntry],
-          ].map(([title, thresholds, setter]) => {
-            const t = thresholds as UsefulnessThresholds;
-            const setT = setter as (x: UsefulnessThresholds) => void;
-            return (
-              <div key={String(title)} style={{ marginTop: 10 }}>
-                <div className="small" style={{ marginBottom: 6, opacity: 0.85 }}>
-                  <b>{String(title)}</b>
-                </div>
-                <div className="row">
-                  <label>age</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={t.age_threshold}
-                    disabled={busy}
-                    onChange={(e) => setT({ ...t, age_threshold: Math.max(0, parseFloat(e.target.value) || 0) })}
-                  />
-                  <label>misleading_pos_frac</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    max={1}
-                    value={t.misleading_pos_frac_threshold}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setT({ ...t, misleading_pos_frac_threshold: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })
-                    }
-                  />
-                  <label>driver_info</label>
-                  <input
-                    type="number"
-                    step="0.00001"
-                    min={0}
-                    value={t.driver_info_threshold}
-                    disabled={busy}
-                    onChange={(e) => setT({ ...t, driver_info_threshold: Math.max(0, parseFloat(e.target.value) || 0) })}
-                  />
-                  <label>arrivals_high</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    max={1}
-                    value={t.arrivals_high_threshold}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setT({ ...t, arrivals_high_threshold: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })
-                    }
-                  />
-                  <label>persistence</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={t.persistence_steps}
-                    disabled={busy}
-                    onChange={(e) => setT({ ...t, persistence_steps: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                  />
-                </div>
-              </div>
-            );
-          })}
+          {showUsefulnessAdvanced ? (
+            <>
+              <div className="row">
+                <label>exploit policy</label>
+                <select
+                  value={usefulnessExploitPolicy}
+                  onChange={(e) => setUsefulnessExploitPolicy(e.target.value as UsefulnessPolicyChoice)}
+                  disabled={busy}
+                >
+                  <option value="greedy">greedy</option>
+                  <option value="uncertainty">uncertainty</option>
+                  <option value="mdc_info">mdc_info</option>
+                  <option value="mdc_arrival">mdc_arrival</option>
+                </select>
 
-          {[
-            ["Recover exit", usefulnessRecoverExit, setUsefulnessRecoverExit],
-            ["Exploit entry", usefulnessExploitEntry, setUsefulnessExploitEntry],
-          ].map(([title, thresholds, setter]) => {
-            const t = thresholds as UsefulnessExploitThresholds;
-            const setT = setter as (x: UsefulnessExploitThresholds) => void;
-            return (
-              <div key={String(title)} style={{ marginTop: 10 }}>
-                <div className="small" style={{ marginBottom: 6, opacity: 0.85 }}>
-                  <b>{String(title)}</b>
-                </div>
-                <div className="row">
-                  <label>age</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={t.age_threshold}
-                    disabled={busy}
-                    onChange={(e) => setT({ ...t, age_threshold: Math.max(0, parseFloat(e.target.value) || 0) })}
-                  />
-                  <label>misleading_pos_frac</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    max={1}
-                    value={t.misleading_pos_frac_threshold}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setT({ ...t, misleading_pos_frac_threshold: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })
-                    }
-                  />
-                  <label>driver_info_recover</label>
-                  <input
-                    type="number"
-                    step="0.00001"
-                    min={0}
-                    value={t.driver_info_recover_threshold}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setT({ ...t, driver_info_recover_threshold: Math.max(0, parseFloat(e.target.value) || 0) })
-                    }
-                  />
-                  <label>persistence</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={t.persistence_steps}
-                    disabled={busy}
-                    onChange={(e) => setT({ ...t, persistence_steps: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                  />
-                </div>
+                <label>{usefulnessMiddleLabel} policy</label>
+                <select
+                  value={usefulnessRecoverPolicy}
+                  onChange={(e) => setUsefulnessRecoverPolicy(e.target.value as UsefulnessPolicyChoice)}
+                  disabled={busy}
+                >
+                  <option value="greedy">greedy</option>
+                  <option value="uncertainty">uncertainty</option>
+                  <option value="mdc_info">mdc_info</option>
+                  <option value="mdc_arrival">mdc_arrival</option>
+                </select>
+
+                <label>caution policy</label>
+                <select
+                  value={usefulnessCautionPolicy}
+                  onChange={(e) => setUsefulnessCautionPolicy(e.target.value as UsefulnessPolicyChoice)}
+                  disabled={busy}
+                >
+                  <option value="greedy">greedy</option>
+                  <option value="uncertainty">uncertainty</option>
+                  <option value="mdc_info">mdc_info</option>
+                  <option value="mdc_arrival">mdc_arrival</option>
+                </select>
               </div>
-            );
-          })}
+
+              {[
+                ["Recover entry", usefulnessRecoverEntry, setUsefulnessRecoverEntry],
+                ["Caution entry", usefulnessCautionEntry, setUsefulnessCautionEntry],
+              ].map(([title, thresholds, setter]) => {
+                const t = thresholds as UsefulnessThresholds;
+                const setT = setter as (x: UsefulnessThresholds) => void;
+                return (
+                  <div key={String(title)} style={{ marginTop: 10 }}>
+                    <div className="small" style={{ marginBottom: 6, opacity: 0.85 }}>
+                      <b>{String(title)}</b>
+                    </div>
+                    <div className="row">
+                      <label>age</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={t.age_threshold}
+                        disabled={busy}
+                        onChange={(e) => setT({ ...t, age_threshold: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      />
+                      <label>misleading_pos_frac</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        max={1}
+                        value={t.misleading_pos_frac_threshold}
+                        disabled={busy}
+                        onChange={(e) =>
+                          setT({ ...t, misleading_pos_frac_threshold: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })
+                        }
+                      />
+                      <label>driver_info</label>
+                      <input
+                        type="number"
+                        step="0.00001"
+                        min={0}
+                        value={t.driver_info_threshold}
+                        disabled={busy}
+                        onChange={(e) => setT({ ...t, driver_info_threshold: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      />
+                      <label>arrivals_high</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        max={1}
+                        value={t.arrivals_high_threshold}
+                        disabled={busy}
+                        onChange={(e) =>
+                          setT({ ...t, arrivals_high_threshold: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })
+                        }
+                      />
+                      <label>persistence</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={t.persistence_steps}
+                        disabled={busy}
+                        onChange={(e) => setT({ ...t, persistence_steps: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {[
+                ["Recover exit", usefulnessRecoverExit, setUsefulnessRecoverExit],
+                ["Exploit entry", usefulnessExploitEntry, setUsefulnessExploitEntry],
+              ].map(([title, thresholds, setter]) => {
+                const t = thresholds as UsefulnessExploitThresholds;
+                const setT = setter as (x: UsefulnessExploitThresholds) => void;
+                return (
+                  <div key={String(title)} style={{ marginTop: 10 }}>
+                    <div className="small" style={{ marginBottom: 6, opacity: 0.85 }}>
+                      <b>{String(title)}</b>
+                    </div>
+                    <div className="row">
+                      <label>age</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={t.age_threshold}
+                        disabled={busy}
+                        onChange={(e) => setT({ ...t, age_threshold: Math.max(0, parseFloat(e.target.value) || 0) })}
+                      />
+                      <label>misleading_pos_frac</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        max={1}
+                        value={t.misleading_pos_frac_threshold}
+                        disabled={busy}
+                        onChange={(e) =>
+                          setT({ ...t, misleading_pos_frac_threshold: Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)) })
+                        }
+                      />
+                      <label>driver_info_recover</label>
+                      <input
+                        type="number"
+                        step="0.00001"
+                        min={0}
+                        value={t.driver_info_recover_threshold}
+                        disabled={busy}
+                        onChange={(e) =>
+                          setT({ ...t, driver_info_recover_threshold: Math.max(0, parseFloat(e.target.value) || 0) })
+                        }
+                      />
+                      <label>persistence</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={t.persistence_steps}
+                        disabled={busy}
+                        onChange={(e) => setT({ ...t, persistence_steps: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          ) : null}
         </div>
       ) : null}
 
       <div className="card" style={{ marginTop: 10 }}>
-        <h2 style={{ marginTop: 0 }}>Regime management</h2>
+        <h2 style={{ marginTop: 0 }}>Regime management overlay</h2>
         <div className="small" style={{ opacity: 0.85 }}>
           Advisory-first experimental scaffolding for utilization-aware regime management, staged certified descent, and opportunistic downshift ladders.
           This is one overlay/control family inside AWSRT; baseline, MDC, and diagnostic families remain first-class.
@@ -1720,7 +1750,7 @@ export default function OperationalDesignerPage() {
             disabled={busy}
             style={{ marginLeft: "auto" }}
           >
-            {showRegimeAdvanced ? "Hide advanced" : "Show advanced"}
+            {showRegimeAdvanced ? "Hide advanced overlay controls" : "Show advanced overlay controls"}
           </button>
         </div>
 
@@ -1784,7 +1814,7 @@ export default function OperationalDesignerPage() {
           </div>
         ) : null}
 
-        {showRegimeAdvanced ? (
+        {regimeEnabled || showRegimeAdvanced ? (
           <>
             <div className="card" style={{ marginTop: 10, background: "var(--opr)" }}>
               <h2 style={{ marginTop: 0 }}>Signals + logging</h2>
@@ -2041,6 +2071,13 @@ export default function OperationalDesignerPage() {
               </div>
             </div>
           </>
+        ) : null}
+
+        {!regimeEnabled && !showRegimeAdvanced ? (
+          <div className="small" style={{ marginTop: 8, opacity: 0.78, lineHeight: 1.4 }}>
+            Advanced overlay controls are currently hidden because regime management is disabled.
+            Enable the overlay or expand advanced controls to inspect/edit the full experimental surface.
+          </div>
         ) : null}
       </div>
 

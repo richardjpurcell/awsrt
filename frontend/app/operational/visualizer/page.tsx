@@ -504,6 +504,7 @@ export default function OperationalVisualizerPage() {
 
   const [showFront, setShowFront] = useState(false);
   const [frontOpacity, setFrontOpacity] = useState(0.9);
+  const [showMechanismAudit, setShowMechanismAudit] = useState(false);
 
   const [busyDelete, setBusyDelete] = useState(false);
   const [msg, setMsg] = useState<string>("");
@@ -1044,6 +1045,15 @@ export default function OperationalVisualizerPage() {
               Show fire front
             </label>
 
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={showMechanismAudit}
+                onChange={(e) => setShowMechanismAudit(e.target.checked)}
+              />
+              Show deep mechanism audit
+            </label>
+
             {showFront ? (
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ opacity: 0.8 }}>opacity</span>
@@ -1064,6 +1074,12 @@ export default function OperationalVisualizerPage() {
             Deployment overlay shows the full nonzero fire footprint for context
             (burning + burned). Overlap metrics below are computed against
             actively burning cells and the derived front band.
+          </div>
+          <div className="small" style={{ marginTop: 8, opacity: 0.82, lineHeight: 1.4 }}>
+            Main interpretation path:
+            <b> Current frame snapshot → Operational sensing and motion → Belief and entropy evolution → MDC residual diagnostics</b>.
+            Usefulness, advisory regime, and active regime sections are overlay/controller interpretations.
+            Mechanism audit is a deeper diagnostic layer and is hidden by default.
           </div>
           <div className="imgbox">
             {shownDeployment ? (
@@ -1302,7 +1318,7 @@ export default function OperationalVisualizerPage() {
                 </div>
               ) : null}
 
-              {cursorSummary && (advisorySummaryAvailable || activeStateSummaryAvailable) ? (
+              {showMechanismAudit && cursorSummary && (advisorySummaryAvailable || activeStateSummaryAvailable) ? (
                 <div className="card" style={{ marginTop: 12 }}>
                   <h2 style={{ marginTop: 0 }}>Regime snapshot at current frame (diagnostic)</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>
@@ -1332,7 +1348,7 @@ export default function OperationalVisualizerPage() {
                       }</b>
                     </div>
 
-                    {mechanismSummaryAvailable ? (
+                    {showMechanismAudit && mechanismSummaryAvailable ? (
                       <>
                         <div style={{ marginTop: 8, fontWeight: 600 }}>Threshold-neighborhood diagnostics</div>
                         <div style={{ opacity: 0.82 }}>
@@ -2109,175 +2125,177 @@ export default function OperationalVisualizerPage() {
                 )}
               </SectionCard>
 
-              <SectionCard
-                title="Threshold-neighborhood and counter inspection (mechanism audit)"
-                subtitle="Diagnostic hysteresis / persistence / cooldown view: signal, effective threshold neighborhood, realized active state, and persistence / cooldown traces."
-              >
-                {series?.regime_utilization?.length ? (
-                  <SparkLine
-                    title="Utilization with effective threshold neighborhood"
-                    values={series.regime_utilization.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_utilization.length - 1))}
-                    height={PLOT_H}
-                    precision={4}
-                    include01
-                    refLines={[
-                      ...(series.debug_down_utilization_threshold?.length
-                        ? [{ y: Number(series.debug_down_utilization_threshold[Math.min(tt, Math.max(0, series.debug_down_utilization_threshold.length - 1))]), dashed: true, label: "down" }]
-                        : []),
-                      ...(series.debug_switch_utilization_threshold?.length
-                        ? [{ y: Number(series.debug_switch_utilization_threshold[Math.min(tt, Math.max(0, series.debug_switch_utilization_threshold.length - 1))]), dashed: true, label: "switch" }]
-                        : []),
-                      ...(series.debug_recovery_utilization_threshold?.length
-                        ? [{ y: Number(series.debug_recovery_utilization_threshold[Math.min(tt, Math.max(0, series.debug_recovery_utilization_threshold.length - 1))]), dashed: true, label: "recovery" }]
-                        : []),
-                    ]}
-                    subtitle="The step trace is utilization. Dashed reference lines show the current-frame effective hysteresis-shifted thresholds."
-                  />
-                ) : (
-                  <div />
-                )}
+              {showMechanismAudit ? (
+                <SectionCard
+                  title="Threshold-neighborhood and counter inspection (mechanism audit)"
+                  subtitle="Diagnostic hysteresis / persistence / cooldown view: signal, effective threshold neighborhood, realized active state, and persistence / cooldown traces."
+                >
+                  {series?.regime_utilization?.length ? (
+                    <SparkLine
+                      title="Utilization with effective threshold neighborhood"
+                      values={series.regime_utilization.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_utilization.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include01
+                      refLines={[
+                        ...(series.debug_down_utilization_threshold?.length
+                          ? [{ y: Number(series.debug_down_utilization_threshold[Math.min(tt, Math.max(0, series.debug_down_utilization_threshold.length - 1))]), dashed: true, label: "down" }]
+                          : []),
+                        ...(series.debug_switch_utilization_threshold?.length
+                          ? [{ y: Number(series.debug_switch_utilization_threshold[Math.min(tt, Math.max(0, series.debug_switch_utilization_threshold.length - 1))]), dashed: true, label: "switch" }]
+                          : []),
+                        ...(series.debug_recovery_utilization_threshold?.length
+                          ? [{ y: Number(series.debug_recovery_utilization_threshold[Math.min(tt, Math.max(0, series.debug_recovery_utilization_threshold.length - 1))]), dashed: true, label: "recovery" }]
+                          : []),
+                      ]}
+                      subtitle="The step trace is utilization. Dashed reference lines show the current-frame effective hysteresis-shifted thresholds."
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_down_utilization_margin?.length ? (
-                  <SparkLine
-                    title="Downshift utilization margin"
-                    values={series.debug_down_utilization_margin.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_down_utilization_margin.length - 1))}
-                    height={PLOT_H}
-                    precision={5}
-                    include0
-                    subtitle="Positive => utilization is on the downshift-firing side of the effective threshold"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_down_utilization_margin?.length ? (
+                    <SparkLine
+                      title="Downshift utilization margin"
+                      values={series.debug_down_utilization_margin.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_down_utilization_margin.length - 1))}
+                      height={PLOT_H}
+                      precision={5}
+                      include0
+                      subtitle="Positive => utilization is on the downshift-firing side of the effective threshold"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_switch_utilization_margin?.length ? (
-                  <SparkLine
-                    title="Switch-to-certified utilization margin"
-                    values={series.debug_switch_utilization_margin.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_switch_utilization_margin.length - 1))}
-                    height={PLOT_H}
-                    precision={5}
-                    include0
-                    subtitle="Positive => utilization is on the certified-switch firing side of the effective threshold"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_switch_utilization_margin?.length ? (
+                    <SparkLine
+                      title="Switch-to-certified utilization margin"
+                      values={series.debug_switch_utilization_margin.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_switch_utilization_margin.length - 1))}
+                      height={PLOT_H}
+                      precision={5}
+                      include0
+                      subtitle="Positive => utilization is on the certified-switch firing side of the effective threshold"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_recovery_utilization_margin?.length ? (
-                  <SparkLine
-                    title="Recovery utilization margin"
-                    values={series.debug_recovery_utilization_margin.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_recovery_utilization_margin.length - 1))}
-                    height={PLOT_H}
-                    precision={5}
-                    include0
-                    subtitle="Positive => utilization is on the recovery-firing side of the effective threshold"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_recovery_utilization_margin?.length ? (
+                    <SparkLine
+                      title="Recovery utilization margin"
+                      values={series.debug_recovery_utilization_margin.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_recovery_utilization_margin.length - 1))}
+                      height={PLOT_H}
+                      precision={5}
+                      include0
+                      subtitle="Positive => utilization is on the recovery-firing side of the effective threshold"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_down_counter?.length ? (
-                  <SparkLine
-                    title="Downshift persistence counter"
-                    values={series.debug_down_counter.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_down_counter.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="How long the downshift trigger has persisted in the current meaningful state"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_down_counter?.length ? (
+                    <SparkLine
+                      title="Downshift persistence counter"
+                      values={series.debug_down_counter.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_down_counter.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="How long the downshift trigger has persisted in the current meaningful state"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_switch_counter?.length ? (
-                  <SparkLine
-                    title="Switch-to-certified persistence counter"
-                    values={series.debug_switch_counter.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_switch_counter.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="How long the certified-switch trigger has persisted in the current meaningful state"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_switch_counter?.length ? (
+                    <SparkLine
+                      title="Switch-to-certified persistence counter"
+                      values={series.debug_switch_counter.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_switch_counter.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="How long the certified-switch trigger has persisted in the current meaningful state"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_recovery_counter?.length ? (
-                  <SparkLine
-                    title="Recovery persistence counter"
-                    values={series.debug_recovery_counter.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_recovery_counter.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="How long the recovery trigger has persisted while recovery is meaningful"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_recovery_counter?.length ? (
+                    <SparkLine
+                      title="Recovery persistence counter"
+                      values={series.debug_recovery_counter.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_recovery_counter.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="How long the recovery trigger has persisted while recovery is meaningful"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_recovery_block_counter?.length ? (
-                  <SparkLine
-                    title="Recovery block / cooldown counter"
-                    values={series.debug_recovery_block_counter.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_recovery_block_counter.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="Positive means downshift→nominal recovery is temporarily blocked to reduce chatter"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_recovery_block_counter?.length ? (
+                    <SparkLine
+                      title="Recovery block / cooldown counter"
+                      values={series.debug_recovery_block_counter.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_recovery_block_counter.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Positive means downshift→nominal recovery is temporarily blocked to reduce chatter"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_leave_certified_counter?.length ? (
-                  <SparkLine
-                    title="Leave-certified persistence counter"
-                    values={series.debug_leave_certified_counter.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_leave_certified_counter.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="How long certified-exit evidence has persisted while the active state is certified"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_leave_certified_counter?.length ? (
+                    <SparkLine
+                      title="Leave-certified persistence counter"
+                      values={series.debug_leave_certified_counter.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_leave_certified_counter.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="How long certified-exit evidence has persisted while the active state is certified"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.debug_trig_leave_certified_final?.length ? (
-                  <SparkLine
-                    title="Leave-certified trigger"
-                    values={series.debug_trig_leave_certified_final.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_trig_leave_certified_final.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include01
-                    subtitle="1 means explicit certified-exit evidence is firing at that step"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_trig_leave_certified_final?.length ? (
+                    <SparkLine
+                      title="Leave-certified trigger"
+                      values={series.debug_trig_leave_certified_final.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_trig_leave_certified_final.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include01
+                      subtitle="1 means explicit certified-exit evidence is firing at that step"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.regime_active_state?.length ? (
-                  <SparkLine
-                    title="Active realized state (for alignment)"
-                    values={series.regime_active_state.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_active_state.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="Use this with margins/counters to explain each realized state change"
-                  />
-                ) : (
-                  <div />
-                )}
-              </SectionCard>
+                  {series?.regime_active_state?.length ? (
+                    <SparkLine
+                      title="Active realized state (for alignment)"
+                      values={series.regime_active_state.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_active_state.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Use this with margins/counters to explain each realized state change"
+                    />
+                  ) : (
+                    <div />
+                  )}
+                </SectionCard>
+              ) : null}
             </>
           ) : (
             <div className="small" style={{ marginTop: 10, opacity: 0.8 }}>

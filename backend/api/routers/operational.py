@@ -136,6 +136,169 @@ def _load_opr_summary_or_none(opr_id: str) -> dict[str, Any] | None:
         return None
 
 
+def _summary_with_advisory_compat_aliases(summary: dict[str, Any]) -> dict[str, Any]:
+    """
+    Compatibility shim for older frontend readers.
+
+    Canonical advisory summary keys are:
+      - regime_last_state
+      - regime_last_certified_stage_index
+      - regime_last_opportunistic_level_index
+      - regime_last_certified_stage_id
+      - regime_last_opportunistic_level_id
+
+    Older readers may still request advisory-prefixed aliases. Populate those
+    lazily from the canonical keys if they are absent.
+    """
+    s = dict(summary)
+    alias_map = {
+        "regime_advisory_last_state": "regime_last_state",
+        "regime_advisory_last_certified_stage_index": "regime_last_certified_stage_index",
+        "regime_advisory_last_opportunistic_level_index": "regime_last_opportunistic_level_index",
+        "regime_advisory_last_certified_stage_id": "regime_last_certified_stage_id",
+        "regime_advisory_last_opportunistic_level_id": "regime_last_opportunistic_level_id",
+    }
+    for alias_key, canonical_key in alias_map.items():
+        if alias_key not in s and canonical_key in s:
+            s[alias_key] = s.get(canonical_key)
+    return s
+
+
+def _build_usefulness_proto_summary(
+    *,
+    T: int,
+    usefulness_proto_enabled: bool,
+    usefulness_regime_state: np.ndarray,
+    usefulness_trigger_recover: np.ndarray,
+    usefulness_trigger_caution: np.ndarray,
+    usefulness_trigger_recover_from_caution: np.ndarray,
+    usefulness_trigger_exploit: np.ndarray,
+) -> dict[str, Any]:
+    return {
+        "usefulness_proto_enabled": bool(usefulness_proto_enabled),
+        "usefulness_regime_state_last": int(usefulness_regime_state[-1]) if T > 0 else 0,
+        "usefulness_regime_state_exploit_frac": _frac_eq(
+            usefulness_regime_state,
+            USEFULNESS_STATE_EXPLOIT,
+        ),
+        "usefulness_regime_state_recover_frac": _frac_eq(
+            usefulness_regime_state,
+            USEFULNESS_STATE_RECOVER,
+        ),
+        "usefulness_regime_state_caution_frac": _frac_eq(
+            usefulness_regime_state,
+            USEFULNESS_STATE_CAUTION,
+        ),
+        "usefulness_trigger_recover_hits": int(np.count_nonzero(usefulness_trigger_recover)),
+        "usefulness_trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
+        "usefulness_trigger_recover_from_caution_hits": int(
+            np.count_nonzero(usefulness_trigger_recover_from_caution)
+        ),
+        "usefulness_trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
+    }
+
+
+def _build_regime_advisory_summary(
+    *,
+    T: int,
+    regime_enabled: bool,
+    regime_mode: str,
+    rgm_stages: list[Any],
+    rgm_ladder: list[Any],
+    regime_utilization: np.ndarray,
+    regime_strict_drift_proxy: np.ndarray,
+    regime_local_drift_rate: np.ndarray,
+    regime_cumulative_exposure: np.ndarray,
+    regime_requal_support_score: np.ndarray,
+    regime_requal_support_breadth: np.ndarray,
+    regime_trigger_downshift: np.ndarray,
+    regime_trigger_switch_to_certified: np.ndarray,
+    regime_trigger_recovery: np.ndarray,
+    regime_state: np.ndarray,
+    regime_certified_stage_index: np.ndarray,
+    regime_opportunistic_level_index: np.ndarray,
+    regime_advisory_stage_eta: np.ndarray,
+) -> dict[str, Any]:
+    return {
+        "regime_enabled": bool(regime_enabled),
+        "regime_mode": str(regime_mode),
+        "regime_advisory_enabled": bool(regime_enabled),
+        "regime_stage_ids": [str(getattr(x, "stage_id", "")) for x in rgm_stages],
+        "regime_opportunistic_level_ids": [str(getattr(x, "level_id", "")) for x in rgm_ladder],
+        "regime_utilization_mean": float(np.mean(regime_utilization)) if T > 0 else None,
+        "regime_strict_drift_proxy_mean": float(np.mean(regime_strict_drift_proxy)) if T > 0 else None,
+        "regime_local_drift_rate_mean": float(np.mean(regime_local_drift_rate)) if T > 0 else None,
+        "regime_cumulative_exposure_final": float(regime_cumulative_exposure[-1]) if T > 0 else None,
+        "regime_requal_support_score_mean": float(np.mean(regime_requal_support_score)) if T > 0 else None,
+        "regime_requal_support_score_max": float(np.max(regime_requal_support_score)) if T > 0 else None,
+        "regime_requal_support_breadth_mean": float(np.mean(regime_requal_support_breadth)) if T > 0 else None,
+        "regime_requal_support_breadth_max": float(np.max(regime_requal_support_breadth)) if T > 0 else None,
+        "regime_advisory_downshift_trigger_hits": int(np.count_nonzero(regime_trigger_downshift)),
+        "regime_advisory_switch_to_certified_trigger_hits": int(np.count_nonzero(regime_trigger_switch_to_certified)),
+        "regime_advisory_recovery_trigger_hits": int(np.count_nonzero(regime_trigger_recovery)),
+        "regime_last_state": int(regime_state[-1]) if T > 0 else 0,
+        "regime_last_certified_stage_index": int(regime_certified_stage_index[-1]) if T > 0 else -1,
+        "regime_last_opportunistic_level_index": int(regime_opportunistic_level_index[-1]) if T > 0 else -1,
+        "regime_last_certified_stage_id": (
+            str(rgm_stages[int(regime_certified_stage_index[-1])].stage_id)
+            if T > 0 and 0 <= int(regime_certified_stage_index[-1]) < len(rgm_stages)
+            else None
+        ),
+        "regime_advisory_stage_eta_mean": float(np.mean(regime_advisory_stage_eta)) if T > 0 else None,
+        "regime_advisory_stage_eta_last": float(regime_advisory_stage_eta[-1]) if T > 0 else None,
+        "regime_last_opportunistic_level_id": (
+            str(rgm_ladder[int(regime_opportunistic_level_index[-1])].level_id)
+            if T > 0 and 0 <= int(regime_opportunistic_level_index[-1]) < len(rgm_ladder)
+            else None
+        ),
+    }
+
+
+def _build_regime_active_summary(
+    *,
+    T: int,
+    regime_active_enabled: bool,
+    active_verify_style: bool,
+    rgm_stages: list[Any],
+    rgm_ladder: list[Any],
+    regime_active_transition_event: np.ndarray,
+    regime_active_state: np.ndarray,
+    regime_active_certified_stage_index: np.ndarray,
+    regime_active_opportunistic_level_index: np.ndarray,
+    regime_effective_eta: np.ndarray,
+    regime_effective_move_budget_cells: np.ndarray,
+) -> dict[str, Any]:
+    return {
+        "regime_active_enabled": bool(regime_active_enabled),
+        "regime_active_verify_style": bool(active_verify_style),
+        "regime_active_transition_count": int(np.count_nonzero(regime_active_transition_event)),
+        "regime_active_last_state": int(regime_active_state[-1]) if T > 0 else 0,
+        "regime_active_last_certified_stage_index": int(regime_active_certified_stage_index[-1]) if T > 0 else -1,
+        "regime_active_last_opportunistic_level_index": int(regime_active_opportunistic_level_index[-1]) if T > 0 else -1,
+        "regime_active_last_certified_stage_id": (
+            str(rgm_stages[int(regime_active_certified_stage_index[-1])].stage_id)
+            if T > 0 and 0 <= int(regime_active_certified_stage_index[-1]) < len(rgm_stages)
+            else None
+        ),
+        "regime_active_last_opportunistic_level_id": (
+            str(rgm_ladder[int(regime_active_opportunistic_level_index[-1])].level_id)
+            if T > 0 and 0 <= int(regime_active_opportunistic_level_index[-1]) < len(rgm_ladder)
+            else None
+        ),
+        "regime_effective_eta_mean": float(np.mean(regime_effective_eta)) if T > 0 else None,
+        "regime_effective_move_budget_cells_mean": float(np.mean(regime_effective_move_budget_cells)) if T > 0 else None,
+        "regime_effective_eta_last": float(regime_effective_eta[-1]) if T > 0 else None,
+        "regime_effective_move_budget_cells_last": float(regime_effective_move_budget_cells[-1]) if T > 0 else None,
+        "regime_active_state_disabled_frac": _frac_eq(regime_active_state, 0),
+        "regime_active_state_nominal_frac": _frac_eq(regime_active_state, 1),
+        "regime_active_state_downshift_frac": _frac_eq(regime_active_state, 2),
+        "regime_active_state_certified_frac": _frac_eq(regime_active_state, 3),
+        "regime_active_state_disabled_steps": int(np.count_nonzero(regime_active_state == 0)),
+        "regime_active_state_nominal_steps": int(np.count_nonzero(regime_active_state == 1)),
+        "regime_active_state_downshift_steps": int(np.count_nonzero(regime_active_state == 2)),
+        "regime_active_state_certified_steps": int(np.count_nonzero(regime_active_state == 3)),
+    }
+
 def _read_series_1d_or_empty(opr_id: str, name: str) -> np.ndarray:
     """
     Read a 1D series from operational zarr. Returns empty float32 array if missing.
@@ -3545,105 +3708,48 @@ def run(req: RunRequest) -> dict:
                     float(recent_driver_info_true_mean_last)
                     if recent_driver_info_true_mean_last is not None else None
                 ),
-                # First usefulness-aware prototype summaries
-                "usefulness_proto_enabled": bool(usefulness_proto_enabled),
-                "usefulness_regime_state_last": int(usefulness_regime_state[-1]) if T > 0 else 0,
-                "usefulness_regime_state_exploit_frac": _frac_eq(
-                    usefulness_regime_state,
-                    USEFULNESS_STATE_EXPLOIT,
+                **_build_usefulness_proto_summary(
+                    T=T,
+                    usefulness_proto_enabled=usefulness_proto_enabled,
+                    usefulness_regime_state=usefulness_regime_state,
+                    usefulness_trigger_recover=usefulness_trigger_recover,
+                    usefulness_trigger_caution=usefulness_trigger_caution,
+                    usefulness_trigger_recover_from_caution=usefulness_trigger_recover_from_caution,
+                    usefulness_trigger_exploit=usefulness_trigger_exploit,
                 ),
-                "usefulness_regime_state_recover_frac": _frac_eq(
-                    usefulness_regime_state,
-                    USEFULNESS_STATE_RECOVER,
+                **_build_regime_advisory_summary(
+                    T=T,
+                    regime_enabled=regime_enabled,
+                    regime_mode=regime_mode,
+                    rgm_stages=rgm_stages,
+                    rgm_ladder=rgm_ladder,
+                    regime_utilization=regime_utilization,
+                    regime_strict_drift_proxy=regime_strict_drift_proxy,
+                    regime_local_drift_rate=regime_local_drift_rate,
+                    regime_cumulative_exposure=regime_cumulative_exposure,
+                    regime_requal_support_score=regime_requal_support_score,
+                    regime_requal_support_breadth=regime_requal_support_breadth,
+                    regime_trigger_downshift=regime_trigger_downshift,
+                    regime_trigger_switch_to_certified=regime_trigger_switch_to_certified,
+                    regime_trigger_recovery=regime_trigger_recovery,
+                    regime_state=regime_state,
+                    regime_certified_stage_index=regime_certified_stage_index,
+                    regime_opportunistic_level_index=regime_opportunistic_level_index,
+                    regime_advisory_stage_eta=regime_advisory_stage_eta,
                 ),
-                "usefulness_regime_state_caution_frac": _frac_eq(
-                    usefulness_regime_state,
-                    USEFULNESS_STATE_CAUTION,
+                **_build_regime_active_summary(
+                    T=T,
+                    regime_active_enabled=regime_active_enabled,
+                    active_verify_style=active_verify_style,
+                    rgm_stages=rgm_stages,
+                    rgm_ladder=rgm_ladder,
+                    regime_active_transition_event=regime_active_transition_event,
+                    regime_active_state=regime_active_state,
+                    regime_active_certified_stage_index=regime_active_certified_stage_index,
+                    regime_active_opportunistic_level_index=regime_active_opportunistic_level_index,
+                    regime_effective_eta=regime_effective_eta,
+                    regime_effective_move_budget_cells=regime_effective_move_budget_cells,
                 ),
-                "usefulness_trigger_recover_hits": int(np.count_nonzero(usefulness_trigger_recover)),
-                "usefulness_trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
-                "usefulness_trigger_recover_from_caution_hits": int(
-                    np.count_nonzero(usefulness_trigger_recover_from_caution)
-                ),
-                "usefulness_trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
-                # Regime-management advisory summaries
-                "regime_enabled": bool(regime_enabled),
-                "regime_mode": str(regime_mode),
-                "regime_advisory_enabled": bool(regime_enabled),
-                "regime_stage_ids": [str(getattr(x, "stage_id", "")) for x in rgm_stages],
-                "regime_opportunistic_level_ids": [str(getattr(x, "level_id", "")) for x in rgm_ladder],
-                "regime_utilization_mean": float(np.mean(regime_utilization)) if T > 0 else None,
-                "regime_strict_drift_proxy_mean": float(np.mean(regime_strict_drift_proxy)) if T > 0 else None,
-                "regime_local_drift_rate_mean": float(np.mean(regime_local_drift_rate)) if T > 0 else None,
-                "regime_cumulative_exposure_final": float(regime_cumulative_exposure[-1]) if T > 0 else None,
-                # NOTE: these are advisory trigger-hit counts, not discrete
-                # state-machine transitions. Legacy *_count keys are retained
-                # only for compatibility with older frontend readers.
-                "regime_requal_support_score_mean": float(np.mean(regime_requal_support_score)) if T > 0 else None,
-                "regime_requal_support_score_max": float(np.max(regime_requal_support_score)) if T > 0 else None,
-                "regime_requal_support_breadth_mean": float(np.mean(regime_requal_support_breadth)) if T > 0 else None,
-                "regime_requal_support_breadth_max": float(np.max(regime_requal_support_breadth)) if T > 0 else None,
-                "regime_advisory_downshift_trigger_hits": int(np.count_nonzero(regime_trigger_downshift)),
-                "regime_advisory_switch_to_certified_trigger_hits": int(np.count_nonzero(regime_trigger_switch_to_certified)),
-                "regime_advisory_recovery_trigger_hits": int(np.count_nonzero(regime_trigger_recovery)),
-                "regime_last_state": int(regime_state[-1]) if T > 0 else 0,
-                "regime_last_certified_stage_index": int(regime_certified_stage_index[-1]) if T > 0 else -1,
-                "regime_last_opportunistic_level_index": int(regime_opportunistic_level_index[-1]) if T > 0 else -1,
-                "regime_advisory_last_state": int(regime_state[-1]) if T > 0 else 0,
-                "regime_advisory_last_certified_stage_index": int(regime_certified_stage_index[-1]) if T > 0 else -1,
-                "regime_advisory_last_opportunistic_level_index": int(regime_opportunistic_level_index[-1]) if T > 0 else -1,
-                "regime_last_certified_stage_id": (
-                    str(rgm_stages[int(regime_certified_stage_index[-1])].stage_id)
-                    if T > 0 and 0 <= int(regime_certified_stage_index[-1]) < len(rgm_stages)
-                    else None
-                ),
-                "regime_advisory_last_certified_stage_id": (
-                    str(rgm_stages[int(regime_certified_stage_index[-1])].stage_id)
-                    if T > 0 and 0 <= int(regime_certified_stage_index[-1]) < len(rgm_stages)
-                    else None
-                ),
-                "regime_advisory_stage_eta_mean": float(np.mean(regime_advisory_stage_eta)) if T > 0 else None,
-                "regime_advisory_stage_eta_last": float(regime_advisory_stage_eta[-1]) if T > 0 else None,
-                "regime_last_opportunistic_level_id": (
-                    str(rgm_ladder[int(regime_opportunistic_level_index[-1])].level_id)
-                    if T > 0 and 0 <= int(regime_opportunistic_level_index[-1]) < len(rgm_ladder)
-                    else None
-                ),
-                "regime_advisory_last_opportunistic_level_id": (
-                    str(rgm_ladder[int(regime_opportunistic_level_index[-1])].level_id)
-                    if T > 0 and 0 <= int(regime_opportunistic_level_index[-1]) < len(rgm_ladder)
-                    else None
-                ),
-                # Active regime state-machine summaries
-                "regime_active_enabled": bool(regime_active_enabled),
-                "regime_active_verify_style": bool(active_verify_style),
-                "regime_active_transition_count": int(np.count_nonzero(regime_active_transition_event)),
-                "regime_active_last_state": int(regime_active_state[-1]) if T > 0 else 0,
-                "regime_active_last_certified_stage_index": int(regime_active_certified_stage_index[-1]) if T > 0 else -1,
-                "regime_active_last_opportunistic_level_index": int(regime_active_opportunistic_level_index[-1]) if T > 0 else -1,
-                "regime_active_last_certified_stage_id": (
-                    str(rgm_stages[int(regime_active_certified_stage_index[-1])].stage_id)
-                    if T > 0 and 0 <= int(regime_active_certified_stage_index[-1]) < len(rgm_stages)
-                    else None
-                ),
-                "regime_active_last_opportunistic_level_id": (
-                    str(rgm_ladder[int(regime_active_opportunistic_level_index[-1])].level_id)
-                    if T > 0 and 0 <= int(regime_active_opportunistic_level_index[-1]) < len(rgm_ladder)
-                    else None
-                ),
-                "regime_effective_eta_mean": float(np.mean(regime_effective_eta)) if T > 0 else None,
-                "regime_effective_move_budget_cells_mean": float(np.mean(regime_effective_move_budget_cells)) if T > 0 else None,
-                "regime_effective_eta_last": float(regime_effective_eta[-1]) if T > 0 else None,
-                "regime_effective_move_budget_cells_last": float(regime_effective_move_budget_cells[-1]) if T > 0 else None,
-                # Active-state residency / occupancy
-                "regime_active_state_disabled_frac": _frac_eq(regime_active_state, 0),
-                "regime_active_state_nominal_frac": _frac_eq(regime_active_state, 1),
-                "regime_active_state_downshift_frac": _frac_eq(regime_active_state, 2),
-                "regime_active_state_certified_frac": _frac_eq(regime_active_state, 3),
-                "regime_active_state_disabled_steps": int(np.count_nonzero(regime_active_state == 0)),
-                "regime_active_state_nominal_steps": int(np.count_nonzero(regime_active_state == 1)),
-                "regime_active_state_downshift_steps": int(np.count_nonzero(regime_active_state == 2)),
-                "regime_active_state_certified_steps": int(np.count_nonzero(regime_active_state == 3)),
                 "debug_leave_certified_counter_max": (
                     int(np.max(debug_leave_certified_counter)) if T > 0 else 0
                 ),
@@ -3766,7 +3872,7 @@ def series(opr_id: str) -> dict[str, Any]:
             return []
 
     # Pull scalar summary fields that help interpret residual plots (bands + rates).
-    s = _load_opr_summary_or_none(opr_id) or {}
+    s = _summary_with_advisory_compat_aliases(_load_opr_summary_or_none(opr_id) or {})
 
     def _as_float_or_none(x: Any) -> Optional[float]:
         try:
