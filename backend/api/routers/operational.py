@@ -54,13 +54,14 @@ from awsrt_core.metrics.basic import (
 
 router = APIRouter()
 
-# First Subgoal C pass:
-# compute recent-window usefulness support signals for logging only.
-# These do NOT yet affect control behavior.
+# Compact usefulness support signals used by the usefulness_proto controller
+# path for state interpretation, logging, and audit.
 USEFULNESS_SUPPORT_WINDOW = 10
 
-# First usefulness-aware controller prototype (logging/state only).
-# This is intentionally backend-local for the first pass.
+# Compact usefulness-aware controller prototype.
+# This remains backend-local and behaviorally active on the
+# usefulness_proto path, without implying full unification with the
+# broader regime-management layer.
 USEFULNESS_PROTO_POLICY = "usefulness_proto"
 USEFULNESS_STATE_EXPLOIT = 0
 USEFULNESS_STATE_RECOVER = 1

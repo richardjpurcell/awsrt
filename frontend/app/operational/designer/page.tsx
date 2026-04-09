@@ -1015,41 +1015,6 @@ export default function OperationalDesignerPage() {
       title: "Stub policy (currently behaves like balance).",
     },
   };
-
-  const studyBaseSummary = useMemo(() => {
-    const parts: string[] = [];
-    parts.push(`mode=${mode}`);
-    parts.push(`tie=${tieBreaking}`);
-    parts.push(`N=${n}`);
-    parts.push(`r=${radiusM}m`);
-    parts.push(`move=${moveM}m`);
-    parts.push(maxMovesPerStep > 0 ? `cap=${maxMovesPerStep}` : "cap=∞");
-    parts.push(`sep=${minSepM}m`);
-    parts.push(`noise=${noiseLevel}`);
-    parts.push(`delay=${delaySteps}`);
-    parts.push(`loss=${lossProb}`);
-    parts.push(
-      regimeEnabled
-        ? `regime=${regimeMode} stages=${certifiedStages.length} ladder=${opportunisticLadder.length}`
-        : "regime=off"
-    );
-    parts.push(
-      o1Enabled
-        ? `belief_update:on c_info=${cInfo} c_cov=${cCov} eps_ref=${epsRef}`
-        : "belief_update:off"
-    );
-    if (policy === "uncertainty") {
-      parts.push(
-        `unc={decay=${uncertaintyDecay},gamma=${uncertaintyGamma},beta=${uncertaintyBeta},lambda=${uncertaintyLambda}}`
-      );
-    }
-    return parts.join(" · ");
-  }, [
-    mode, tieBreaking, n, radiusM, moveM, maxMovesPerStep, minSepM,
-    noiseLevel, delaySteps, lossProb, regimeEnabled, regimeMode,
-    certifiedStages.length, opportunisticLadder.length, o1Enabled, cInfo, cCov, epsRef,
-    policy, uncertaintyDecay, uncertaintyGamma, uncertaintyBeta, uncertaintyLambda,
-  ]);
  
 
   function buildOperationalManifest(runPolicy: Policy) {
@@ -1494,16 +1459,17 @@ export default function OperationalDesignerPage() {
           </div>
           <div className="small" style={{ opacity: 0.82, lineHeight: 1.4, marginTop: 6 }}>
             Important status note: the current live backend behavior is still driven mainly by the
-            compact router-side <b>usefulness_proto</b> scaffold. The editable fields in this section
-            are retained for alignment and future convergence, but should currently be treated as
-            <b> partially wired experimental surface</b>, not yet as the fully authoritative controller API.
+            compact router-side <b>usefulness_proto</b> scaffold. That compact path is already
+            <b> behaviorally active</b> on the live controller path, but the editable manifest fields
+            in this section are retained for alignment and future convergence and should currently be
+            treated as a <b>partially wired experimental surface</b>, not yet as the fully authoritative controller API.
           </div>
           <div className="small" style={{ opacity: 0.8, lineHeight: 1.4, marginTop: 6 }}>
             Practical reading for now:
-            <b> policy selection is live;</b> the richer exploit/recover/caution manifest controls below
-            are still ahead of the compact backend implementation.
+            <b> the compact usefulness controller path is live;</b> the richer exploit/recover/caution
+            manifest controls below are still ahead of the compact backend implementation and are not
+            yet a unified controller surface with regime management.
           </div>
-
           <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
             <div className="small" style={{ opacity: 0.82 }}>
               Status: <b>partially wired experimental manifest surface</b>
@@ -2339,21 +2305,6 @@ export default function OperationalDesignerPage() {
             disabled={busy}
             title="Probability that an observation packet never arrives"
           />        </div>
-      </div>
-      <div className="card" style={{ marginTop: 10 }}>
-        <h2 style={{ marginTop: 0 }}>Comparison studies</h2>
-        <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
-          Comparison studies have been moved out of Operational Designer.
-          Use <b>Analysis · Study Designer</b> to create <b>ana-*</b> artifacts, policy comparisons,
-          sweep families, and screenshot-oriented summary studies.
-        </div>
-        <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
-          The current Operational Designer remains the place to author a single operational base configuration
-          and generate one <b>opr-*</b> run at a time.
-        </div>
-        <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
-          Current single-run base: <span title={studyBaseSummary}>{studyBaseSummary}</span>
-        </div>
       </div>
 
       <div className="row" style={{ alignItems: "center" }}>
