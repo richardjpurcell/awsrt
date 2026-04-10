@@ -1230,13 +1230,16 @@ export default function AnalysisBatchPage() {
           <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
             <h2 style={{ marginTop: 0, fontSize: 16 }}>Good first main studies</h2>
             <div className="small" style={{ lineHeight: 1.5 }}>
-              <b>baseline_policy_main</b>, <b>mdc_policy_main</b>, <b>budget_main</b>, <b>regime_active_main</b>
+              <b>baseline_policy_main</b>, <b>mdc_policy_main</b>, <b>budget_main</b>, <b>regime_active_main</b>,
+              <b>regime_advisory_main</b><b>regime_active_main</b>
             </div>
           </div>
           <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
             <h2 style={{ marginTop: 0, fontSize: 16 }}>Good first diagnostic studies</h2>
             <div className="small" style={{ lineHeight: 1.5 }}>
-              <b>impairment_diagnostic</b>, <b>delay_diagnostic</b>, <b>noise_diagnostic</b>, <b>regime_persistence_diagnostic</b>, <b>regime_hysteresis_diagnostic</b>, <b>verification_quick</b>
+              <b>impairment_diagnostic</b>, <b>delay_diagnostic</b>, <b>noise_diagnostic</b>,
+              <b>regime_persistence_diagnostic</b>, <b>regime_hysteresis_diagnostic</b>, <b>verification_quick</b>
+<b>regime_hysteresis_diagnostic</b>, <b>verification_quick</b>
             </div>
           </div>
         </div>
@@ -1689,6 +1692,24 @@ export default function AnalysisBatchPage() {
             </div>
           </div>
         ) : null}
+
+        <div className="card" style={{ marginTop: 10, background: "rgba(0,0,0,0.02)" }}>
+          <h2 style={{ marginTop: 0, fontSize: 16 }}>Curated v0.2 bundle guide</h2>
+          <div className="small" style={{ lineHeight: 1.5 }}>
+            For Subgoal M, prefer a small release-facing bundle rather than a broad campaign.
+          </div>
+          <div className="small" style={{ marginTop: 8, lineHeight: 1.5 }}>
+            <b>Bundle A — compact usefulness triad:</b> use representative single runs in Operational Visualizer
+            for healthy / delay-heavy / noise-heavy usefulness-prototype reading.
+          </div>
+          <div className="small" style={{ marginTop: 6, lineHeight: 1.5 }}>
+            <b>Bundle B — advisory vs active comparison:</b> start with <b>regime_advisory_main</b> and <b>regime_active_main</b>.
+          </div>
+          <div className="small" style={{ marginTop: 6, lineHeight: 1.5 }}>
+            <b>Bundle C — mechanism-audit bundle:</b> use one active opportunistic-family study here,
+            then inspect one representative run in Operational Visualizer with mechanism audit enabled.
+          </div>
+        </div>
 
         <div
           style={{
