@@ -122,7 +122,7 @@ class ComparePoliciesRequest(BaseModel):
 
 
 # ----------------------------
-# Helpers
+# Generic / shared helpers
 # ----------------------------
 
 def _load_opr_summary_or_none(opr_id: str) -> dict[str, Any] | None:
@@ -376,7 +376,9 @@ def _rolling_positive_fraction(x: np.ndarray, start: int, end: int) -> Optional[
         return None
     return float(np.mean((xs > 0).astype(np.float32)))
 
-
+# ----------------------------
+# Compact usefulness helpers
+# ----------------------------
 
 def _usefulness_trigger_recover(
     *,
@@ -490,6 +492,7 @@ def _usefulness_trigger_recover_from_caution(
 
     return bool(healthy_recover_exit or stale_but_active_recover)
 
+
 def _usefulness_trigger_exploit(
     *,
     recent_obs_age_mean_valid: Optional[float],
@@ -569,6 +572,11 @@ def _usefulness_transition(
         return USEFULNESS_STATE_CAUTION
 
     return USEFULNESS_STATE_EXPLOIT
+
+
+# ----------------------------
+# Compare / metrics helpers
+# ----------------------------
 
 def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
     """
@@ -738,6 +746,10 @@ def _compute_compare_metrics(opr_id: str) -> dict[str, Any]:
 
     return out
 
+
+# ----------------------------
+# Generic operational / geometry helpers
+# ----------------------------
 
 def _safe_dt_seconds(x: Any) -> int:
     try:
@@ -958,7 +970,12 @@ def _union_flat_indices(
             if 0 <= rr < H and 0 <= cc < W:
                 seen[rr * W + cc] = True
     return np.flatnonzero(seen).astype(np.int32)
- 
+
+
+# ----------------------------
+# Information / belief update helpers
+# ----------------------------
+
 # Controller visibility note:
 #   This helper computes an analysis-style information driver from the current
 #   belief state and configured impairment parameters. It is appropriate for
@@ -1011,6 +1028,11 @@ def _binary_sensor_expected_mi_union(
     mi = np.maximum(0.0, hq - hn)
 
     return float(np.sum(p_arrive * mi)) / float(H * W)
+
+
+# ----------------------------
+# Advisory regime-management helpers
+# ----------------------------
 
 def _get_phy_meta_from_manifest(phy_m: dict) -> tuple[int, int, int, float, str, int]:
     """
@@ -1365,6 +1387,11 @@ def _combine_switch_to_certified_components_active(
 
     return bool(any(aux_checks)) if aux_checks else False
 
+
+# ----------------------------
+# Active regime-management helpers
+# ----------------------------
+
 def _update_active_regime_counters(
     *,
     cur_state: int,
@@ -1462,6 +1489,7 @@ def _compute_leave_certified_trigger(
     score_ok = float(requal_support_score) >= float(support_threshold)
     breadth_ok = float(requal_support_breadth) >= float(breadth_threshold)
     return bool(score_ok and breadth_ok)
+
 
 def _update_active_regime_cooldowns(
     *,
@@ -1792,6 +1820,11 @@ def _resolve_active_entropy_for_control(
     weights = np.where(in_band > 0.0, np.float32(1.0), out_band_weight)
     return (entropy_t.astype(np.float32) * weights.astype(np.float32)).astype(np.float32)
 
+
+# ----------------------------
+# Policy / summary labeling helpers
+# ----------------------------
+
 def _classify_mdc_info_reward_strength(
     *,
     c_info: float,
@@ -1818,6 +1851,75 @@ def _classify_mdc_info_reward_strength(
     if c < 2.0 * k_update:
         return "moderate"
     return "strong"
+
+
+# ----------------------------
+# Persistence helpers
+# ----------------------------
+
+def _write_named_1d_series(
+    *,
+    opr_id: str,
+    items: list[tuple[str, np.ndarray, str]],
+) -> None:
+    """
+    Persist a batch of 1D zarr series using the existing per-series layout.
+
+    Intentionally thin and file-local:
+      - preserves series names
+      - preserves dtype selection
+      - preserves chunking policy
+      - performs no reshaping or semantic transformation
+    """
+    for name, arr, dtype in items:
+        z = zarr.open(
+            str(zarr_path(opr_id, name)),
+            mode="w",
+            shape=arr.shape,
+            dtype=dtype,
+            chunks=(min(int(arr.shape[0]), 256),),
+        )
+        z[:] = arr
+
+
+# ----------------------------
+# Response construction helpers
+# ----------------------------
+
+def _build_operational_meta_response(
+    *,
+    opr_id: str,
+    H: Any,
+    W: Any,
+    T: Any,
+    dt_seconds: Any,
+    crs_code: Any,
+    cell_size_m: Any,
+) -> MetaResponse:
+    """
+    Build a normalized MetaResponse for operational runs.
+
+    Intentionally thin:
+      - preserves existing fallback normalization behavior
+      - keeps horizon_steps aligned to T
+      - avoids repeating the same MetaResponse construction in meta()
+    """
+    Hn = _safe_hw(H)
+    Wn = _safe_hw(W)
+    Tn = max(0, int(T))
+    dtn = _safe_dt_seconds(dt_seconds)
+    crs = _safe_crs_code(crs_code)
+    cell = float(cell_size_m) if float(cell_size_m) > 0 else 1.0
+    return MetaResponse(
+        id=opr_id,
+        H=Hn,
+        W=Wn,
+        T=Tn,
+        dt_seconds=dtn,
+        horizon_steps=Tn,
+        crs_code=crs,
+        cell_size_m=cell,
+    )
 
 # ----------------------------
 # Endpoints
@@ -1857,15 +1959,14 @@ def meta(opr_id: str) -> MetaResponse:
         try:
             phy = load_manifest(str(phy_id))
             H, W, T, cell_size_m, crs_code, dt_seconds = _get_phy_meta_from_manifest(phy)
-            return MetaResponse(
-                id=opr_id,
+            return _build_operational_meta_response(
+                opr_id=opr_id,
                 H=H,
                 W=W,
-                T=max(0, int(T)),
-                dt_seconds=int(dt_seconds),
-                horizon_steps=max(0, int(T)),
-                crs_code=str(crs_code),
-                cell_size_m=float(cell_size_m) if float(cell_size_m) > 0 else 1.0,
+                T=T,
+                dt_seconds=dt_seconds,
+                crs_code=crs_code,
+                cell_size_m=cell_size_m,
             )
         except FileNotFoundError:
             pass
@@ -1881,15 +1982,14 @@ def meta(opr_id: str) -> MetaResponse:
             if phy_id2:
                 phy = load_manifest(str(phy_id2))
                 H, W, T, cell_size_m, crs_code, dt_seconds = _get_phy_meta_from_manifest(phy)
-                return MetaResponse(
-                    id=opr_id,
+                return _build_operational_meta_response(
+                    opr_id=opr_id,
                     H=H,
                     W=W,
-                    T=max(0, int(T)),
-                    dt_seconds=int(dt_seconds),
-                    horizon_steps=max(0, int(T)),
-                    crs_code=str(crs_code),
-                    cell_size_m=float(cell_size_m) if float(cell_size_m) > 0 else 1.0,
+                    T=T,
+                    dt_seconds=dt_seconds,
+                    crs_code=crs_code,
+                    cell_size_m=cell_size_m,
                 )
         except FileNotFoundError:
             # fall back to stored operational meta
@@ -1901,19 +2001,14 @@ def meta(opr_id: str) -> MetaResponse:
     s = _load_opr_summary_or_none(opr_id) or {}
     if all(k in s for k in ("H", "W", "T", "dt_seconds", "cell_size_m", "crs_code")):
         try:
-            H = _safe_hw(s["H"])
-            W = _safe_hw(s["W"])
-            T = int(s["T"])
-            cell_size_m = float(s["cell_size_m"])
-            return MetaResponse(
-                id=opr_id,
-                H=H,
-                W=W,
-                T=max(0, int(T)),
-                dt_seconds=_safe_dt_seconds(s.get("dt_seconds", 1)),
-                horizon_steps=max(0, int(T)),
-                crs_code=_safe_crs_code(s.get("crs_code", "")),
-                cell_size_m=float(cell_size_m) if float(cell_size_m) > 0 else 1.0,
+            return _build_operational_meta_response(
+                opr_id=opr_id,
+                H=s["H"],
+                W=s["W"],
+                T=s["T"],
+                dt_seconds=s.get("dt_seconds", 1),
+                crs_code=s.get("crs_code", ""),
+                cell_size_m=s["cell_size_m"],
             )
         except Exception:
             pass
@@ -1928,15 +2023,14 @@ def meta(opr_id: str) -> MetaResponse:
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"cannot determine operational meta: {e}")
 
-    return MetaResponse(
-        id=opr_id,
-        H=_safe_hw(s.get("H", 1)),
-        W=_safe_hw(s.get("W", 1)),
-        T=max(0, int(s.get("T", T) or T)),
-        dt_seconds=_safe_dt_seconds(s.get("dt_seconds", 1)),
-        horizon_steps=max(0, int(s.get("T", T) or T)),
-        crs_code=_safe_crs_code(s.get("crs_code", "")),
-        cell_size_m=float(s.get("cell_size_m", 1.0) or 1.0),
+    return _build_operational_meta_response(
+        opr_id=opr_id,
+        H=s.get("H", 1),
+        W=s.get("W", 1),
+        T=s.get("T", T) or T,
+        dt_seconds=s.get("dt_seconds", 1),
+        crs_code=s.get("crs_code", ""),
+        cell_size_m=s.get("cell_size_m", 1.0) or 1.0,
     )
 
 
@@ -1967,6 +2061,9 @@ def run(req: RunRequest) -> dict:
     # O1: closed-loop mode
     # ----------------------------
     if run_mode == "closed_loop":
+        # ----------------------------
+        # Closed-loop setup / manifest-linked truth load
+        # ----------------------------
         if not m.phy_id:
             raise HTTPException(status_code=400, detail="operational manifest missing phy_id for closed_loop mode")
         phy_id = str(m.phy_id)
@@ -2021,6 +2118,9 @@ def run(req: RunRequest) -> dict:
         seed = int(getattr(m.o1, "seed", 0) or 0)
         rng = np.random.default_rng(seed)
 
+        # ----------------------------
+        # Closed-loop array / series allocation
+        # ----------------------------        
         # Allocate operational arrays
         sensors = np.zeros((T, m.network.n_sensors, 2), dtype=np.int32)
         detections = np.zeros((T, m.network.n_sensors), dtype=np.uint8)  # arrived detections (0/1)
@@ -2153,6 +2253,9 @@ def run(req: RunRequest) -> dict:
         c_cov = float(getattr(m.o1, "c_cov", 1.0))
         eps_ref = float(getattr(m.o1, "eps_ref", 0.0))
 
+        # ----------------------------
+        # Regime-management / usefulness setup
+        # ----------------------------        
         # Regime-management scaffolding (Patch 2A: advisory-only signals/logging)
         rgm = getattr(m, "regime_management", None)
         regime_enabled = bool(rgm is not None and bool(getattr(rgm, "enabled", False)))
@@ -2309,6 +2412,9 @@ def run(req: RunRequest) -> dict:
 
         prev_cov = np.zeros((H, W), dtype=np.uint8)
 
+        # ----------------------------
+        # Main closed-loop execution
+        # ----------------------------
         for t in range(T):
             # For usefulness_proto, choose an effective controller behavior
             # causally from the CURRENT usefulness state, before movement.
@@ -3189,6 +3295,9 @@ def run(req: RunRequest) -> dict:
                 alpha=0.90,
             )
 
+        # ----------------------------
+        # Persistence: core arrays and derived series
+        # ----------------------------        
         # Persist core arrays
         z_s = zarr.open(
             str(zarr_path(opr_id, "sensors_rc")),
@@ -3208,49 +3317,43 @@ def run(req: RunRequest) -> dict:
         )
         z_d[:] = detections
 
-        # Persist series arrays as zarr
-        def _write_1d(name: str, arr: np.ndarray, dtype: str):
-            z = zarr.open(
-                str(zarr_path(opr_id, name)),
-                mode="w",
-                shape=arr.shape,
-                dtype=dtype,
-                chunks=(min(int(arr.shape[0]), 256),),
-            )
-            z[:] = arr
+        _write_named_1d_series(
+            opr_id=opr_id,
+            items=[
+                ("true_detections_any", true_detections_any, "u1"),
+                ("arrived_detections_any", arrived_detections_any, "u1"),
+                ("detections_any", detections_any, "u1"),
+                ("coverage_frac", coverage_frac.astype(np.float32), "f4"),
+                ("new_coverage_frac", new_coverage_frac.astype(np.float32), "f4"),
+                ("movement_l1_mean", movement_l1_mean.astype(np.float32), "f4"),
+                ("moves_per_step", moves_per_step.astype(np.int32), "i4"),
+                ("moved_frac", moved_frac.astype(np.float32), "f4"),
+                ("overlap_fire_sensors", overlap_fire_sensors.astype(np.float32), "f4"),
+                ("overlap_fire_any_sensors", overlap_fire_any_sensors.astype(np.float32), "f4"),
+                ("overlap_front_sensors", overlap_front_sensors.astype(np.float32), "f4"),
+                ("uncertainty_debug_variance_mean", uncertainty_debug_variance_mean.astype(np.float32), "f4"),
+                ("uncertainty_debug_variance_max", uncertainty_debug_variance_max.astype(np.float32), "f4"),
+                ("uncertainty_debug_novelty_mean", uncertainty_debug_novelty_mean.astype(np.float32), "f4"),
+                ("uncertainty_debug_novelty_max", uncertainty_debug_novelty_max.astype(np.float32), "f4"),
+                ("uncertainty_debug_entropy_bonus_mean", uncertainty_debug_entropy_bonus_mean.astype(np.float32), "f4"),
+                ("uncertainty_debug_entropy_bonus_max", uncertainty_debug_entropy_bonus_max.astype(np.float32), "f4"),
+                ("uncertainty_debug_score_mean", uncertainty_debug_score_mean.astype(np.float32), "f4"),
+                ("uncertainty_debug_score_max", uncertainty_debug_score_max.astype(np.float32), "f4"),
+            ],
+        )
 
-        _write_1d("true_detections_any", true_detections_any, "u1")
-        _write_1d("arrived_detections_any", arrived_detections_any, "u1")
-        _write_1d("detections_any", detections_any, "u1")
-        _write_1d("coverage_frac", coverage_frac.astype(np.float32), "f4")
-        _write_1d("new_coverage_frac", new_coverage_frac.astype(np.float32), "f4")
-        _write_1d("movement_l1_mean", movement_l1_mean.astype(np.float32), "f4")
-        _write_1d("moves_per_step", moves_per_step.astype(np.int32), "i4")
-        _write_1d("moved_frac", moved_frac.astype(np.float32), "f4")
-        _write_1d("overlap_fire_sensors", overlap_fire_sensors.astype(np.float32), "f4")
-        _write_1d("overlap_fire_any_sensors", overlap_fire_any_sensors.astype(np.float32), "f4")
-        _write_1d("overlap_front_sensors", overlap_front_sensors.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_variance_mean", uncertainty_debug_variance_mean.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_variance_max", uncertainty_debug_variance_max.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_novelty_mean", uncertainty_debug_novelty_mean.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_novelty_max", uncertainty_debug_novelty_max.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_entropy_bonus_mean", uncertainty_debug_entropy_bonus_mean.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_entropy_bonus_max", uncertainty_debug_entropy_bonus_max.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_score_mean", uncertainty_debug_score_mean.astype(np.float32), "f4")
-        _write_1d("uncertainty_debug_score_max", uncertainty_debug_score_max.astype(np.float32), "f4")
-
-
-
-        # Realized budget series
-        _write_1d("arrivals_frac", arrivals_frac.astype(np.float32), "f4")
-        _write_1d("detections_arrived_frac", detections_arrived_frac.astype(np.float32), "f4")
-        _write_1d("obs_generation_step", obs_generation_step.astype(np.int32), "i4")
-        _write_1d("obs_delivery_step", obs_delivery_step.astype(np.int32), "i4")
-        _write_1d("obs_age_steps", obs_age_steps.astype(np.int32), "i4")
-        _write_1d("loss_frac", loss_frac.astype(np.float32), "f4")
-
-        # O1 series: mean entropy and delta
-        _write_1d("mean_entropy", mean_entropy.astype(np.float32), "f4")
+        _write_named_1d_series(
+            opr_id=opr_id,
+            items=[
+                ("arrivals_frac", arrivals_frac.astype(np.float32), "f4"),
+                ("detections_arrived_frac", detections_arrived_frac.astype(np.float32), "f4"),
+                ("obs_generation_step", obs_generation_step.astype(np.int32), "i4"),
+                ("obs_delivery_step", obs_delivery_step.astype(np.int32), "i4"),
+                ("obs_age_steps", obs_age_steps.astype(np.int32), "i4"),
+                ("loss_frac", loss_frac.astype(np.float32), "f4"),
+                ("mean_entropy", mean_entropy.astype(np.float32), "f4"),
+            ],
+        )
         delta_mean_entropy = np.zeros_like(mean_entropy)
         if T > 1:
             delta_mean_entropy[:-1] = mean_entropy[1:] - mean_entropy[:-1]
@@ -3265,88 +3368,95 @@ def run(req: RunRequest) -> dict:
             -delta_mean_entropy.astype(np.float32),
         ).astype(np.float32)
 
-        _write_1d("delta_mean_entropy", delta_mean_entropy.astype(np.float32), "f4")
-        _write_1d("usefulness_gap", usefulness_gap.astype(np.float32), "f4")
-        _write_1d("misleading_activity", misleading_activity.astype(np.float32), "f4")
-        _write_1d("recent_obs_age_mean_valid", recent_obs_age_mean_valid.astype(np.float32), "f4")
-        _write_1d("recent_misleading_activity_mean", recent_misleading_activity_mean.astype(np.float32), "f4")
-        _write_1d("recent_misleading_activity_pos_frac", recent_misleading_activity_pos_frac.astype(np.float32), "f4")
-        _write_1d("recent_driver_info_true_mean", recent_driver_info_true_mean.astype(np.float32), "f4")
-        _write_1d("usefulness_regime_state", usefulness_regime_state.astype(np.int32), "i4")
-        _write_1d("usefulness_trigger_recover", usefulness_trigger_recover.astype(np.uint8), "u1")
-        _write_1d("usefulness_trigger_caution", usefulness_trigger_caution.astype(np.uint8), "u1")
-        _write_1d("usefulness_trigger_recover_from_caution", usefulness_trigger_recover_from_caution.astype(np.uint8), "u1")
-        _write_1d("usefulness_trigger_exploit", usefulness_trigger_exploit.astype(np.uint8), "u1")
-        _write_1d("usefulness_recover_counter", usefulness_recover_counter.astype(np.int32), "i4")
-        _write_1d("usefulness_caution_counter", usefulness_caution_counter.astype(np.int32), "i4")
-        _write_1d("usefulness_recover_exit_counter", usefulness_recover_exit_counter.astype(np.int32), "i4")
-        _write_1d("usefulness_exploit_counter", usefulness_exploit_counter.astype(np.int32), "i4")
-
-        # Persist drivers + residuals
-        _write_1d("driver_info_true", driver_info_true.astype(np.float32), "f4")
-        _write_1d("regime_requal_support_score", regime_requal_support_score.astype(np.float32), "f4")
-        _write_1d("regime_requal_support_breadth", regime_requal_support_breadth.astype(np.float32), "f4")
-        _write_1d("debug_requal_support_front", debug_requal_support_front.astype(np.float32), "f4")
-        _write_1d("debug_requal_support_detect", debug_requal_support_detect.astype(np.float32), "f4")
-        _write_1d("debug_requal_support_info", debug_requal_support_info.astype(np.float32), "f4")
-        _write_1d("debug_requal_support_health", debug_requal_support_health.astype(np.float32), "f4")
+        _write_named_1d_series(
+            opr_id=opr_id,
+            items=[
+                ("delta_mean_entropy", delta_mean_entropy.astype(np.float32), "f4"),
+                ("usefulness_gap", usefulness_gap.astype(np.float32), "f4"),
+                ("misleading_activity", misleading_activity.astype(np.float32), "f4"),
+                ("recent_obs_age_mean_valid", recent_obs_age_mean_valid.astype(np.float32), "f4"),
+                ("recent_misleading_activity_mean", recent_misleading_activity_mean.astype(np.float32), "f4"),
+                ("recent_misleading_activity_pos_frac", recent_misleading_activity_pos_frac.astype(np.float32), "f4"),
+                ("recent_driver_info_true_mean", recent_driver_info_true_mean.astype(np.float32), "f4"),
+                ("usefulness_regime_state", usefulness_regime_state.astype(np.int32), "i4"),
+                ("usefulness_trigger_recover", usefulness_trigger_recover.astype(np.uint8), "u1"),
+                ("usefulness_trigger_caution", usefulness_trigger_caution.astype(np.uint8), "u1"),
+                ("usefulness_trigger_recover_from_caution", usefulness_trigger_recover_from_caution.astype(np.uint8), "u1"),
+                ("usefulness_trigger_exploit", usefulness_trigger_exploit.astype(np.uint8), "u1"),
+                ("usefulness_recover_counter", usefulness_recover_counter.astype(np.int32), "i4"),
+                ("usefulness_caution_counter", usefulness_caution_counter.astype(np.int32), "i4"),
+                ("usefulness_recover_exit_counter", usefulness_recover_exit_counter.astype(np.int32), "i4"),
+                ("usefulness_exploit_counter", usefulness_exploit_counter.astype(np.int32), "i4"),
+                ("driver_info_true", driver_info_true.astype(np.float32), "f4"),
+                ("regime_requal_support_score", regime_requal_support_score.astype(np.float32), "f4"),
+                ("regime_requal_support_breadth", regime_requal_support_breadth.astype(np.float32), "f4"),
+                ("debug_requal_support_front", debug_requal_support_front.astype(np.float32), "f4"),
+                ("debug_requal_support_detect", debug_requal_support_detect.astype(np.float32), "f4"),
+                ("debug_requal_support_info", debug_requal_support_info.astype(np.float32), "f4"),
+                ("debug_requal_support_health", debug_requal_support_health.astype(np.float32), "f4"),
+            ],
+        )
 
         if T > 1:
             residual_cov[:-1] = delta_mean_entropy[:-1] + float(c_cov) * arrivals_frac[:-1]
             residual_info[:-1] = delta_mean_entropy[:-1] + float(c_info) * driver_info_true[:-1]
-        _write_1d("residual_cov", residual_cov.astype(np.float32), "f4")
-        _write_1d("residual_info", residual_info.astype(np.float32), "f4")
+        _write_named_1d_series(
+            opr_id=opr_id,
+            items=[
+                ("residual_cov", residual_cov.astype(np.float32), "f4"),
+                ("residual_info", residual_info.astype(np.float32), "f4"),
+                ("regime_utilization", regime_utilization.astype(np.float32), "f4"),
+                ("regime_strict_drift_proxy", regime_strict_drift_proxy.astype(np.float32), "f4"),
+                ("regime_local_drift_rate", regime_local_drift_rate.astype(np.float32), "f4"),
+                ("regime_cumulative_exposure", regime_cumulative_exposure.astype(np.float32), "f4"),
+                ("regime_state", regime_state.astype(np.int32), "i4"),
+                ("regime_trigger_downshift", regime_trigger_downshift.astype(np.uint8), "u1"),
+                ("regime_trigger_switch_to_certified", regime_trigger_switch_to_certified.astype(np.uint8), "u1"),
+                ("regime_trigger_recovery", regime_trigger_recovery.astype(np.uint8), "u1"),
+                ("regime_certified_stage_index", regime_certified_stage_index.astype(np.int32), "i4"),
+                ("regime_opportunistic_level_index", regime_opportunistic_level_index.astype(np.int32), "i4"),
+                ("regime_advisory_stage_eta", regime_advisory_stage_eta.astype(np.float32), "f4"),
+                ("regime_active_state", regime_active_state.astype(np.int32), "i4"),
+                ("regime_active_certified_stage_index", regime_active_certified_stage_index.astype(np.int32), "i4"),
+                ("regime_active_opportunistic_level_index", regime_active_opportunistic_level_index.astype(np.int32), "i4"),
+                ("regime_active_transition_event", regime_active_transition_event.astype(np.int32), "i4"),
+                ("regime_effective_eta", regime_effective_eta.astype(np.float32), "f4"),
+                ("regime_effective_move_budget_cells", regime_effective_move_budget_cells.astype(np.float32), "f4"),
+                ("debug_down_utilization_margin", debug_down_utilization_margin.astype(np.float32), "f4"),
+                ("debug_down_strict_margin", debug_down_strict_margin.astype(np.float32), "f4"),
+                ("debug_down_utilization_threshold", debug_down_utilization_threshold.astype(np.float32), "f4"),
+                ("debug_down_strict_threshold", debug_down_strict_threshold.astype(np.float32), "f4"),
+                ("debug_down_hysteresis", debug_down_hysteresis.astype(np.float32), "f4"),
+                ("debug_trig_down_utilization_component", debug_trig_down_utilization_component.astype(np.uint8), "u1"),
+                ("debug_trig_down_strict_component", debug_trig_down_strict_component.astype(np.uint8), "u1"),
+                ("debug_trig_down_final", debug_trig_down_final.astype(np.uint8), "u1"),
+                ("debug_switch_utilization_margin", debug_switch_utilization_margin.astype(np.float32), "f4"),
+                ("debug_switch_strict_margin", debug_switch_strict_margin.astype(np.float32), "f4"),
+                ("debug_switch_utilization_threshold", debug_switch_utilization_threshold.astype(np.float32), "f4"),
+                ("debug_switch_strict_threshold", debug_switch_strict_threshold.astype(np.float32), "f4"),
+                ("debug_switch_hysteresis", debug_switch_hysteresis.astype(np.float32), "f4"),
+                ("debug_trig_switch_utilization_component", debug_trig_switch_utilization_component.astype(np.uint8), "u1"),
+                ("debug_trig_switch_strict_component", debug_trig_switch_strict_component.astype(np.uint8), "u1"),
+                ("debug_trig_switch_local_component", debug_trig_switch_local_component.astype(np.uint8), "u1"),
+                ("debug_trig_switch_exposure_component", debug_trig_switch_exposure_component.astype(np.uint8), "u1"),
+                ("debug_trig_switch_final", debug_trig_switch_final.astype(np.uint8), "u1"),
+                ("debug_recovery_utilization_margin", debug_recovery_utilization_margin.astype(np.float32), "f4"),
+                ("debug_recovery_strict_margin", debug_recovery_strict_margin.astype(np.float32), "f4"),
+                ("debug_recovery_utilization_threshold", debug_recovery_utilization_threshold.astype(np.float32), "f4"),
+                ("debug_recovery_strict_threshold", debug_recovery_strict_threshold.astype(np.float32), "f4"),
+                ("debug_recovery_hysteresis", debug_recovery_hysteresis.astype(np.float32), "f4"),
+                ("debug_down_counter", debug_down_counter.astype(np.int32), "i4"),
+                ("debug_switch_counter", debug_switch_counter.astype(np.int32), "i4"),
+                ("debug_recovery_counter", debug_recovery_counter.astype(np.int32), "i4"),
+                ("debug_recovery_block_counter", debug_recovery_block_counter.astype(np.int32), "i4"),
+                ("debug_leave_certified_counter", debug_leave_certified_counter.astype(np.int32), "i4"),
+                ("debug_trig_leave_certified_final", debug_trig_leave_certified_final.astype(np.uint8), "u1"),
+            ],
+        )
 
-        # Regime-management advisory series
-        _write_1d("regime_utilization", regime_utilization.astype(np.float32), "f4")
-        _write_1d("regime_strict_drift_proxy", regime_strict_drift_proxy.astype(np.float32), "f4")
-        _write_1d("regime_local_drift_rate", regime_local_drift_rate.astype(np.float32), "f4")
-        _write_1d("regime_cumulative_exposure", regime_cumulative_exposure.astype(np.float32), "f4")
-        _write_1d("regime_state", regime_state.astype(np.int32), "i4")
-        _write_1d("regime_trigger_downshift", regime_trigger_downshift.astype(np.uint8), "u1")
-        _write_1d("regime_trigger_switch_to_certified", regime_trigger_switch_to_certified.astype(np.uint8), "u1")
-        _write_1d("regime_trigger_recovery", regime_trigger_recovery.astype(np.uint8), "u1")
-        _write_1d("regime_certified_stage_index", regime_certified_stage_index.astype(np.int32), "i4")
-        _write_1d("regime_opportunistic_level_index", regime_opportunistic_level_index.astype(np.int32), "i4")
-        _write_1d("regime_advisory_stage_eta", regime_advisory_stage_eta.astype(np.float32), "f4")
-        _write_1d("regime_active_state", regime_active_state.astype(np.int32), "i4")
-        _write_1d("regime_active_certified_stage_index", regime_active_certified_stage_index.astype(np.int32), "i4")
-        _write_1d("regime_active_opportunistic_level_index", regime_active_opportunistic_level_index.astype(np.int32), "i4")
-        _write_1d("regime_active_transition_event", regime_active_transition_event.astype(np.int32), "i4")
-        _write_1d("regime_effective_eta", regime_effective_eta.astype(np.float32), "f4")
-        _write_1d("regime_effective_move_budget_cells", regime_effective_move_budget_cells.astype(np.float32), "f4")
-        _write_1d("debug_down_utilization_margin", debug_down_utilization_margin.astype(np.float32), "f4")
-        _write_1d("debug_down_strict_margin", debug_down_strict_margin.astype(np.float32), "f4")
-        _write_1d("debug_down_utilization_threshold", debug_down_utilization_threshold.astype(np.float32), "f4")
-        _write_1d("debug_down_strict_threshold", debug_down_strict_threshold.astype(np.float32), "f4")
-        _write_1d("debug_down_hysteresis", debug_down_hysteresis.astype(np.float32), "f4")
-        _write_1d("debug_trig_down_utilization_component", debug_trig_down_utilization_component.astype(np.uint8), "u1")
-        _write_1d("debug_trig_down_strict_component", debug_trig_down_strict_component.astype(np.uint8), "u1")
-        _write_1d("debug_trig_down_final", debug_trig_down_final.astype(np.uint8), "u1")
-        _write_1d("debug_switch_utilization_margin", debug_switch_utilization_margin.astype(np.float32), "f4")
-        _write_1d("debug_switch_strict_margin", debug_switch_strict_margin.astype(np.float32), "f4")
-        _write_1d("debug_switch_utilization_threshold", debug_switch_utilization_threshold.astype(np.float32), "f4")
-        _write_1d("debug_switch_strict_threshold", debug_switch_strict_threshold.astype(np.float32), "f4")
-        _write_1d("debug_switch_hysteresis", debug_switch_hysteresis.astype(np.float32), "f4")
-        _write_1d("debug_trig_switch_utilization_component", debug_trig_switch_utilization_component.astype(np.uint8), "u1")
-        _write_1d("debug_trig_switch_strict_component", debug_trig_switch_strict_component.astype(np.uint8), "u1")
-        _write_1d("debug_trig_switch_local_component", debug_trig_switch_local_component.astype(np.uint8), "u1")
-        _write_1d("debug_trig_switch_exposure_component", debug_trig_switch_exposure_component.astype(np.uint8), "u1")
-        _write_1d("debug_trig_switch_final", debug_trig_switch_final.astype(np.uint8), "u1")
-        _write_1d("debug_recovery_utilization_margin", debug_recovery_utilization_margin.astype(np.float32), "f4")
-        _write_1d("debug_recovery_strict_margin", debug_recovery_strict_margin.astype(np.float32), "f4")
-        _write_1d("debug_recovery_utilization_threshold", debug_recovery_utilization_threshold.astype(np.float32), "f4")
-        _write_1d("debug_recovery_strict_threshold", debug_recovery_strict_threshold.astype(np.float32), "f4")
-        _write_1d("debug_recovery_hysteresis", debug_recovery_hysteresis.astype(np.float32), "f4")
-        _write_1d("debug_down_counter", debug_down_counter.astype(np.int32), "i4")
-        _write_1d("debug_switch_counter", debug_switch_counter.astype(np.int32), "i4")
-        _write_1d("debug_recovery_counter", debug_recovery_counter.astype(np.int32), "i4")
-        _write_1d("debug_recovery_block_counter", debug_recovery_block_counter.astype(np.int32), "i4")
-        _write_1d("debug_leave_certified_counter", debug_leave_certified_counter.astype(np.int32), "i4")
-        _write_1d("debug_trig_leave_certified_final", debug_trig_leave_certified_final.astype(np.uint8), "u1")
-
-
-
+        # ----------------------------
+        # Summary-only aggregate calculations
+        # ----------------------------        
         # Residual band summaries (for tables / quick comparisons)
         # If eps_ref>0: use that absolute band.
         # If eps_ref==0: auto band per-run: eps_ref_eff = 0.15 * max(|r(t)|).
@@ -3471,6 +3581,10 @@ def run(req: RunRequest) -> dict:
         ttf_true = int(np.argmax(true_detections_any > 0)) if int(np.any(true_detections_any > 0)) else None
         ttf_arrived = int(np.argmax(arrived_detections_any > 0)) if int(np.any(arrived_detections_any > 0)) else None
         steps: list[dict] = []
+
+        # ----------------------------
+        # Step metrics packing
+        # ----------------------------
         for t in range(T - 1):
 
             steps.append(
@@ -3601,276 +3715,293 @@ def run(req: RunRequest) -> dict:
                 }
             )
 
+        # ----------------------------
+        # CSV + summary emission
+        # ----------------------------
         write_steps_csv(metrics_dir(opr_id) / "step_metrics.csv", steps)
+
+        summary_meta = {
+            "id": opr_id,
+            "layer": "operational",
+            "run_mode": "closed_loop",
+            "phy_id": phy_id,
+            # Persist meta needed by Operational Visualizer even if parents are deleted later.
+            "H": int(H),
+            "W": int(W),
+            "T": int(T),
+            "dt_seconds": int(dt_seconds),
+            "cell_size_m": float(cell_size_m),
+            "crs_code": str(crs_code),
+        }
+
+        summary_config = {
+            "policy": m.network.policy,
+            "deployment_mode": m.network.deployment_mode,
+            "tie_breaking": m.network.tie_breaking,
+            "n_sensors": m.network.n_sensors,
+            "sensor_radius_m": m.network.sensor_radius_m,
+            "sensor_move_max_m": m.network.sensor_move_max_m,
+            "min_separation_m": m.network.min_separation_m,
+            "max_moves_per_step": int(getattr(m.network, "max_moves_per_step", 0) or 0),
+            "impairments": m.impairments.model_dump(),
+            "o1": getattr(m, "o1").model_dump() if getattr(m, "o1", None) is not None else None,
+            "regime_management": getattr(m, "regime_management").model_dump()
+            if getattr(m, "regime_management", None) is not None else None,
+            "policy_semantics": (
+                "posterior_variance_times_novelty_plus_novelty_bonus"
+                if str(m.network.policy) == "uncertainty"
+                else ("belief" if str(m.network.policy) == "greedy" else None)
+            ),
+            "uncertainty_decay": float(uncertainty_decay)
+            if str(m.network.policy) == "uncertainty" else None,
+            "uncertainty_gain": float(uncertainty_gain)
+            if str(m.network.policy) == "uncertainty" else None,
+            "uncertainty_gamma": float(uncertainty_gamma)
+            if str(m.network.policy) == "uncertainty" else None,
+            "uncertainty_beta": float(uncertainty_beta)
+            if str(m.network.policy) == "uncertainty" else None,
+            "uncertainty_lambda": float(uncertainty_lambda)
+            if str(m.network.policy) == "uncertainty" else None,
+        }
+
+        summary_metrics = {
+            "mean_entropy_auc": float(auc),
+            "ttfd": ttf,
+            # Detection semantics:
+            #   - ttfd: legacy compatibility alias using arrived/impaired detections
+            #   - ttfd_true: current-frame true footprint hit
+            #   - ttfd_arrived: delayed / impaired arrived observation stream
+            "ttfd_true": ttf_true,
+            "ttfd_arrived": ttf_arrived,
+            "detections_any_semantics": "legacy_alias_for_arrived_detections_any",
+            "coverage_auc": float(np.trapz(coverage_frac, dx=1.0)) if T > 1 else float(coverage_frac[0]),
+            "movement_total_mean_l1": float(np.sum(movement_l1_mean)),
+            "moves_per_step_mean": float(np.mean(moves_per_step)) if T > 0 else None,
+            "moved_frac_mean": float(np.mean(moved_frac)) if T > 0 else None,
+            "overlap_fire_sensors_mean": float(np.mean(overlap_fire_sensors)) if T > 0 else None,
+            "overlap_fire_any_sensors_mean": float(np.mean(overlap_fire_any_sensors)) if T > 0 else None,
+            "uncertainty_variance_mean": (
+                float(np.mean((4.0 * belief_t * (1.0 - belief_t)).astype(np.float32)))
+                if T > 0 and str(m.network.policy) == "uncertainty"
+                else None
+            ),
+            # Proxy calibration helper for interpreting mdc_info behavior
+            "k_update_proxy": float(0.5 * float(alpha_pos + alpha_neg)),
+            "mdc_info_regime": _classify_mdc_info_reward_strength(
+                c_info=float(c_info),
+                alpha_pos=float(alpha_pos),
+                alpha_neg=float(alpha_neg),
+            )
+            if str(m.network.policy) == "mdc_info"
+            else None,
+            # Realized budget summaries
+            "arrivals_frac_mean": float(np.mean(arrivals_frac)) if T > 0 else None,
+            "detections_arrived_frac_mean": float(np.mean(detections_arrived_frac)) if T > 0 else None,
+            # Driver/residual summaries used by the current operational tool
+            "driver_info_true_kind": "expected_mutual_information_binary_sensor",
+            "residual_info_driver": "driver_info_true",
+            "residual_cov_driver": "arrivals_frac",
+            "driver_info_true_mean": float(np.mean(driver_info_true)) if T > 0 else None,
+            "residual_cov_mean": float(np.mean(residual_cov[:-1])) if T > 1 else None,
+            "residual_info_mean": float(np.mean(residual_info[:-1])) if T > 1 else None,
+            "residual_cov_pos_frac": residual_cov_pos_frac,
+            "residual_info_pos_frac": residual_info_pos_frac,
+            "residual_cov_in_band_frac": (
+                float(np.mean((np.abs(residual_cov[:-1]) <= float(eps_ref_eff_cov)).astype(np.float32)))
+                if T > 1 and eps_ref_eff_cov is not None else None
+            ),
+            "residual_info_in_band_frac": (
+                float(np.mean((np.abs(residual_info[:-1]) <= float(eps_ref_eff_info)).astype(np.float32)))
+                if T > 1 and eps_ref_eff_info is not None else None
+            ),
+            "c_info": float(c_info),
+            "c_cov": float(c_cov),
+            "eps_ref": float(eps_ref),
+            "eps_ref_eff_cov": eps_ref_eff_cov,
+            "eps_ref_eff_info": eps_ref_eff_info,
+            "residual_cov_min": float(residual_cov_min),
+            "residual_cov_max": float(residual_cov_max),
+            "residual_info_min": float(residual_info_min),
+            "residual_info_max": float(residual_info_max),
+            "usefulness_gap_mean": float(usefulness_gap_mean),
+            "usefulness_gap_max": float(usefulness_gap_max),
+            "misleading_activity_mean": float(misleading_activity_mean),
+            "misleading_activity_max": float(misleading_activity_max),
+            "misleading_activity_pos_frac": float(misleading_activity_pos_frac),
+            "misleading_activity_ratio": float(misleading_activity_ratio),
+            "obs_age_mean_valid": float(obs_age_mean_valid) if obs_age_mean_valid is not None else None,
+            "obs_age_max_valid": int(obs_age_max_valid) if obs_age_max_valid is not None else None,
+            # First Subgoal C rolling-support summaries
+            "recent_obs_age_mean_valid_last": (
+                float(recent_obs_age_mean_valid_last)
+                if recent_obs_age_mean_valid_last is not None else None
+            ),
+            "recent_obs_age_mean_valid_max": (
+                float(recent_obs_age_mean_valid_max)
+                if recent_obs_age_mean_valid_max is not None else None
+            ),
+            "recent_misleading_activity_mean_last": (
+                float(recent_misleading_activity_mean_last)
+                if recent_misleading_activity_mean_last is not None else None
+            ),
+            "recent_misleading_activity_mean_max": (
+                float(recent_misleading_activity_mean_max)
+                if recent_misleading_activity_mean_max is not None else None
+            ),
+            "recent_misleading_activity_pos_frac_last": (
+                float(recent_misleading_activity_pos_frac_last)
+                if recent_misleading_activity_pos_frac_last is not None else None
+            ),
+            "recent_driver_info_true_mean_last": (
+                float(recent_driver_info_true_mean_last)
+                if recent_driver_info_true_mean_last is not None else None
+            ),
+        }
+
+        summary_mechanism_audit = {
+            "debug_leave_certified_counter_max": (
+                int(np.max(debug_leave_certified_counter)) if T > 0 else 0
+            ),
+            "debug_leave_certified_trigger_hits": int(np.count_nonzero(debug_trig_leave_certified_final)),
+            "regime_mechanism_audit_available": bool(mechanism_audit_available),
+            # Mechanism diagnostics kept intentionally lightweight at summary
+            # level; detailed inspection should use step series / CSV.
+            "debug_down_utilization_margin_min": (
+                float(np.nanmin(debug_down_utilization_margin))
+                if np.any(np.isfinite(debug_down_utilization_margin)) else None
+            ),
+            "debug_down_utilization_margin_max": (
+                float(np.nanmax(debug_down_utilization_margin))
+                if np.any(np.isfinite(debug_down_utilization_margin)) else None
+            ),
+            "debug_switch_utilization_margin_min": (
+                float(np.nanmin(debug_switch_utilization_margin))
+                if np.any(np.isfinite(debug_switch_utilization_margin)) else None
+            ),
+            "debug_switch_utilization_margin_max": (
+                float(np.nanmax(debug_switch_utilization_margin))
+                if np.any(np.isfinite(debug_switch_utilization_margin)) else None
+            ),
+            "debug_recovery_utilization_margin_min": (
+                float(np.nanmin(debug_recovery_utilization_margin))
+                if np.any(np.isfinite(debug_recovery_utilization_margin)) else None
+            ),
+            "debug_recovery_utilization_margin_max": (
+                float(np.nanmax(debug_recovery_utilization_margin))
+                if np.any(np.isfinite(debug_recovery_utilization_margin)) else None
+            ),
+        }
+
+        summary_validation = {
+            # Subgoal D compact validation bundle.
+            # Keep existing flat summary keys unchanged for compatibility;
+            # this nested block provides a stable audit-facing surface for
+            # compact tables and validation-oriented visual summaries.
+            "subgoal_d_validation": {
+                "impairment_audit": {
+                    "ttfd_true": ttf_true,
+                    "ttfd_arrived": ttf_arrived,
+                    "arrivals_frac_mean": float(np.mean(arrivals_frac)) if T > 0 else None,
+                    "obs_age_mean_valid": (
+                        float(obs_age_mean_valid) if obs_age_mean_valid is not None else None
+                    ),
+                    "obs_age_max_valid": (
+                        int(obs_age_max_valid) if obs_age_max_valid is not None else None
+                    ),
+                    "driver_info_true_mean": float(np.mean(driver_info_true)) if T > 0 else None,
+                    "misleading_activity_pos_frac": float(misleading_activity_pos_frac),
+                    "misleading_activity_ratio": float(misleading_activity_ratio),
+                    "recent_obs_age_mean_valid_last": (
+                        float(recent_obs_age_mean_valid_last)
+                        if recent_obs_age_mean_valid_last is not None else None
+                    ),
+                    "recent_misleading_activity_pos_frac_last": (
+                        float(recent_misleading_activity_pos_frac_last)
+                        if recent_misleading_activity_pos_frac_last is not None else None
+                    ),
+                    "recent_driver_info_true_mean_last": (
+                        float(recent_driver_info_true_mean_last)
+                        if recent_driver_info_true_mean_last is not None else None
+                    ),
+                },
+                "usefulness_proto_audit": {
+                    "enabled": bool(usefulness_proto_enabled),
+                    "regime_state_last": int(usefulness_regime_state[-1]) if T > 0 else 0,
+                    "regime_state_exploit_frac": _frac_eq(
+                        usefulness_regime_state,
+                        USEFULNESS_STATE_EXPLOIT,
+                    ),
+                    "regime_state_recover_frac": _frac_eq(
+                        usefulness_regime_state,
+                        USEFULNESS_STATE_RECOVER,
+                    ),
+                    "regime_state_caution_frac": _frac_eq(
+                        usefulness_regime_state,
+                        USEFULNESS_STATE_CAUTION,
+                    ),
+                    "trigger_recover_hits": int(np.count_nonzero(usefulness_trigger_recover)),
+                    "trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
+                    "trigger_recover_from_caution_hits": int(
+                        np.count_nonzero(usefulness_trigger_recover_from_caution)
+                    ),
+                    "trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
+                },
+            },
+        }
+
+        summary_payload = {
+            **summary_meta,
+            **summary_config,
+            **summary_metrics,
+            **_build_usefulness_proto_summary(
+                T=T,
+                usefulness_proto_enabled=usefulness_proto_enabled,
+                usefulness_regime_state=usefulness_regime_state,
+                usefulness_trigger_recover=usefulness_trigger_recover,
+                usefulness_trigger_caution=usefulness_trigger_caution,
+                usefulness_trigger_recover_from_caution=usefulness_trigger_recover_from_caution,
+                usefulness_trigger_exploit=usefulness_trigger_exploit,
+            ),
+            **_build_regime_advisory_summary(
+                T=T,
+                regime_enabled=regime_enabled,
+                regime_mode=regime_mode,
+                rgm_stages=rgm_stages,
+                rgm_ladder=rgm_ladder,
+                regime_utilization=regime_utilization,
+                regime_strict_drift_proxy=regime_strict_drift_proxy,
+                regime_local_drift_rate=regime_local_drift_rate,
+                regime_cumulative_exposure=regime_cumulative_exposure,
+                regime_requal_support_score=regime_requal_support_score,
+                regime_requal_support_breadth=regime_requal_support_breadth,
+                regime_trigger_downshift=regime_trigger_downshift,
+                regime_trigger_switch_to_certified=regime_trigger_switch_to_certified,
+                regime_trigger_recovery=regime_trigger_recovery,
+                regime_state=regime_state,
+                regime_certified_stage_index=regime_certified_stage_index,
+                regime_opportunistic_level_index=regime_opportunistic_level_index,
+                regime_advisory_stage_eta=regime_advisory_stage_eta,
+            ),
+            **_build_regime_active_summary(
+                T=T,
+                regime_active_enabled=regime_active_enabled,
+                active_verify_style=active_verify_style,
+                rgm_stages=rgm_stages,
+                rgm_ladder=rgm_ladder,
+                regime_active_transition_event=regime_active_transition_event,
+                regime_active_state=regime_active_state,
+                regime_active_certified_stage_index=regime_active_certified_stage_index,
+                regime_active_opportunistic_level_index=regime_active_opportunistic_level_index,
+                regime_effective_eta=regime_effective_eta,
+                regime_effective_move_budget_cells=regime_effective_move_budget_cells,
+            ),
+            **summary_mechanism_audit,
+            **summary_validation,
+        }
 
         write_summary_json(
             metrics_dir(opr_id) / "summary.json",
-            {
-                "id": opr_id,
-                "layer": "operational",
-                "run_mode": "closed_loop",
-                "phy_id": phy_id,
-                # Persist meta needed by Operational Visualizer even if parents are deleted later.
-                "H": int(H),
-                "W": int(W),
-                "T": int(T),
-                "dt_seconds": int(dt_seconds),
-                "cell_size_m": float(cell_size_m),
-                "crs_code": str(crs_code),
-                # Config snapshot
-                "policy": m.network.policy,
-                "deployment_mode": m.network.deployment_mode,
-                "tie_breaking": m.network.tie_breaking,
-                "n_sensors": m.network.n_sensors,
-                "sensor_radius_m": m.network.sensor_radius_m,
-                "sensor_move_max_m": m.network.sensor_move_max_m,
-                "min_separation_m": m.network.min_separation_m,
-                "max_moves_per_step": int(getattr(m.network, "max_moves_per_step", 0) or 0),
-                "impairments": m.impairments.model_dump(),
-                "o1": getattr(m, "o1").model_dump() if getattr(m, "o1", None) is not None else None,
-                "regime_management": getattr(m, "regime_management").model_dump()
-                if getattr(m, "regime_management", None) is not None else None,
-                "policy_semantics": (
-                    "posterior_variance_times_novelty_plus_novelty_bonus"
-
-                    if str(m.network.policy) == "uncertainty"
-                    else ("belief" if str(m.network.policy) == "greedy" else None)
-                ),
-                "uncertainty_decay": float(uncertainty_decay)
-                if str(m.network.policy) == "uncertainty" else None,
-                "uncertainty_gain": float(uncertainty_gain)
-                if str(m.network.policy) == "uncertainty" else None,
-                "uncertainty_gamma": float(uncertainty_gamma)
-                if str(m.network.policy) == "uncertainty" else None,
-                "uncertainty_beta": float(uncertainty_beta)
-                if str(m.network.policy) == "uncertainty" else None,
-                "uncertainty_lambda": float(uncertainty_lambda)
-                if str(m.network.policy) == "uncertainty" else None,
-
-
-                # Summary metrics
-                "mean_entropy_auc": float(auc),
-                "ttfd": ttf,
-                # Detection semantics:
-                #   - ttfd: legacy compatibility alias using arrived/impaired detections
-                #   - ttfd_true: current-frame true footprint hit
-                #   - ttfd_arrived: delayed / impaired arrived observation stream
-                "ttfd_true": ttf_true,
-                "ttfd_arrived": ttf_arrived,
-                "detections_any_semantics": "legacy_alias_for_arrived_detections_any",
-                "coverage_auc": float(np.trapz(coverage_frac, dx=1.0)) if T > 1 else float(coverage_frac[0]),
-                "movement_total_mean_l1": float(np.sum(movement_l1_mean)),
-                "moves_per_step_mean": float(np.mean(moves_per_step)) if T > 0 else None,
-                "moved_frac_mean": float(np.mean(moved_frac)) if T > 0 else None,
-                "overlap_fire_sensors_mean": float(np.mean(overlap_fire_sensors)) if T > 0 else None,
-                "overlap_fire_any_sensors_mean": float(np.mean(overlap_fire_any_sensors)) if T > 0 else None,
-                "uncertainty_variance_mean": (
-                    float(np.mean((4.0 * belief_t * (1.0 - belief_t)).astype(np.float32)))
-                    if T > 0 and str(m.network.policy) == "uncertainty"
-                    else None
-                ),
-                # Proxy calibration helper for interpreting mdc_info behavior
-                "k_update_proxy": float(0.5 * float(alpha_pos + alpha_neg)),
-                "mdc_info_regime": _classify_mdc_info_reward_strength(
-                    c_info=float(c_info),
-                    alpha_pos=float(alpha_pos),
-                    alpha_neg=float(alpha_neg),
-                )
-                if str(m.network.policy) == "mdc_info"
-                else None,
-                # Realized budget summaries
-                "arrivals_frac_mean": float(np.mean(arrivals_frac)) if T > 0 else None,
-                "detections_arrived_frac_mean": float(np.mean(detections_arrived_frac)) if T > 0 else None,
-                # Driver/residual summaries used by the current operational tool
-                "driver_info_true_kind": "expected_mutual_information_binary_sensor",
-                "residual_info_driver": "driver_info_true",
-                "residual_cov_driver": "arrivals_frac",
-
-                "driver_info_true_mean": float(np.mean(driver_info_true)) if T > 0 else None,
-                "residual_cov_mean": float(np.mean(residual_cov[:-1])) if T > 1 else None,
-                "residual_info_mean": float(np.mean(residual_info[:-1])) if T > 1 else None,
-
-                "residual_cov_pos_frac": residual_cov_pos_frac,
-                "residual_info_pos_frac": residual_info_pos_frac,
-                "residual_cov_in_band_frac": (
-                    float(np.mean((np.abs(residual_cov[:-1]) <= float(eps_ref_eff_cov)).astype(np.float32)))
-                    if T > 1 and eps_ref_eff_cov is not None else None
-                ),
-                "residual_info_in_band_frac": (
-                    float(np.mean((np.abs(residual_info[:-1]) <= float(eps_ref_eff_info)).astype(np.float32)))
-                    if T > 1 and eps_ref_eff_info is not None else None
-                ),
-                "c_info": float(c_info),
-                "c_cov": float(c_cov),
-                "eps_ref": float(eps_ref),
-                "eps_ref_eff_cov": eps_ref_eff_cov,
-                "eps_ref_eff_info": eps_ref_eff_info,
-                "residual_cov_min": float(residual_cov_min),
-                "residual_cov_max": float(residual_cov_max),
-                "residual_info_min": float(residual_info_min),
-                "residual_info_max": float(residual_info_max),
-                "usefulness_gap_mean": float(usefulness_gap_mean),
-                "usefulness_gap_max": float(usefulness_gap_max),
-                "misleading_activity_mean": float(misleading_activity_mean),
-                "misleading_activity_max": float(misleading_activity_max),
-                "misleading_activity_pos_frac": float(misleading_activity_pos_frac),
-                "misleading_activity_ratio": float(misleading_activity_ratio),
-                "obs_age_mean_valid": float(obs_age_mean_valid) if obs_age_mean_valid is not None else None,
-                "obs_age_max_valid": int(obs_age_max_valid) if obs_age_max_valid is not None else None,
-                # First Subgoal C rolling-support summaries
-                "recent_obs_age_mean_valid_last": (
-                    float(recent_obs_age_mean_valid_last)
-                    if recent_obs_age_mean_valid_last is not None else None
-                ),
-                "recent_obs_age_mean_valid_max": (
-                    float(recent_obs_age_mean_valid_max)
-                    if recent_obs_age_mean_valid_max is not None else None
-                ),
-                "recent_misleading_activity_mean_last": (
-                    float(recent_misleading_activity_mean_last)
-                    if recent_misleading_activity_mean_last is not None else None
-                ),
-                "recent_misleading_activity_mean_max": (
-                    float(recent_misleading_activity_mean_max)
-                    if recent_misleading_activity_mean_max is not None else None
-                ),
-                "recent_misleading_activity_pos_frac_last": (
-                    float(recent_misleading_activity_pos_frac_last)
-                    if recent_misleading_activity_pos_frac_last is not None else None
-                ),
-                "recent_driver_info_true_mean_last": (
-                    float(recent_driver_info_true_mean_last)
-                    if recent_driver_info_true_mean_last is not None else None
-                ),
-                **_build_usefulness_proto_summary(
-                    T=T,
-                    usefulness_proto_enabled=usefulness_proto_enabled,
-                    usefulness_regime_state=usefulness_regime_state,
-                    usefulness_trigger_recover=usefulness_trigger_recover,
-                    usefulness_trigger_caution=usefulness_trigger_caution,
-                    usefulness_trigger_recover_from_caution=usefulness_trigger_recover_from_caution,
-                    usefulness_trigger_exploit=usefulness_trigger_exploit,
-                ),
-                **_build_regime_advisory_summary(
-                    T=T,
-                    regime_enabled=regime_enabled,
-                    regime_mode=regime_mode,
-                    rgm_stages=rgm_stages,
-                    rgm_ladder=rgm_ladder,
-                    regime_utilization=regime_utilization,
-                    regime_strict_drift_proxy=regime_strict_drift_proxy,
-                    regime_local_drift_rate=regime_local_drift_rate,
-                    regime_cumulative_exposure=regime_cumulative_exposure,
-                    regime_requal_support_score=regime_requal_support_score,
-                    regime_requal_support_breadth=regime_requal_support_breadth,
-                    regime_trigger_downshift=regime_trigger_downshift,
-                    regime_trigger_switch_to_certified=regime_trigger_switch_to_certified,
-                    regime_trigger_recovery=regime_trigger_recovery,
-                    regime_state=regime_state,
-                    regime_certified_stage_index=regime_certified_stage_index,
-                    regime_opportunistic_level_index=regime_opportunistic_level_index,
-                    regime_advisory_stage_eta=regime_advisory_stage_eta,
-                ),
-                **_build_regime_active_summary(
-                    T=T,
-                    regime_active_enabled=regime_active_enabled,
-                    active_verify_style=active_verify_style,
-                    rgm_stages=rgm_stages,
-                    rgm_ladder=rgm_ladder,
-                    regime_active_transition_event=regime_active_transition_event,
-                    regime_active_state=regime_active_state,
-                    regime_active_certified_stage_index=regime_active_certified_stage_index,
-                    regime_active_opportunistic_level_index=regime_active_opportunistic_level_index,
-                    regime_effective_eta=regime_effective_eta,
-                    regime_effective_move_budget_cells=regime_effective_move_budget_cells,
-                ),
-                "debug_leave_certified_counter_max": (
-                    int(np.max(debug_leave_certified_counter)) if T > 0 else 0
-                ),
-                "debug_leave_certified_trigger_hits": int(np.count_nonzero(debug_trig_leave_certified_final)),
-                "regime_mechanism_audit_available": bool(mechanism_audit_available),
-
-                # Mechanism diagnostics kept intentionally lightweight at summary
-                # level; detailed inspection should use step series / CSV.
-                "debug_down_utilization_margin_min": (
-                    float(np.nanmin(debug_down_utilization_margin))
-                    if np.any(np.isfinite(debug_down_utilization_margin)) else None
-                ),
-                "debug_down_utilization_margin_max": (
-                    float(np.nanmax(debug_down_utilization_margin))
-                    if np.any(np.isfinite(debug_down_utilization_margin)) else None
-                ),
-                "debug_switch_utilization_margin_min": (
-                    float(np.nanmin(debug_switch_utilization_margin))
-                    if np.any(np.isfinite(debug_switch_utilization_margin)) else None
-                ),
-                "debug_switch_utilization_margin_max": (
-                    float(np.nanmax(debug_switch_utilization_margin))
-                    if np.any(np.isfinite(debug_switch_utilization_margin)) else None
-                ),
-                "debug_recovery_utilization_margin_min": (
-                    float(np.nanmin(debug_recovery_utilization_margin))
-                    if np.any(np.isfinite(debug_recovery_utilization_margin)) else None
-                ),
-                "debug_recovery_utilization_margin_max": (
-                    float(np.nanmax(debug_recovery_utilization_margin))
-                    if np.any(np.isfinite(debug_recovery_utilization_margin)) else None
-                ),
-                # Subgoal D compact validation bundle.
-                # Keep existing flat summary keys unchanged for compatibility;
-                # this nested block provides a stable audit-facing surface for
-                # compact tables and validation-oriented visual summaries.
-                "subgoal_d_validation": {
-                    "impairment_audit": {
-                        "ttfd_true": ttf_true,
-                        "ttfd_arrived": ttf_arrived,
-                        "arrivals_frac_mean": float(np.mean(arrivals_frac)) if T > 0 else None,
-                        "obs_age_mean_valid": (
-                            float(obs_age_mean_valid) if obs_age_mean_valid is not None else None
-                        ),
-                        "obs_age_max_valid": (
-                            int(obs_age_max_valid) if obs_age_max_valid is not None else None
-                        ),
-                        "driver_info_true_mean": float(np.mean(driver_info_true)) if T > 0 else None,
-                        "misleading_activity_pos_frac": float(misleading_activity_pos_frac),
-                        "misleading_activity_ratio": float(misleading_activity_ratio),
-                        "recent_obs_age_mean_valid_last": (
-                            float(recent_obs_age_mean_valid_last)
-                            if recent_obs_age_mean_valid_last is not None else None
-                        ),
-                        "recent_misleading_activity_pos_frac_last": (
-                            float(recent_misleading_activity_pos_frac_last)
-                            if recent_misleading_activity_pos_frac_last is not None else None
-                        ),
-                        "recent_driver_info_true_mean_last": (
-                            float(recent_driver_info_true_mean_last)
-                            if recent_driver_info_true_mean_last is not None else None
-                        ),
-                    },
-                    "usefulness_proto_audit": {
-                        "enabled": bool(usefulness_proto_enabled),
-                        "regime_state_last": int(usefulness_regime_state[-1]) if T > 0 else 0,
-                        "regime_state_exploit_frac": _frac_eq(
-                            usefulness_regime_state,
-                            USEFULNESS_STATE_EXPLOIT,
-                        ),
-                        "regime_state_recover_frac": _frac_eq(
-                            usefulness_regime_state,
-                            USEFULNESS_STATE_RECOVER,
-                        ),
-                        "regime_state_caution_frac": _frac_eq(
-                            usefulness_regime_state,
-                            USEFULNESS_STATE_CAUTION,
-                        ),
-                        "trigger_recover_hits": int(np.count_nonzero(usefulness_trigger_recover)),
-                        "trigger_caution_hits": int(np.count_nonzero(usefulness_trigger_caution)),
-                        "trigger_recover_from_caution_hits": int(
-                            np.count_nonzero(usefulness_trigger_recover_from_caution)
-                        ),
-                        "trigger_exploit_hits": int(np.count_nonzero(usefulness_trigger_exploit)),
-                    },
-                },
-            },
+            summary_payload,
         )
 
         return {"ok": True, "opr_id": opr_id}
