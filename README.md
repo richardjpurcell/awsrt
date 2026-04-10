@@ -6,7 +6,7 @@ The platform supports four linked research layers:
 
 - **Physical**: wildfire environment generation and replay, including grid, terrain, fuels, wind, weather, and fire spread
 - **Epistemic**: belief-state construction and uncertainty analysis, including Beta–Bernoulli belief updates and Shannon entropy summaries
-- **Operational**: sensing-network policies, impairment models, and regime-managed control experiments
+- **Operational**: sensing-network policies, impairment models, compact usefulness interpretation, and regime-managed control experiments
 - **Analysis**: study manifests, metrics, figures, and experiment comparison workflows
 
 AWSRT is designed to support research on questions such as:
@@ -14,9 +14,35 @@ AWSRT is designed to support research on questions such as:
 - how adaptive sensing policies differ under controlled conditions,
 - when information delivery and operational usefulness begin to separate,
 - how delay, noise, and loss affect belief quality differently,
-- and how higher-level regime logic can respond when sensing remains active but belief improvement begins to stall.
+- how compact usefulness behavior can be read operationally under healthy, delay-heavy, and noise-heavy conditions,
+- and how higher-level advisory and active regime logic should be interpreted without conflating recommendation summaries with realized control behavior.
 
-This repository contains the frozen **AWSRT v0.1** research software state associated with the thesis-results version of the platform. Future development proceeds from later versions (for example, `v0.2-dev`), but this repository state documents the software basis of the v0.1 research release and provides a stable public reference point for ongoing development.
+This repository contains the frozen **AWSRT v0.2** research software release. AWSRT v0.2 is best understood as a **disciplined operational/control checkpoint**: it preserves the broader scientific context established in earlier work while improving controller-boundary clarity, structural cleanliness, validation/reporting truthfulness, and release-facing interpretability. It is **not** presented as a final unified controller or as a replacement for the full v0.1 scientific results chapter. Instead, it provides a stable frozen reference point for ongoing development, thesis-facing figure refresh work, and subsequent research releases.
+
+## What v0.2 adds
+
+AWSRT v0.2 closes with a compact release-facing evidence bundle and a more disciplined interpretation of the operational layer.
+
+The main v0.2 additions are:
+
+- a clearer **compact usefulness** interpretation path through `usefulness_proto`,
+- a clearer **advisory versus active** regime-management reading boundary,
+- cleaner operational router structure without intended late-stage behavior drift,
+- more truthful validation and reporting semantics,
+- and a compact frozen results bundle suitable for release-facing and thesis-facing interpretation.
+
+The frozen v0.2 curated bundle centers on three figure families:
+
+- **Bundle A — compact usefulness triad**  
+  healthy / exploit-dominated, delay-heavy / recover-dominated, and noise-heavy / caution-dominated representative runs
+
+- **Bundle B — advisory vs active regime comparison**  
+  a study-level pair showing how advisory trigger-hit summaries differ from active realized-state and realized-transition summaries
+
+- **Bundle C — opportunistic-family mechanism package**  
+  active mechanism-facing evidence including hysteresis sensitivity and verify-style interpretability support
+
+This framing is intentionally modest. AWSRT v0.2 improves interpretability, auditability, and release discipline; it does not claim that controller design questions are complete.
 
 ## Core capabilities
 
@@ -27,7 +53,9 @@ AWSRT currently supports:
 - epistemic belief evolution over physical runs,
 - operational sensing experiments with multiple policy families,
 - impairment studies with noise, delay, and loss,
-- metric computation including timeliness and entropy summaries,
+- compact usefulness-path experiments and summaries,
+- advisory and active regime-management experiments,
+- metric computation including timeliness, entropy, usefulness, and mechanism-facing summaries,
 - manifest-based experiment definition and recovery,
 - frontend visualization and study inspection workflows,
 - and figure generation for comparative analysis.
@@ -37,9 +65,11 @@ AWSRT currently supports:
 - `backend/` — FastAPI backend and AWSRT core modules
 - `frontend/` — Next.js frontend for design, visualization, and analysis
 - `data/manifests/` — preserved manifests defining runs and studies
-- `results/figures/` — preserved figure exports associated with the frozen results version
+- `data/metrics/` — preserved run and study metrics, including frozen v0.2 bundle artifacts
+- `results/figures/` — preserved figure exports associated with frozen results versions
 - `src/plots.py` — plotting support
-- `notes/` — selected supporting research notes retained with the frozen software version
+- `notes/` — selected supporting research notes retained with frozen software versions
+- `docs/design/` — design notes and release-freeze interpretation notes
 
 ## Run the backend
 
@@ -143,9 +173,7 @@ http://127.0.0.1:3000
 ### 1. Create and run a physical simulation
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/physical/manifest \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -s -X POST http://127.0.0.1:8000/physical/manifest   -H "Content-Type: application/json"   -d '{
     "grid": {"H": 100, "W": 100, "cell_size_m": 250, "crs_code": "EPSG:3978"},
     "dt_seconds": 3600,
     "horizon_steps": 48,
@@ -155,17 +183,13 @@ curl -s -X POST http://127.0.0.1:8000/physical/manifest \
   }' | jq
 
 # suppose it returns {"phy_id": "phy-..."}
-curl -s -X POST http://127.0.0.1:8000/physical/run \
-  -H "Content-Type: application/json" \
-  -d '{"id": "phy-..."}' | jq
+curl -s -X POST http://127.0.0.1:8000/physical/run   -H "Content-Type: application/json"   -d '{"id": "phy-..."}' | jq
 ```
 
 ### 2. Create and run an epistemic layer
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/epistemic/manifest \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -s -X POST http://127.0.0.1:8000/epistemic/manifest   -H "Content-Type: application/json"   -d '{
     "phy_id": "phy-...",
     "belief": {"prior_p": 0.5, "decay": 1.0, "noise": {"false_pos": 0.01, "false_neg": 0.05}},
     "entropy": {"units": "bits"},
@@ -173,17 +197,13 @@ curl -s -X POST http://127.0.0.1:8000/epistemic/manifest \
   }' | jq
 
 # suppose it returns {"epi_id": "epi-..."}
-curl -s -X POST http://127.0.0.1:8000/epistemic/run \
-  -H "Content-Type: application/json" \
-  -d '{"id": "epi-..."}' | jq
+curl -s -X POST http://127.0.0.1:8000/epistemic/run   -H "Content-Type: application/json"   -d '{"id": "epi-..."}' | jq
 ```
 
 ### 3. Create and run an operational experiment
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/operational/manifest \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -s -X POST http://127.0.0.1:8000/operational/manifest   -H "Content-Type: application/json"   -d '{
     "epi_id": "epi-...",
     "mdc": {
       "delta": 1.0,
@@ -207,9 +227,7 @@ curl -s -X POST http://127.0.0.1:8000/operational/manifest \
   }' | jq
 
 # suppose it returns {"opr_id": "opr-..."}
-curl -s -X POST http://127.0.0.1:8000/operational/run \
-  -H "Content-Type: application/json" \
-  -d '{"id": "opr-..."}' | jq
+curl -s -X POST http://127.0.0.1:8000/operational/run   -H "Content-Type: application/json"   -d '{"id": "opr-..."}' | jq
 
 curl -s http://127.0.0.1:8000/metrics/opr-.../summary | jq
 ```
@@ -241,9 +259,7 @@ data/cfsds/2016_255/2016_255_krig.tif
 This creates a new `phy-...` run with historical fields such as `fire_state` and `arrival_time`. You do not run `/physical/run` afterward because the importer writes the fields directly.
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/physical/historical/import \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -s -X POST http://127.0.0.1:8000/physical/historical/import   -H "Content-Type: application/json"   -d '{
     "source": "cfsds",
     "fire_id": "2016_255",
     "dt_seconds": 3600,
@@ -254,9 +270,7 @@ curl -s -X POST http://127.0.0.1:8000/physical/historical/import \
 ### Create a synthetic demo replay
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/physical/historical/import \
-  -H "Content-Type: application/json" \
-  -d '{
+curl -s -X POST http://127.0.0.1:8000/physical/historical/import   -H "Content-Type: application/json"   -d '{
     "source": "cfsds_demo",
     "fire_id": "demo_001",
     "H": 200,
@@ -290,19 +304,20 @@ pytest backend/tests
 
 ## Notes on scope
 
-AWSRT v0.1 is a meaningful research software release, but it is not the final form of the platform. The software is designed to support continuing development in later versions while preserving a frozen, reproducible basis for the v0.1 results and documentation.
+AWSRT v0.2 is a meaningful research software release, but it is not the final form of the platform. The release is intended to preserve a stable, interpretable, and reproducible operational checkpoint while allowing future development to continue in later versions.
 
 In particular:
 
-- policies are intentionally simple enough to be swappable and extensible,
+- policies remain intentionally simple enough to be swappable and extensible,
 - manifests are preserved so studies can be recovered and compared,
-- and the platform is intended to support future refinement in simulation realism, sensing logic, control logic, and experiment design.
+- compact usefulness and regime-management surfaces should be read according to their distinct semantics,
+- and the platform is intended to support future refinement in simulation realism, sensing logic, control logic, analysis, and experiment design.
 
 ## Citation and versioning
 
 If you use AWSRT in research, please cite the software repository and associated release metadata. Citation metadata is provided in `CITATION.cff`.
 
-This repository contains the frozen research software state associated with AWSRT v0.1. If you are documenting or citing the thesis-results version of the platform, refer to the frozen `v0.1` tag rather than later development branches.
+This repository contains the frozen research software state associated with AWSRT **v0.2**. If you are documenting or citing the operational/control checkpoint described by the late-stage v0.2 work, refer to the frozen `v0.2` tag rather than intermediate development branches.
 
 ## Contributing
 
