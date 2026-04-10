@@ -184,6 +184,7 @@ type SeriesRes = {
   debug_recovery_utilization_margin_max?: number | null;
   debug_leave_certified_counter_max?: number | null;
   debug_leave_certified_trigger_hits?: number | null;
+  regime_mechanism_audit_available?: boolean;
 };
 
 const WARM_N = 10;
@@ -955,15 +956,7 @@ export default function OperationalVisualizerPage() {
     Number(series.regime_active_last_state) === 3;
 
   const mechanismSummaryAvailable =
-    !!series?.debug_down_utilization_margin?.length ||
-    !!series?.debug_switch_utilization_margin?.length ||
-    !!series?.debug_recovery_utilization_margin?.length ||
-    !!series?.debug_down_counter?.length ||
-    !!series?.debug_switch_counter?.length ||
-    !!series?.debug_recovery_counter?.length ||
-    !!series?.debug_recovery_block_counter?.length ||
-    !!series?.debug_leave_certified_counter?.length ||
-    !!series?.debug_trig_leave_certified_final?.length;
+    !!series?.regime_mechanism_audit_available;
 
   // Match Epistemic Visualizer delete messaging:
   // treat DELETE failure / 409 conflict as an error box, otherwise show muted info.

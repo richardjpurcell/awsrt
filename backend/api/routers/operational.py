@@ -274,11 +274,15 @@ def _build_regime_active_summary(
         "regime_active_verify_style": bool(active_verify_style),
         "regime_active_transition_count": int(np.count_nonzero(regime_active_transition_event)),
         "regime_active_last_state": int(regime_active_state[-1]) if T > 0 else 0,
-        "regime_active_last_certified_stage_index": int(regime_active_certified_stage_index[-1]) if T > 0 else -1,
+        "regime_active_last_certified_stage_index": (
+            int(regime_active_certified_stage_index[-1])
+            if T > 0 and int(regime_active_state[-1]) == 3 else -1
+        ),
         "regime_active_last_opportunistic_level_index": int(regime_active_opportunistic_level_index[-1]) if T > 0 else -1,
         "regime_active_last_certified_stage_id": (
             str(rgm_stages[int(regime_active_certified_stage_index[-1])].stage_id)
-            if T > 0 and 0 <= int(regime_active_certified_stage_index[-1]) < len(rgm_stages)
+            if T > 0 and int(regime_active_state[-1]) == 3
+            and 0 <= int(regime_active_certified_stage_index[-1]) < len(rgm_stages)
             else None
         ),
         "regime_active_last_opportunistic_level_id": (
