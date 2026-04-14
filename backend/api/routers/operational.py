@@ -2887,7 +2887,7 @@ def run(req: RunRequest) -> dict:
                 down_comps["corruption_signal"] = corruption_signal_t
                 switch_comps["corruption_signal"] = corruption_signal_t
 
-                trig_down = _combine_regime_trigger_components(
+                trig_down_base = _combine_regime_trigger_components(
                     down_comps,
                     use_utilization=use_utilization,
                     use_strict_drift_proxy=use_strict_drift_proxy,
@@ -2896,6 +2896,19 @@ def run(req: RunRequest) -> dict:
                     use_corruption_signal=regime_active_enabled,
                     use_trigger_bools=use_trigger_bools,
                     require_all=require_all_components,
+                )
+                # Subgoal 03:
+                # Auxiliary corruption participation was structurally valid but
+                # behaviorally too weak in Subgoal 02. For the next bounded
+                # probe, let corruption-facing evidence create a direct active
+                # downshift path while leaving advisory behavior, recovery, and
+                # switch-to-certified semantics unchanged.
+                trig_down = bool(
+                    trig_down_base
+                    or (
+                        regime_active_enabled
+                        and corruption_signal_t
+                    )
                 )
                 trig_switch = (
                     _combine_switch_to_certified_components_active(

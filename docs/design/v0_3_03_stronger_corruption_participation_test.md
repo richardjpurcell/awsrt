@@ -1,6 +1,6 @@
 # AWSRT v0.3 Subgoal 03: Stronger Corruption Participation Test
 
-**Status:** Draft design note  
+**Status:** Draft design note with first implementation-pass findings  
 **Applies to:** `v0.3-subgoal-03`  
 **Purpose:** Define the next bounded controller-facing step after the Subgoal 02 corruption-signal checkpoint by testing whether corruption-facing evidence must participate more strongly than as an auxiliary trigger component if the active machine is to express corruption-side caution honestly.
 
@@ -22,21 +22,17 @@ In particular, Subgoal 02 established that:
 
 However, the bounded Subgoal 02 probe also showed that this first corruption-facing signal did **not** materially change the corruption/noise active reading when introduced only as an auxiliary trigger component.
 
-That means the next question is now more specific than before. The issue is no longer:
+Subgoal 03 therefore began from a sharper question:
 
-> can corruption-facing evidence be added at all?
+> if auxiliary participation is too weak, what stronger participation role should corruption-facing evidence play if it is actually going to matter in realized active behavior?
 
-The issue is now:
-
-> what role must corruption-facing evidence play if it is actually going to matter in realized active behavior?
-
-This note defines Subgoal 03 as the first bounded test of that stronger participation question.
+This note now records the first bounded Subgoal 03 implementation result.
 
 ---
 
 ## 2. Starting point inherited from Subgoal 02
 
-Subgoal 02 should now be treated as a meaningful narrowing checkpoint.
+Subgoal 02 should be treated as a meaningful narrowing checkpoint.
 
 ### 2.1 What Subgoal 02 achieved
 
@@ -47,7 +43,7 @@ Subgoal 02 achieved several useful things:
 - it preserved the current machine shape and recovery semantics,
 - and it validated that this kind of controller-visible corruption signal can be added without architectural drift.
 
-That is important progress. The project is no longer debating the corruption-facing idea in the abstract.
+That was important progress. The project was no longer debating the corruption-facing idea in the abstract.
 
 ### 2.2 What Subgoal 02 did not achieve
 
@@ -61,97 +57,130 @@ In the bounded compact probe:
 
 So Subgoal 02 should be read as a successful bounded implementation checkpoint but an incomplete behavioral result.
 
-### 2.3 Why that matters
+### 2.3 Why that mattered for Subgoal 03
 
-This means the next design question should not be phrased as:
+This meant the next design question should not be phrased as:
 
 > should we keep relaxing the same auxiliary thresholds?
 
-That is now too weak and too local a framing.
+That framing had become too weak and too local.
 
-The better question is:
+The better Subgoal 03 question was:
 
 > does corruption-facing evidence need to act as more than an auxiliary strengthening term if the active surface is to express corruption-side caution honestly?
 
-That is the core reason for Subgoal 03.
+That was the correct reason to open Subgoal 03.
 
 ---
 
-## 3. Why Subgoal 03 is the right next step
+## 3. Subgoal 03 first implementation-pass findings
 
-### 3.1 The signal is no longer the main uncertainty
+The first bounded Subgoal 03 implementation pass has now been attempted.
 
-After Subgoal 02, the main uncertainty is not whether the project can compute a corruption-facing signal. It can.
+That pass:
 
-The main uncertainty is now whether the **combiner role** of that signal is too weak.
+- retained the corruption-facing signal from Subgoal 02,
+- left switch-to-certified semantics unchanged,
+- left recovery semantics unchanged,
+- left the state machine unchanged,
+- and strengthened corruption participation only on the **active downshift** path.
 
-That is a more precise and more valuable design question than continuing to treat the problem as generic threshold calibration.
+In practice, this meant moving beyond mere auxiliary participation and allowing corruption-facing evidence to create a direct active downshift path in a bounded way.
 
-### 3.2 This is still the highest-payoff near-term control question
+This was the right first Subgoal 03 implementation shape. It stayed disciplined, did not broaden the ontology, and did not turn into a machine redesign.
 
-The strongest scientific and thesis-facing payoff is still in adaptive control, not in broad realism work or general UI cleanup.
+However, the result is now clear:
 
-Subgoal 03 remains well aligned with that priority because it addresses a live controller question:
+- even this stronger downshift-participation test did **not** materially change the corruption/noise active reading,
+- the corruption/noise case still remained trivially nominal in the compact semantic probe,
+- and the stronger participation role still did not create visible non-nominal active behavior under the current probe family.
+
+This is a negative result in the narrow experimental sense, but a useful one in the design sense.
+
+It means the next question is now sharper again:
+
+> the issue may no longer be only how corruption-facing evidence participates inside the current trigger combiner, but whether the current active semantic-probe family is operating too far from the corruption/noise decision neighborhood to express corruption-side caution at all.
+
+That is the key takeaway of this note.
+
+---
+
+## 4. Why Subgoal 03 was the right next step
+
+### 4.1 The signal was no longer the main uncertainty
+
+After Subgoal 02, the main uncertainty was not whether the project could compute a corruption-facing signal. It could.
+
+The main uncertainty had become whether the **combiner role** of that signal was too weak.
+
+That was a precise and valuable design question, and it justified Subgoal 03.
+
+### 4.2 This remained the highest-payoff near-term control question
+
+The strongest scientific and thesis-facing payoff still lay in adaptive control, not in broad realism work or general UI cleanup.
+
+Subgoal 03 remained aligned with that priority because it addressed a live controller question:
 
 - how should the active machine react when corruption-adjacent evidence is high,
 - and how can that reaction be made readable without exaggeration?
 
-### 3.3 This remains a disciplined continuation of v0.2
+### 4.3 This remained a disciplined continuation of v0.2
 
-Subgoal 03 is still downstream of the v0.2 interpretive checkpoint rather than a reopening of it.
+Subgoal 03 stayed downstream of the v0.2 interpretive checkpoint rather than reopening it.
 
-It preserves the inherited discipline that:
+It preserved the inherited discipline that:
 
 - the compact usefulness path remains distinct in identity,
 - regime management remains the broader active/advisory mechanism layer,
 - and controller improvement should proceed without pretending that all late-stage control surfaces have unified.
 
-That makes Subgoal 03 a true control-development continuation, not another boundary debate.
+That made Subgoal 03 a true control-development continuation rather than another boundary debate.
 
 ---
 
-## 4. Main development question
+## 5. Main development question
 
-The central question for Subgoal 03 is:
+The original central question for Subgoal 03 was:
 
 > what is the smallest stronger participation role for corruption-facing evidence that can materially affect the corruption/noise active reading without redesigning the state machine?
 
-More concretely:
+That question has now received a first bounded answer:
 
-> if auxiliary corruption participation is too weak, should corruption-facing evidence become a co-primary condition, a direct downshift path, or a dedicated corruption-sensitive probe condition?
+- a stronger downshift-participation role was tested,
+- but it still did not materially affect the corruption/noise active reading.
 
-This is the main question the subgoal should answer.
+So the live question at the end of this first Subgoal 03 pass is now:
+
+> is the problem still one of trigger-role strength, or is the present active semantic-probe family itself too far from the corruption/noise decision neighborhood?
+
+That is the updated development question implied by this checkpoint.
 
 ---
 
-## 5. Scope
+## 6. Scope of Subgoal 03
 
-Subgoal 03 should remain narrow.
+Subgoal 03 was intended to remain narrow.
 
-It should focus on one compact class of changes:
+It focused on one compact class of changes:
 
 - testing one stronger participation role for already-identified corruption-facing evidence.
 
-That does **not** mean:
+That remained the correct scope.
 
-- redesigning the active state machine,
-- adding new public controller families,
-- inventing many new signals,
-- or broadening the schema/frontend surface without need.
+It did **not**:
 
-Instead, it means choosing one stronger role and evaluating it honestly.
+- redesign the active state machine,
+- add new public controller families,
+- invent many new signals,
+- or broaden the schema/frontend surface.
 
-Subgoal 03 should therefore remain:
-
-- bounded,
-- mechanism-facing,
-- and explicitly comparative.
+This note confirms that the subgoal remained disciplined in scope even though the behavioral result was still negative.
 
 ---
 
-## 6. What Subgoal 03 is and is not
+## 7. What Subgoal 03 is and is not
 
-### 6.1 What Subgoal 03 is
+### 7.1 What Subgoal 03 is
 
 Subgoal 03 is a bounded test of stronger corruption participation.
 
@@ -161,7 +190,7 @@ It is about:
 - improving corruption-side active interpretability if possible,
 - and doing so without disturbing the current machine more than necessary.
 
-### 6.2 What Subgoal 03 is not
+### 7.2 What Subgoal 03 is not
 
 Subgoal 03 is not:
 
@@ -174,316 +203,274 @@ Subgoal 03 is not:
 
 It is also not yet a claim that a final corruption-aware controller architecture has been found.
 
----
-
-## 7. Working diagnosis entering Subgoal 03
-
-At the start of Subgoal 03, the current working diagnosis is:
-
-### 7.1 Auxiliary corruption participation is structurally feasible
-
-The first Subgoal 02 pass showed that corruption-facing evidence can be inserted into the active trigger dictionaries cleanly.
-
-So structural feasibility is no longer the issue.
-
-### 7.2 Auxiliary participation is behaviorally too weak
-
-The main problem now appears to be that corruption-facing evidence, when treated as an auxiliary component, does not materially influence the machine’s realized behavior under the compact semantic probe.
-
-That is the main behavioral diagnosis inherited from Subgoal 02.
-
-### 7.3 The next question is about participation role, not signal existence
-
-This is the key shift.
-
-The question is no longer whether corruption evidence exists or can be computed.
-
-The question is whether corruption evidence must be allowed to participate in a stronger way than:
-
-- “one more auxiliary boolean in a support-dominated combiner.”
-
-That is the point of Subgoal 03.
+This remained true through the first implementation pass.
 
 ---
 
-## 8. Recommended development stance
+## 8. Working diagnosis after the first Subgoal 03 pass
 
-Subgoal 03 should follow these principles.
+At this point, the working diagnosis has become more specific.
 
-### 8.1 Test only one stronger role at a time
+### 8.1 Structural feasibility is no longer the issue
 
-It is better to test one stronger participation role clearly than to mix several new trigger semantics in one patch.
+The first Subgoal 02 pass already showed that corruption-facing evidence can be inserted into the active trigger dictionaries cleanly.
 
-### 8.2 Preserve the machine shape first
+Subgoal 03 now reinforces that stronger bounded participation can also be implemented without structural instability.
 
-The first stronger-participation test should preserve:
+So structural feasibility is not the problem.
 
-- the current active state geometry,
-- the current certified path,
-- and the current recovery path.
+### 8.2 Auxiliary participation was too weak
 
-The goal is to test signal role, not machine redesign.
+Subgoal 02 already showed that auxiliary participation was too weak to change the corruption/noise realized machine.
 
-### 8.3 Prefer causal readability over cleverness
+That diagnosis remains valid.
 
-If corruption-facing evidence becomes stronger, the resulting rule should still be explainable in plain operational terms.
+### 8.3 Stronger downshift participation still did not bite
 
-The project should avoid introducing a role that is numerically effective but semantically opaque.
+Subgoal 03 now adds a second result:
 
-### 8.4 Keep the compact probe in place
+- even a bounded stronger downshift role still did not materially change the corruption/noise active reading.
 
-The same compact semantic-probe study shape should remain the main evaluation tool unless it clearly becomes insufficient.
+This means the next design issue is no longer simply “make the corruption signal stronger in the same neighborhood.”
 
-That keeps the result comparable to Subgoal 02 and prevents scope drift.
+### 8.4 The current probe family may be poorly positioned for corruption-side reading
+
+The strongest working diagnosis now is:
+
+- the present active semantic-probe family may be too far from the corruption/noise decision neighborhood to express corruption-side caution honestly,
+- even when corruption-adjacent diagnostics are clearly elevated,
+- and even when corruption-facing evidence is given a stronger bounded role in downshift logic.
+
+This is the most important narrowing result now available.
 
 ---
 
-## 9. Candidate stronger participation roles
+## 9. Recommended development stance after the first Subgoal 03 pass
 
-Several bounded stronger roles are possible.
+Subgoal 03 should now be read as a useful negative checkpoint rather than as an unfinished success.
 
-### 9.1 Co-primary downshift condition
+The recommended stance is:
 
-One option is to let corruption-facing evidence act as a co-primary downshift condition in selected active presets.
+### 9.1 Preserve the result
+
+Do not discard the result simply because it did not produce the hoped-for behavioral change.
+
+The result is informative.
+
+### 9.2 Do not keep nudging the same local role indefinitely
+
+It would be a mistake to keep applying small router-side changes to the same strengthened downshift role without reframing the design question.
+
+That would risk turning Subgoal 03 into another long threshold/role-tuning cycle with diminishing returns.
+
+### 9.3 Elevate the question one level
+
+The next question should likely be:
+
+- whether a **dedicated corruption-sensitive semantic probe** is needed,
+- or whether the current active preset family must be moved closer to the corruption-side decision neighborhood in a more explicit way.
+
+That is a more disciplined continuation than continuing to push on the same local combiner seam.
+
+---
+
+## 10. Candidate directions after this checkpoint
+
+Several directions are now visible, but they are no longer equally attractive.
+
+### 10.1 Continue local router-side strengthening
+
+This would mean continuing to strengthen corruption participation inside the current downshift or switch combiner.
+
+This is now **less attractive** than before, because both:
+
+- auxiliary participation, and
+- a stronger bounded downshift role
+
+have already failed to produce a meaningful corruption-side active change.
+
+### 10.2 Dedicated corruption-sensitive semantic probe
+
+This is now the most attractive next direction.
 
 Interpretation:
 
-- corruption-heavy conditions should be able to trigger downshift even when support-heavy signals are not the only dominant story.
+- the current active family may not be positioned to express corruption-side caution clearly,
+- so define a dedicated semantic probe in which corruption-facing evidence is intentionally given a more central and explicit role,
+- without claiming that the broader active family has already been solved.
 
-This is a strong candidate because it still preserves the existing state machine and reads naturally.
+This would preserve discipline while moving the experiment closer to the actual design question.
 
-### 9.2 Direct corruption-to-downshift path
+### 10.3 Freeze Subgoal 03 now
 
-A second option is to let clearly corruption-heavy conditions create a direct downshift path inside the active trigger logic.
+Another disciplined option is to freeze Subgoal 03 immediately as a negative-but-useful checkpoint and move on.
 
-This would still not require a new state, but it would give corruption evidence more independent force than a generic auxiliary role.
-
-### 9.3 Dedicated corruption-sensitive semantic probe
-
-A third option is to leave the general active families unchanged for now, but define one dedicated semantic probe in which corruption-facing evidence is intentionally allowed a stronger role.
-
-This is attractive if the project wants to test the idea without immediately altering the broader preset family interpretation.
-
-### 9.4 Stronger certified participation
-
-A less attractive but still possible option is to let corruption evidence participate more strongly in switch-to-certified.
-
-This may be worth testing later, but for the first stronger-role pass it is probably less desirable than strengthening downshift first, because certification should remain the stronger intervention.
+That would also be defensible, especially if workflow pressure or real-fire bridge work becomes more urgent.
 
 ---
 
-## 10. Preferred target
+## 11. Preferred interpretation of this checkpoint
 
-The preferred first target is:
+The preferred interpretation is:
 
-> test corruption-facing evidence as a stronger downshift participant before giving it a stronger certified-escalation role.
+> Subgoal 03 has now shown that stronger corruption participation on the current active downshift path is still insufficient to produce a meaningful corruption/noise reading in the compact semantic probe.
 
-This is the best next step because:
+That should be stated plainly.
 
-- it is smaller than redesigning switch/certified semantics first,
-- it matches the intuition that corruption-side caution should first show up as non-nominal active behavior,
-- it avoids making certification the immediate answer to all corruption-heavy conditions,
-- and it is likely to be more interpretable in the compact probe.
+This is useful because it means the project can stop pretending the remaining issue is just one more local trigger-role tweak.
 
-### 10.1 Preferred first concrete form
-
-The preferred first concrete form is:
-
-- keep the current corruption-facing signal definition,
-- keep recovery semantics unchanged,
-- keep the state machine unchanged,
-- but let corruption-facing evidence participate as more than an auxiliary condition for downshift.
-
-This can be done in a bounded way without broadening the controller surface.
-
-### 10.2 What should wait
-
-For this subgoal, the project should avoid:
-
-- redesigning the full switch-to-certified combiner,
-- adding multiple new corruption signals,
-- or changing both downshift and recovery semantics together.
-
-The first stronger-role test should stay very small.
+Instead, it can move forward with a more honest next question.
 
 ---
 
-## 11. Preferred implementation stance
+## 12. Experiment design reading
 
-The preferred implementation order is:
+Subgoal 03 retained the right compact study family.
 
-### Step 1
+### 12.1 Study shape
 
-Retain the current corruption-facing signal construction from Subgoal 02.
-
-### Step 2
-
-Choose one stronger participation role for **downshift** only.
-
-### Step 3
-
-Rerun the compact semantic-probe comparison:
-- healthy,
-- stale/delay,
-- corruption/noise,
-- and optionally one mixed case if needed.
-
-### Step 4
-
-Interpret the result honestly:
-- did corruption-side non-nominal behavior actually appear,
-- did healthy behavior remain readable,
-- and did stale versus corruption become easier to distinguish?
-
-This keeps the next step tightly comparable to Subgoal 02.
-
----
-
-## 12. Experiment design for Subgoal 03
-
-Subgoal 03 should again use a compact study family.
-
-### 12.1 Recommended study shape
-
-The main study should still include:
+The study still used:
 
 - one healthy reference,
 - one stale/delay case,
-- one corruption/noise case,
-- and optionally one mixed case only if needed.
+- one corruption/noise case.
 
-This continuity is important because it preserves comparability across:
+That continuity was important because it preserved comparability across:
 - Subgoal 01,
 - Subgoal 02,
 - and now Subgoal 03.
 
-### 12.2 Recommended comparison logic
+### 12.2 What the comparison now says
 
-The main comparison should now be:
+The comparison has now become:
 
 - Subgoal 02 auxiliary corruption participation,
 - versus Subgoal 03 stronger corruption participation.
 
-That is a much cleaner comparison than starting over from scratch.
+And the answer is:
 
-### 12.3 Recommended evaluation emphasis
+- neither version materially changed the corruption/noise realized machine inside the current compact active semantic probe.
 
-Evaluation should prioritize:
+That is now a real result, not a pending question.
+
+### 12.3 Evaluation emphasis
+
+The evaluation emphasis remained correct:
 
 - realized active state occupancy,
 - transition counts,
 - whether corruption/noise stops reading as trivially nominal,
 - whether delay remains more recoverable than corruption,
-- and whether the resulting reading stays interpretable.
+- and whether the result stays interpretable.
 
-Headline belief metrics still matter, but they should remain secondary to the mechanism-facing reading here.
+By those criteria, Subgoal 03 did **not** yet achieve the intended behavioral success.
+
+But it did succeed in ruling out one more bounded design hypothesis.
 
 ---
 
 ## 13. Relation to real-fire deployment-simulation work
 
-Subgoal 03 should still remain ahead of the real-fire bridge in priority unless workflow needs force otherwise.
+This checkpoint slightly changes the development posture.
 
-The reason remains the same:
+The higher-payoff near-term thesis question still remains controller sensitivity and active interpretability.
 
-- the higher-payoff near-term thesis question is still controller sensitivity and active interpretability,
-- and the corruption-versus-staleness distinction is still a more central control question than horizon-limiting real-fire execution support.
+However, because the current active-family corruption question has now produced two bounded negative checkpoints in a row, it becomes more reasonable to consider whether:
 
-That real-fire bridge still matters, but it should remain downstream of this controller-facing clarification unless immediate workflow constraints change that priority.
+- the next control-facing step should be a dedicated corruption-sensitive probe design,
+- or whether bounded real-fire execution-window work should temporarily move forward in parallel.
+
+This note does not force that choice, but it does make it more plausible than before.
 
 ---
 
-## 14. Likely implementation touchpoints
+## 14. Likely implementation touchpoints from here
 
-The most likely files for Subgoal 03 are:
+The most likely files after this checkpoint are now:
 
-- `backend/api/routers/operational.py`
 - `docs/design/v0_3_03_stronger_corruption_participation_test.md`
-- possibly `frontend/app/operational/designer/page.tsx` only if one dedicated stronger-participation semantic probe preset becomes necessary
+- `frontend/app/operational/designer/page.tsx` if a dedicated corruption-sensitive semantic probe preset is introduced
+- `backend/api/routers/operational.py` only if that next probe requires one more bounded backend role adjustment
 
-The expected emphasis should remain:
+This is a subtle but important shift.
 
-### First pass
-
-- backend trigger-role adjustment
-- compact rerun comparison
-- note-level interpretation
-
-### Only if justified
-
-- one small preset adjustment in the designer
-- one small note-level clarification of preset meaning
-
-Large refactor remains out of scope.
+The next bounded step may now be better initiated from the **probe family / preset side** rather than from another small router-side combiner change.
 
 ---
 
 ## 15. Suggested success criteria
 
-Subgoal 03 should be considered successful if:
+Subgoal 03 should have been considered successful if:
 
-- one stronger corruption-participation role is tested,
-- the corruption/noise case stops appearing trivially nominal,
-- healthy behavior remains broadly readable,
-- stale and corruption become more distinguishable in realized active behavior,
-- and the result remains explainable without changing the machine shape.
+- one stronger corruption-participation role was tested,
+- the corruption/noise case stopped appearing trivially nominal,
+- healthy behavior remained broadly readable,
+- stale and corruption became more distinguishable in realized active behavior,
+- and the result remained explainable without changing the machine shape.
 
-A strong success outcome would be:
+### 15.1 What was achieved
 
-- corruption/noise now produces visible non-nominal active behavior,
-- while delay still reads as more recoverable than corruption,
-- and certification does not become the default answer to everything.
+What was achieved is:
+
+- one stronger corruption-participation role was tested,
+- the implementation remained disciplined,
+- healthy and delay-side readings did not collapse,
+- and the result is interpretable.
+
+### 15.2 What was not achieved
+
+What was **not** achieved is:
+
+- the corruption/noise case still did not stop appearing trivially nominal,
+- and the active machine still did not express corruption-side caution in a meaningfully visible way under the current compact probe.
+
+So Subgoal 03 should currently be read as a valid checkpoint rather than a completed success.
 
 ---
 
 ## 16. Warning signs
 
-Subgoal 03 should be treated as drifting if:
+Subgoal 03 should now be treated as drifting if:
 
-- it turns into a broad rewrite of the active machine,
+- it continues as another long sequence of local router-side strength tweaks,
 - it changes downshift, switch, and recovery all at once,
 - it introduces multiple new corruption-facing signals in one pass,
 - it begins using controller-invisible quantities,
 - or it broadens the public controller surface prematurely.
 
-A specific warning sign would be:
+A specific warning sign now is:
 
-- making corruption participation stronger in a way that finally changes the noise case, but at the cost of making healthy and delay cases much less readable.
+- continuing to insist the problem is only one more local combiner adjustment, despite two bounded negative checkpoints already showing otherwise.
 
 Another warning sign would be:
 
-- jumping directly from “auxiliary was too weak” to “corruption should dominate everything.”
+- reacting to these negative results by jumping directly to a large machine redesign.
 
-The goal is not to force corruption evidence to override all other logic. The goal is to test whether a **moderately stronger and still interpretable** participation role is enough.
+The disciplined move is neither denial nor overreaction. It is to reframe the question carefully.
 
 ---
 
 ## 17. Relationship to likely next steps
 
-A plausible sequence after this note is:
+A plausible sequence after this note is now:
 
-### 17.1 Subgoal 03 implementation pass
+### 17.1 Freeze Subgoal 03 as a checkpoint
 
-Test one stronger corruption-participation role, preferably on downshift first.
+Record that stronger downshift participation still did not materially change the corruption/noise case.
 
-### 17.2 Compact validation checkpoint
+### 17.2 Decide whether to open a dedicated corruption-sensitive semantic probe subgoal
 
-Freeze and interpret the result of that stronger-role test.
+If the project wants to continue this line immediately, the next bounded step should likely be:
 
-### 17.3 Real-fire execution-window bridge
+- a dedicated corruption-sensitive probe family or preset,
+- not another small variant of the same strengthened downshift patch.
 
-Only after the controller-facing question is clearer should the project shift main attention toward bounded real-fire deployment-simulation support, unless workflow pressure makes that bridge more urgent sooner.
+### 17.3 Reconsider sequencing with real-fire execution-window support
 
-### 17.4 Later v0.3 continuation
-
-Only after those steps should the project consider:
-
-- broader corruption-aware active refinements,
-- broader robustness studies,
-- or more general platform catch-up work.
+Because the current corruption-side question has now reached a clearer local stopping point, it is more reasonable than before to reconsider the timing of bounded real-fire execution-window work.
 
 ---
 
 ## 18. Short summary
 
-Subgoal 03 is the next bounded controller-facing step after the Subgoal 02 corruption-signal checkpoint. Subgoal 02 showed that corruption-facing evidence can be inserted cleanly into the active trigger surface, but also showed that auxiliary participation alone does not materially change the corruption/noise active reading. The next disciplined question is therefore not whether corruption-facing evidence can be added, but whether it must be allowed to participate more strongly than as an auxiliary component if the active machine is to express corruption-side caution honestly. The preferred first test is to strengthen corruption participation on downshift before changing the broader machine. This keeps the work compact, interpretable, and tightly aligned with the highest-payoff near-term control questions in AWSRT v0.3.
+Subgoal 03 is the next bounded controller-facing step after the Subgoal 02 corruption-signal checkpoint. Subgoal 02 showed that corruption-facing evidence can be inserted cleanly into the active trigger surface, but also showed that auxiliary participation alone does not materially change the corruption/noise active reading. Subgoal 03 then tested a stronger bounded downshift-participation role while preserving the current state machine, recovery semantics, and switch semantics. The result was still negative in the behavioral sense: the corruption/noise case remained trivially nominal in the compact semantic probe. This is a useful narrowing checkpoint. It suggests that the next question is no longer just how strongly corruption evidence participates inside the current combiner, but whether the current active semantic-probe family is itself too far from the corruption/noise decision neighborhood to express corruption-side caution honestly.
