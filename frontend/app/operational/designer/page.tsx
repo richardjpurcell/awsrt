@@ -217,6 +217,7 @@ type PresetId =
   | "regime_active_balanced"
   | "regime_active_opportunistic"
   | "regime_active_certified"
+  | "regime_active_balanced_semantic_probe"
   | "regime_active_balanced_hysteresis_probe"
   | "regime_active_opportunistic_hysteresis_probe"
   | "regime_active_balanced_verify"
@@ -666,6 +667,45 @@ export default function OperationalDesignerPage() {
       }
     };
 
+    const setSemanticProbeDefaults = (family: "balanced") => {
+      setRegimeFamilyDefaults(family, "active");
+
+      // Semantic probe presets are meant for recovery-vs-caution reading,
+      // not permissive verify-style exercise. Keep the threshold neighborhood
+      // mild, but leave cumulative exposure enabled so backend heuristic
+      // verify-style stays false.
+      setUseUtilization(true);
+      setUseStrictDriftProxy(true);
+      // Re-enable local drift on the degradation side so corruption-sensitive
+      // trouble has one more path into downshift / switch behavior, while the
+      // backend recovery refinement still prevents local_drift_rate from
+      // counting as positive recovery evidence.
+      setUseLocalDriftRate(true);
+      setUseCumulativeExposure(true);
+      setUseTriggerBools(true);
+
+      setModerateObservationChannel();
+      setCInfo(0.1);
+      setMoveM(500);
+      // Subgoal 01 semantic-probe refinement:
+      // - keep downshift readable and near-boundary
+      // - make certification harder so healthy cases do not certify so easily
+      // - keep recovery meaningfully reachable without collapsing back into verify-style
+      setDownshiftThresholds({
+        ...makeThresholds(0.68, 0.60, 2, 0.10),
+        // Subgoal 01 semantic-probe activation:
+        // make local drift actually participate in degradation detection.
+        local_drift_rate_threshold: 2.0e-5,
+      });
+      setSwitchToCertifiedThresholds({
+        ...makeThresholds(0.40, 0.32, 5, 0.10),
+        // Keep certified entry stricter than downshift, but allow persistent
+        // corruption-sensitive drift to contribute once it is clearly present.
+        local_drift_rate_threshold: 3.0e-5,
+      });
+      setRecoveryThresholds(makeThresholds(0.80, 0.55, 2, 0.10));
+    };
+
     const setRegimeFamilyVerifyDefaults = (
       family: "balanced" | "opportunistic" | "certified",
       modeIn: RegimeMode
@@ -817,6 +857,11 @@ export default function OperationalDesignerPage() {
         setModerateObservationChannel();
         setCInfo(0.6);
         setRegimeFamilyDefaults("certified", "active");
+        return;
+      case "regime_active_balanced_semantic_probe":
+        setMode("dynamic");
+        setPolicy("mdc_info");
+        setSemanticProbeDefaults("balanced");
         return;
       case "regime_active_balanced_hysteresis_probe":
         setMode("dynamic");
@@ -1163,6 +1208,8 @@ export default function OperationalDesignerPage() {
       ? "Active regime · certified"
       : presetId === "regime_active_balanced_hysteresis_probe"
       ? "Active regime · balanced · hysteresis probe"
+      : presetId === "regime_active_balanced_semantic_probe"
+      ? "Active regime · balanced · semantic probe"
       : presetId === "regime_active_opportunistic_hysteresis_probe"
       ? "Active regime · opportunistic · hysteresis probe"
       : "Custom";
@@ -1268,6 +1315,9 @@ export default function OperationalDesignerPage() {
               <option value="regime_active_balanced">Active regime · balanced</option>
               <option value="regime_active_opportunistic">Active regime · opportunistic</option>
               <option value="regime_active_certified">Active regime · certified</option>
+              <option value="regime_active_balanced_semantic_probe">
+                Active regime · balanced · semantic probe
+              </option>
             </optgroup>
             <optgroup label="Diagnostic · Hysteresis probe presets">
               <option value="regime_active_balanced_hysteresis_probe">

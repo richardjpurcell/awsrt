@@ -1224,8 +1224,12 @@ def _regime_trigger_components_with_hysteresis(
             out["strict_drift_proxy"] = bool(strict_drift_proxy >= s_thr)
         if c_thr > 0.0:
             out["cumulative_exposure"] = bool(cumulative_exposure <= c_thr)
-        if l_thr > 0.0:
-            out["local_drift_rate"] = bool(local_drift_rate >= l_thr)
+        # v0.3 Subgoal 01:
+        # Recovery should represent renewed usable opportunity and reduced
+        # degradation burden, not simply the sign-flipped counterpart of all
+        # degradation-side signals. Keep local_drift_rate available for
+        # degradation / switch semantics, but do not count it as positive
+        # recovery evidence in this first pass.
         return out
 
     # downshift / switch-to-certified
@@ -1241,7 +1245,11 @@ def _regime_trigger_components_with_hysteresis(
     if c_thr > 0.0:
         out["cumulative_exposure"] = bool(cumulative_exposure > c_thr)
     if l_thr > 0.0:
-        out["local_drift_rate"] = bool(local_drift_rate < l_thr)
+        # v0.3 Subgoal 01:
+        # On the degradation side, elevated local drift should contribute to
+        # downshift / switch behavior as a corruption-sensitive warning signal.
+        # Recovery semantics remain handled separately.
+        out["local_drift_rate"] = bool(local_drift_rate > l_thr)
     return out
 
 def _combine_regime_trigger_components(
