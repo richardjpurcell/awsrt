@@ -1259,6 +1259,7 @@ def _combine_regime_trigger_components(
     use_strict_drift_proxy: bool,
     use_local_drift_rate: bool,
     use_cumulative_exposure: bool,
+    use_corruption_signal: bool = False,
     use_trigger_bools: bool,
     require_all: bool = True,
 ) -> bool:
@@ -1306,6 +1307,8 @@ def _combine_regime_trigger_components(
         enabled_items.append(bool(comps["local_drift_rate"]))
     if use_cumulative_exposure and "cumulative_exposure" in comps:
         enabled_items.append(bool(comps["cumulative_exposure"]))
+    if use_corruption_signal and "corruption_signal" in comps:
+        enabled_items.append(bool(comps["corruption_signal"]))
 
     if not enabled_items:
         return False
@@ -1320,6 +1323,7 @@ def _combine_switch_to_certified_components_active(
     use_strict_drift_proxy: bool,
     use_local_drift_rate: bool,
     use_cumulative_exposure: bool,
+    use_corruption_signal: bool = False,
     use_trigger_bools: bool,
     verify_style: bool,
 ) -> bool:
@@ -1372,11 +1376,13 @@ def _combine_switch_to_certified_components_active(
     strict_present = use_strict_drift_proxy and ("strict_drift_proxy" in comps)
     local_present = use_local_drift_rate and ("local_drift_rate" in comps)
     expo_present = use_cumulative_exposure and ("cumulative_exposure" in comps)
+    corr_present = use_corruption_signal and ("corruption_signal" in comps)
 
     util_ok = bool(comps.get("utilization", False)) if util_present else None
     strict_ok = bool(comps.get("strict_drift_proxy", False)) if strict_present else None
     local_ok = bool(comps.get("local_drift_rate", False)) if local_present else None
     expo_ok = bool(comps.get("cumulative_exposure", False)) if expo_present else None
+    corr_ok = bool(comps.get("corruption_signal", False)) if corr_present else None
 
     core_checks: list[bool] = []
     if util_ok is not None:
@@ -1396,6 +1402,8 @@ def _combine_switch_to_certified_components_active(
         aux_checks.append(local_ok)
     if expo_ok is not None:
         aux_checks.append(expo_ok)
+    if corr_ok is not None:
+        aux_checks.append(corr_ok)
 
     return bool(any(aux_checks)) if aux_checks else False
 
@@ -2719,6 +2727,23 @@ def run(req: RunRequest) -> dict:
             )
             cumulative_exposure_running += mean_entropy_after_bits_per_cell
 
+            # Current rolling-support locals.
+            # Keep these available to both:
+            #   1) regime-management trigger construction
+            #   2) usefulness_proto trigger construction
+            age_recent_t = (
+                float(recent_obs_age_mean_valid[t])
+                if np.isfinite(recent_obs_age_mean_valid[t]) else None
+            )
+            misleading_pos_recent_t = (
+                float(recent_misleading_activity_pos_frac[t])
+                if np.isfinite(recent_misleading_activity_pos_frac[t]) else None
+            )
+            driver_recent_t = (
+                float(recent_driver_info_true_mean[t])
+                if np.isfinite(recent_driver_info_true_mean[t]) else None
+            )
+
             if regime_enabled:
                 # Certified-stage thresholds are calibrated on TOTAL entropy,
                 # not mean entropy. Keep this explicit to avoid later confusion.
@@ -2833,12 +2858,42 @@ def run(req: RunRequest) -> dict:
                 # - active non-verify presets should again require coordinated evidence
                 require_all_components = (not regime_active_enabled) or (not active_verify_style)
 
+                # Subgoal 02:
+                # corruption-facing active signal, borrowed in spirit from the
+                # compact usefulness path:
+                #   - misleadingness elevated
+                #   - arrivals still active
+                #   - recent true information weak
+                #
+                # Keep this bounded and controller-visible. Do not use hidden
+                # corruption labels or latent mismatch tags.
+                #
+                # Subgoal 02 refinement:
+                # the first 2.0e-4 low-info gate stayed too strict relative to
+                # observed noisy-run recent driver magnitudes, so relax it modestly.
+
+                corruption_misleading_bad = bool(
+                    misleading_pos_recent_t is not None
+                    and float(misleading_pos_recent_t) >= 0.30
+                )
+                corruption_low_info_while_active = bool(
+                    float(arrivals_frac[t]) >= 0.80
+                    and driver_recent_t is not None
+                    and float(driver_recent_t) <= 4.0e-4
+                )
+                corruption_signal_t = bool(
+                    corruption_misleading_bad and corruption_low_info_while_active
+                )
+                down_comps["corruption_signal"] = corruption_signal_t
+                switch_comps["corruption_signal"] = corruption_signal_t
+
                 trig_down = _combine_regime_trigger_components(
                     down_comps,
                     use_utilization=use_utilization,
                     use_strict_drift_proxy=use_strict_drift_proxy,
                     use_local_drift_rate=use_local_drift_rate,
                     use_cumulative_exposure=use_cumulative_exposure,
+                    use_corruption_signal=regime_active_enabled,
                     use_trigger_bools=use_trigger_bools,
                     require_all=require_all_components,
                 )
@@ -2849,6 +2904,7 @@ def run(req: RunRequest) -> dict:
                         use_strict_drift_proxy=use_strict_drift_proxy,
                         use_local_drift_rate=use_local_drift_rate,
                         use_cumulative_exposure=use_cumulative_exposure,
+                        use_corruption_signal=regime_active_enabled,
                         use_trigger_bools=use_trigger_bools,
                         verify_style=active_verify_style,
                     )
@@ -2859,6 +2915,7 @@ def run(req: RunRequest) -> dict:
                         use_strict_drift_proxy=use_strict_drift_proxy,
                         use_local_drift_rate=use_local_drift_rate,
                         use_cumulative_exposure=use_cumulative_exposure,
+                        use_corruption_signal=False,
                         use_trigger_bools=use_trigger_bools,
                         require_all=True,
                     )
@@ -2869,6 +2926,7 @@ def run(req: RunRequest) -> dict:
                     use_strict_drift_proxy=use_strict_drift_proxy,
                     use_local_drift_rate=use_local_drift_rate,
                     use_cumulative_exposure=use_cumulative_exposure,
+                    use_corruption_signal=False,
                     use_trigger_bools=use_trigger_bools,
                     require_all=require_all_components,
                 )
@@ -3145,19 +3203,6 @@ def run(req: RunRequest) -> dict:
                 recent_driver_info_true_mean[t] = np.float32(
                     np.mean(np.asarray(usefulness_recent_driver_info_window, dtype=np.float32))
                 )
-
-            age_recent_t = (
-                float(recent_obs_age_mean_valid[t])
-                if np.isfinite(recent_obs_age_mean_valid[t]) else None
-            )
-            misleading_pos_recent_t = (
-                float(recent_misleading_activity_pos_frac[t])
-                if np.isfinite(recent_misleading_activity_pos_frac[t]) else None
-            )
-            driver_recent_t = (
-                float(recent_driver_info_true_mean[t])
-                if np.isfinite(recent_driver_info_true_mean[t]) else None
-            )
 
             trig_recover_t = False
             trig_caution_t = False
