@@ -218,6 +218,7 @@ type PresetId =
   | "regime_active_opportunistic"
   | "regime_active_certified"
   | "regime_active_balanced_semantic_probe"
+  | "regime_active_corruption_semantic_probe"
   | "regime_active_balanced_hysteresis_probe"
   | "regime_active_opportunistic_hysteresis_probe"
   | "regime_active_balanced_verify"
@@ -551,6 +552,12 @@ export default function OperationalDesignerPage() {
       setLossProb(0.3);
     };
 
+    const setCorruptionProbeChannel = () => {
+      setNoiseLevel(0.25);
+      setDelaySteps(0);
+      setLossProb(0.0);
+    };
+
     const setDelayModerateChannel = () => {
       // Delay-focused diagnostic:
       // keep noise/loss ideal so delay is the main degrading factor
@@ -704,6 +711,34 @@ export default function OperationalDesignerPage() {
         local_drift_rate_threshold: 3.0e-5,
       });
       setRecoveryThresholds(makeThresholds(0.80, 0.55, 2, 0.10));
+    };
+
+    const setCorruptionSemanticProbeDefaults = () => {
+      setRegimeFamilyDefaults("balanced", "active");
+
+      // Subgoal 04 corruption-sensitive semantic probe:
+      // keep the active machine unchanged, but place the probe family nearer
+      // the corruption/noise decision neighborhood than the ordinary balanced
+      // semantic probe.
+      setUseUtilization(true);
+      setUseStrictDriftProxy(true);
+      setUseLocalDriftRate(true);
+      setUseCumulativeExposure(false);
+      setUseTriggerBools(true);
+
+      setCorruptionProbeChannel();
+      setCInfo(0.1);
+      setMoveM(500);
+
+      setDownshiftThresholds({
+        ...makeThresholds(0.62, 0.50, 2, 0.10),
+        local_drift_rate_threshold: 2.0e-5,
+      });
+      setSwitchToCertifiedThresholds({
+        ...makeThresholds(0.34, 0.26, 5, 0.10),
+        local_drift_rate_threshold: 3.0e-5,
+      });
+      setRecoveryThresholds(makeThresholds(0.76, 0.52, 2, 0.10));
     };
 
     const setRegimeFamilyVerifyDefaults = (
@@ -862,6 +897,12 @@ export default function OperationalDesignerPage() {
         setMode("dynamic");
         setPolicy("mdc_info");
         setSemanticProbeDefaults("balanced");
+        return;
+      case "regime_active_corruption_semantic_probe":
+        setMode("dynamic");
+        setPolicy("mdc_info");
+        setCInfo(0.1);
+        setCorruptionSemanticProbeDefaults();
         return;
       case "regime_active_balanced_hysteresis_probe":
         setMode("dynamic");
@@ -1317,6 +1358,9 @@ export default function OperationalDesignerPage() {
               <option value="regime_active_certified">Active regime · certified</option>
               <option value="regime_active_balanced_semantic_probe">
                 Active regime · balanced · semantic probe
+              </option>
+              <option value="regime_active_corruption_semantic_probe">
+                Active regime · corruption-sensitive semantic probe
               </option>
             </optgroup>
             <optgroup label="Diagnostic · Hysteresis probe presets">
