@@ -510,6 +510,44 @@ class RegimeManagementSpec(BaseModel):
                 )
         return self
 
+class ExecutionWindowSpec(BaseModel):
+    """
+    Optional bounded execution subwindow for closed-loop operational runs.
+
+    Semantics:
+      - start_step and end_step_exclusive are indexed in the SOURCE physical run
+      - if omitted, the operational run uses the full linked physical horizon
+      - the selected interval becomes the local operational horizon for execution
+
+    This does not modify the source physical run itself.
+    """
+
+    start_step: int = Field(
+        default=0,
+        ge=0,
+        description=(
+            "Inclusive start step in the source physical run for bounded "
+            "closed-loop execution."
+        ),
+    )
+    end_step_exclusive: Optional[int] = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Exclusive end step in the source physical run for bounded "
+            "closed-loop execution. If omitted, execution continues to the "
+            "end of the source physical horizon."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _check_bounds(self):
+        if (
+            self.end_step_exclusive is not None
+            and int(self.end_step_exclusive) <= int(self.start_step)
+        ):
+            raise ValueError("execution_window.end_step_exclusive must be > start_step")
+        return self
 
 class OperationalManifest(BaseModel):
     """
@@ -543,7 +581,13 @@ class OperationalManifest(BaseModel):
         default=None,
         description="Epistemic run id. Required for run_mode='replay' (optional/debug).",
     )
-
+    execution_window: Optional[ExecutionWindowSpec] = Field(
+        default=None,
+        description=(
+            "Optional bounded execution subwindow for closed-loop runs. "
+            "When omitted, the full linked physical horizon is used."
+        ),
+    )
     impairments: ImpairmentSpec = Field(default_factory=ImpairmentSpec)
     network: NetworkSpec = Field(default_factory=NetworkSpec)
 
@@ -560,5 +604,7 @@ class OperationalManifest(BaseModel):
         elif self.run_mode == "replay":
             if not self.epi_id:
                 raise ValueError("epi_id is required when run_mode='replay'")
+            if self.execution_window is not None:
+                raise ValueError("execution_window is only supported when run_mode='closed_loop'")
         return self
 

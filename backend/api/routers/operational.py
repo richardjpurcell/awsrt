@@ -1053,6 +1053,40 @@ def _get_phy_meta_from_manifest(phy_m: dict) -> tuple[int, int, int, float, str,
     T = int(phy_m.get("horizon_steps", 0) or 0)
     return H, W, T, cell_size_m, crs_code, dt_seconds
 
+def _resolve_execution_window(
+    *,
+    execution_window: Any,
+    source_horizon_steps: int,
+) -> tuple[int, int, int]:
+    """
+    Resolve a closed-loop execution window against the source physical horizon.
+
+    Returns:
+      (start_step, end_step_exclusive, local_horizon_steps)
+    """
+    source_T = max(0, int(source_horizon_steps))
+
+    if execution_window is None:
+        return 0, source_T, source_T
+
+    start_step = max(0, int(getattr(execution_window, "start_step", 0) or 0))
+    end_step_exclusive_raw = getattr(execution_window, "end_step_exclusive", None)
+    end_step_exclusive = source_T if end_step_exclusive_raw is None else int(end_step_exclusive_raw)
+
+    if start_step > source_T:
+        raise HTTPException(
+            status_code=400,
+            detail=f"execution_window.start_step={start_step} exceeds source physical horizon {source_T}",
+        )
+    if end_step_exclusive > source_T:
+        raise HTTPException(
+            status_code=400,
+            detail=f"execution_window.end_step_exclusive={end_step_exclusive} exceeds source physical horizon {source_T}",
+        )
+    if end_step_exclusive <= start_step:
+        raise HTTPException(status_code=400, detail="execution_window.end_step_exclusive must be > start_step")
+
+    return start_step, end_step_exclusive, end_step_exclusive - start_step
 
 def _pick_certified_stage(
     stages: list[Any],
@@ -1973,6 +2007,25 @@ def meta(opr_id: str) -> MetaResponse:
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="manifest not found")
 
+    # Prefer stored operational meta in summary.json when available.
+    # This is the truthiest local-operational view for bounded execution-window
+    # runs, because linked physical metadata may reflect a longer source horizon.
+    s = _load_opr_summary_or_none(opr_id) or {}
+    if all(k in s for k in ("H", "W", "T", "dt_seconds", "cell_size_m", "crs_code")):
+        try:
+            return _build_operational_meta_response(
+                opr_id=opr_id,
+                H=s["H"],
+                W=s["W"],
+                T=s["T"],
+                dt_seconds=s.get("dt_seconds", 1),
+                crs_code=s.get("crs_code", ""),
+                cell_size_m=s["cell_size_m"],
+            )
+        except Exception:
+            pass
+        raise HTTPException(status_code=404, detail="manifest not found")
+
     # O1 path: manifest contains phy_id
     phy_id = m.get("phy_id") if isinstance(m, dict) else None
     if phy_id:
@@ -2016,22 +2069,6 @@ def meta(opr_id: str) -> MetaResponse:
             pass
         except Exception:
             raise HTTPException(status_code=500, detail="linked parent manifest is malformed")
-
-    # Fallback: stored meta in operational summary
-    s = _load_opr_summary_or_none(opr_id) or {}
-    if all(k in s for k in ("H", "W", "T", "dt_seconds", "cell_size_m", "crs_code")):
-        try:
-            return _build_operational_meta_response(
-                opr_id=opr_id,
-                H=s["H"],
-                W=s["W"],
-                T=s["T"],
-                dt_seconds=s.get("dt_seconds", 1),
-                crs_code=s.get("crs_code", ""),
-                cell_size_m=s["cell_size_m"],
-            )
-        except Exception:
-            pass
 
     # Last resort: infer T from sensors_rc (H/W unknown without summary)
     try:
@@ -2092,13 +2129,18 @@ def run(req: RunRequest) -> dict:
         Hm, Wm, Tm, cell_size_m, crs_code, dt_seconds = _get_phy_meta_from_manifest(phy_m)
 
         # Load truth arrays from physical run
+        execution_window = getattr(m, "execution_window", None)
         fire_state = np.asarray(open_zarr_array(zarr_path(phy_id, "fire_state"), mode="r")[:], dtype=np.uint8)
         if fire_state.ndim != 3:
             raise HTTPException(status_code=500, detail=f"fire_state must be (T,H,W); got shape={fire_state.shape}")
         T_truth, H_truth, W_truth = fire_state.shape
-        T = int(Tm) if int(Tm) > 0 else int(T_truth)
+        T_source = int(Tm) if int(Tm) > 0 else int(T_truth)
         H = int(Hm) if int(Hm) > 0 else int(H_truth)
         W = int(Wm) if int(Wm) > 0 else int(W_truth)
+        start_step, end_step_exclusive, T = _resolve_execution_window(
+            execution_window=execution_window,
+            source_horizon_steps=T_source,
+        )
 
         # Preserve the physical 3-state semantics:
         #   0 = unburned
@@ -2108,17 +2150,18 @@ def run(req: RunRequest) -> dict:
         # Operationally we distinguish:
         #   - fire_active: actively burning cells only
         #   - fire_any: any nonzero fire-state cell (burning or burned)
-        fire_active = (fire_state[:T, :H, :W] == 1).astype(np.uint8)
-        fire_any = (fire_state[:T, :H, :W] > 0).astype(np.uint8)
+        fire_state_window = fire_state[start_step:end_step_exclusive, :H, :W]
+        fire_active = (fire_state_window == 1).astype(np.uint8)
+        fire_any = (fire_state_window > 0).astype(np.uint8)
 
         # Terrain is optional: if absent, render a flat background.
         terr01: np.ndarray
         try:
             terrain = np.asarray(open_zarr_array(zarr_path(phy_id, "terrain"), mode="r")[:], dtype=np.float32)
             terr01 = terrain.astype(np.float32)
-            if terr01.ndim == 3:
+            if terr01.ndim == 3 and terr01.shape[0] >= end_step_exclusive:
                 # if terrain is time-varying, just use first frame for background normalization
-                terr_base = terr01[0]
+                terr_base = terr01[start_step]
             else:
                 terr_base = terr01
             mn = float(np.nanmin(terr_base))
@@ -3802,6 +3845,11 @@ def run(req: RunRequest) -> dict:
             "dt_seconds": int(dt_seconds),
             "cell_size_m": float(cell_size_m),
             "crs_code": str(crs_code),
+            "source_phy_horizon_steps": int(T_source),
+            "execution_window_enabled": bool(execution_window is not None),
+            "execution_window_start_step": int(start_step),
+            "execution_window_end_step_exclusive": int(end_step_exclusive),
+            "local_operational_horizon_steps": int(T),
         }
 
         summary_config = {
@@ -4224,6 +4272,16 @@ def series(opr_id: str) -> dict[str, Any]:
         "eps_ref_eff_info": _as_float_or_none(s.get("eps_ref_eff_info", None)),
         # - residual_*_pos_frac: fraction of steps with residual > eps_ref_eff_*
         "eps_ref": _as_float_or_none(s.get("eps_ref", None)),
+        "source_phy_horizon_steps": (
+            int(s["source_phy_horizon_steps"]) if s.get("source_phy_horizon_steps", None) is not None else None
+        ),
+        "local_operational_horizon_steps": (
+            int(s["local_operational_horizon_steps"]) if s.get("local_operational_horizon_steps", None) is not None else None
+        ),
+        "execution_window_enabled": bool(s.get("execution_window_enabled", False)),
+        "execution_window_start_step": s.get("execution_window_start_step", None),
+        "execution_window_end_step_exclusive": s.get("execution_window_end_step_exclusive", None),
+
         "eps_ref_eff_cov": _as_float_or_none(s.get("eps_ref_eff_cov", None)),
         "ttfd": s.get("ttfd", None),
         "ttfd_true": s.get("ttfd_true", None),

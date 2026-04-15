@@ -105,6 +105,11 @@ type SeriesRes = {
   // Scalars (from summary.json via /series payload)
   eps_ref?: number | null;
   eps_ref_eff_cov?: number | null;
+  source_phy_horizon_steps?: number | null;
+  local_operational_horizon_steps?: number | null;
+  execution_window_enabled?: boolean;
+  execution_window_start_step?: number | null;
+  execution_window_end_step_exclusive?: number | null;
   eps_ref_eff_info?: number | null;
   ttfd?: number | null;
   ttfd_true?: number | null;
@@ -1025,6 +1030,24 @@ export default function OperationalVisualizerPage() {
             , cell {meta.cell_size_m}m, CRS {meta.crs_code || "—"}, dt={meta.dt_seconds}s, T={meta.T}
           </div>
 
+          {typeof series?.source_phy_horizon_steps === "number" ? (
+            <div className="small" style={{ marginTop: 4, opacity: 0.82, lineHeight: 1.4 }}>
+              {series.execution_window_enabled ? (
+                <>
+                  Source physical horizon=<b>{series.source_phy_horizon_steps}</b>
+                  {" "}· execution window=<b>[{series.execution_window_start_step ?? 0}, {series.execution_window_end_step_exclusive ?? "—"})</b>
+                  {" "}· local operational horizon=<b>{series.local_operational_horizon_steps ?? meta.T}</b>
+                  {" "}· viewer t is a <b>local operational step</b>
+                </>
+              ) : (
+                <>
+                  Source physical horizon=<b>{series.source_phy_horizon_steps}</b>
+                  {" "}· full-horizon execution
+                  {" "}· local operational horizon=<b>{series.local_operational_horizon_steps ?? meta.T}</b>
+                </>
+              )}
+            </div>
+          ) : null}
           <div style={{ marginTop: 6 }}>
             <PlayBar t={t} setT={setT} T={T} loop={loop} setLoop={setLoop} />
           </div>

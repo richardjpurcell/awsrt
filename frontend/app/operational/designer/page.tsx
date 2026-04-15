@@ -399,6 +399,9 @@ export default function OperationalDesignerPage() {
   // O1: select physical run directly
   const [phyIds, setPhyIds] = useState<string[]>([]);
   const [phyId, setPhyId] = useState("");
+  const [executionWindowEnabled, setExecutionWindowEnabled] = useState(false);
+  const [executionWindowStartStep, setExecutionWindowStartStep] = useState(0);
+  const [executionWindowEndStepExclusive, setExecutionWindowEndStepExclusive] = useState("");
 
   // Presets (Batch-style UX)
   const [presetId, setPresetId] = useState<PresetId>("");
@@ -1119,6 +1122,15 @@ export default function OperationalDesignerPage() {
     return {
       run_mode: "closed_loop",
       phy_id: phyId,
+      execution_window: executionWindowEnabled
+        ? {
+            start_step: Math.max(0, executionWindowStartStep),
+            end_step_exclusive:
+              executionWindowEndStepExclusive.trim() === ""
+                ? null
+                : Math.max(1, parseInt(executionWindowEndStepExclusive, 10) || 1),
+          }
+        : null,
       impairments: {
         noise_level: noiseLevel,
         delay_steps: delaySteps,
@@ -1317,6 +1329,44 @@ export default function OperationalDesignerPage() {
       ) : null}
 
       <RunPicker label="Physical Run" ids={phyIds} value={phyId} onChange={setPhyId} />
+      <div className="card" style={{ marginTop: 10 }}>
+        <h2 style={{ marginTop: 0 }}>Execution window</h2>
+        <div className="small" style={{ opacity: 0.85, lineHeight: 1.4 }}>
+          Optional bounded execution interval within the selected source physical run.
+          This limits the local operational run horizon, but does not modify the source physical run itself.
+        </div>
+
+        <div className="row" style={{ marginTop: 10 }}>
+          <label>enabled</label>
+          <select
+            value={executionWindowEnabled ? "yes" : "no"}
+            onChange={(e) => setExecutionWindowEnabled(e.target.value === "yes")}
+            disabled={busy}
+          >
+            <option value="no">no</option>
+            <option value="yes">yes</option>
+          </select>
+
+          <label>start_step</label>
+          <input
+            type="number"
+            min={0}
+            value={executionWindowStartStep}
+            onChange={(e) => setExecutionWindowStartStep(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            disabled={busy || !executionWindowEnabled}
+          />
+
+          <label>end_step_exclusive</label>
+          <input
+            type="number"
+            min={1}
+            value={executionWindowEndStepExclusive}
+            onChange={(e) => setExecutionWindowEndStepExclusive(e.target.value)}
+            disabled={busy || !executionWindowEnabled}
+            placeholder="leave blank = source horizon end"
+          />
+        </div>
+      </div>
 
       {/* Presets (Batch-style) */}
       <div className="card" style={{ marginTop: 10 }}>
