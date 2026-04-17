@@ -395,6 +395,52 @@ class RegimeThresholdSpec(BaseModel):
     )
 
 
+class ActiveDownshiftSupportSpec(BaseModel):
+    """
+    Bounded active realized downshift support.
+
+    Semantics:
+      - this is used only when regime_management.mode='active'
+      - it does not replace advisory trigger logic
+      - it expresses when nominal/opportunistic posture has become weakly justified
+        due to thinning support, stale arrivals, or weakening information value
+    """
+
+    enabled: bool = Field(default=True)
+
+    weight_front_overlap: float = Field(default=0.20, ge=0.0)
+    weight_detection_arrivals: float = Field(default=0.30, ge=0.0)
+    weight_info_driver: float = Field(default=0.30, ge=0.0)
+    weight_health: float = Field(default=0.20, ge=0.0)
+
+    support_threshold: float = Field(
+        default=0.35,
+        ge=0.0,
+        le=1.0,
+        description="Minimum support score required to justify remaining in the more opportunistic active posture."
+    )
+    persistence_steps: int = Field(
+        default=2,
+        ge=1,
+        description="Consecutive steps of weak support required before active realized downshift is permitted."
+    )
+
+
+class ActiveDownshiftThresholdSpec(BaseModel):
+    """
+    Compact active-only downshift thresholds.
+
+    These thresholds are intentionally separate from advisory thresholds so that
+    advisory recommendation semantics and active realized posture semantics remain distinct.
+    """
+
+    weak_support_threshold: float = Field(default=0.35, ge=0.0, le=1.0)
+    concern_threshold: float = Field(default=0.15, ge=0.0)
+    combined_pressure_threshold: float = Field(default=0.50, ge=0.0)
+    persistence_steps: int = Field(default=2, ge=1)
+    hysteresis_band: float = Field(default=0.05, ge=0.0)
+
+
 class RegimeSignalsSpec(BaseModel):
     use_utilization: bool = Field(default=True, description="Enable utilization-based advisory trigger components.")
     use_strict_drift_proxy: bool = Field(default=True, description="Enable strict-drift-proxy advisory trigger components.")
@@ -430,6 +476,10 @@ class RegimeTransitionLogicSpec(BaseModel):
     recovery_thresholds: RegimeThresholdSpec = Field(
         default_factory=RegimeThresholdSpec,
         description="Thresholds for advisory recovery trigger evaluation.",
+    )
+    active_downshift_thresholds: ActiveDownshiftThresholdSpec = Field(
+        default_factory=ActiveDownshiftThresholdSpec,
+        description="Thresholds for active realized downshift entry under weak-support or mixed-support-and-concern conditions.",
     )
 
 
@@ -494,6 +544,7 @@ class RegimeManagementSpec(BaseModel):
     signals: RegimeSignalsSpec = Field(default_factory=RegimeSignalsSpec)
     transition_logic: RegimeTransitionLogicSpec = Field(default_factory=RegimeTransitionLogicSpec)
     recovery_support: RegimeRecoverySupportSpec = Field(default_factory=RegimeRecoverySupportSpec)
+    active_downshift_support: ActiveDownshiftSupportSpec = Field(default_factory=ActiveDownshiftSupportSpec)
     opportunistic: RegimeOpportunisticSpec = Field(default_factory=RegimeOpportunisticSpec)
     certified: RegimeCertifiedSpec = Field(default_factory=RegimeCertifiedSpec)
     logging: RegimeLoggingSpec = Field(default_factory=RegimeLoggingSpec)

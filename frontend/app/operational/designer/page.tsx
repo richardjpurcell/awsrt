@@ -53,6 +53,9 @@ type RunSummaryRes = {
   regime_active_state_nominal_frac?: number | null;
   regime_active_state_downshift_frac?: number | null;
   regime_active_state_certified_frac?: number | null;
+  debug_active_downshift_support_score_mean?: number | null;
+  debug_active_downshift_support_score_min?: number | null;
+  debug_active_downshift_weak_support_hits?: number | null;
 };
 
 
@@ -624,9 +627,14 @@ export default function OperationalDesignerPage() {
       if (family === "balanced") {
         setCertifiedStages(makeBalancedCertifiedStages());
         setOpportunisticLadder(makeBalancedLadder());
-        setDownshiftThresholds(makeThresholds(0.85, 0.20, 5, 0.05));
-        setSwitchToCertifiedThresholds(makeThresholds(0.75, 0.75, 3, 0.05));
-        setRecoveryThresholds(makeThresholds(0.995, 0.420, 5, 0.05));
+        // v0.4 Subgoal 01 follow-up:
+        // make balanced meaningfully but still modestly active:
+        // - less entry damping for downshift
+        // - slightly harder certified entry so downshift has room to exist
+        // - still clearly milder than the opportunistic family
+        setDownshiftThresholds(makeThresholds(0.88, 0.22, 3, 0.05));
+        setSwitchToCertifiedThresholds(makeThresholds(0.68, 0.68, 4, 0.05));
+        setRecoveryThresholds(makeThresholds(0.95, 0.38, 4, 0.05));
       } else if (family === "opportunistic") {
         setCertifiedStages(makeOpportunisticCertifiedStages());
         setOpportunisticLadder(makeOpportunisticLadder());
@@ -696,7 +704,7 @@ export default function OperationalDesignerPage() {
 
       setModerateObservationChannel();
       setCInfo(0.1);
-      setMoveM(500);
+      setMoveM(650);
       // Subgoal 01 semantic-probe refinement:
       // - keep downshift readable and near-boundary
       // - make certification harder so healthy cases do not certify so easily
@@ -1262,7 +1270,7 @@ export default function OperationalDesignerPage() {
       : presetId === "regime_active_balanced_hysteresis_probe"
       ? "Active regime · balanced · hysteresis probe"
       : presetId === "regime_active_balanced_semantic_probe"
-      ? "Active regime · balanced · semantic probe"
+      ? "Active regime · balanced · semantic probe (mixed support/downshift)"
       : presetId === "regime_active_opportunistic_hysteresis_probe"
       ? "Active regime · opportunistic · hysteresis probe"
       : "Custom";
@@ -1407,7 +1415,7 @@ export default function OperationalDesignerPage() {
               <option value="regime_active_opportunistic">Active regime · opportunistic</option>
               <option value="regime_active_certified">Active regime · certified</option>
               <option value="regime_active_balanced_semantic_probe">
-                Active regime · balanced · semantic probe
+                Active regime · balanced · semantic probe (mixed support/downshift)
               </option>
               <option value="regime_active_corruption_semantic_probe">
                 Active regime · corruption-sensitive semantic probe
@@ -1903,6 +1911,12 @@ export default function OperationalDesignerPage() {
             {useUtilization && useStrictDriftProxy && !useLocalDriftRate && !useCumulativeExposure ? (
               <> · verification-style utilization+strict active test profile</>
             ) : null}
+          </div>
+        ) : null}
+        {regimeEnabled && regimeMode === "active" ? (
+          <div className="small" style={{ marginTop: 6, opacity: 0.82, lineHeight: 1.4 }}>
+            v0.4 active-downshift probe: active downshift may now become visible not only under corruption-sensitive
+            degradation, but also when opportunistic posture is persistently weakly supported on bounded real-fire windows.
           </div>
         ) : null}
 
@@ -2661,6 +2675,27 @@ export default function OperationalDesignerPage() {
                     <> · active_last_ladder=<b>{runSummaryData.regime_active_last_opportunistic_level_id}</b></>
                   ) : null}
                 </div>
+                {(typeof runSummaryData.debug_active_downshift_support_score_mean === "number" ||
+                  typeof runSummaryData.debug_active_downshift_support_score_min === "number" ||
+                  typeof runSummaryData.debug_active_downshift_weak_support_hits === "number") ? (
+                  <div>
+                    {typeof runSummaryData.debug_active_downshift_support_score_mean === "number" ? (
+                      <>
+                        weak_support_score_mean=<b>{runSummaryData.debug_active_downshift_support_score_mean.toFixed(4)}</b>
+                      </>
+                    ) : null}
+                    {typeof runSummaryData.debug_active_downshift_support_score_min === "number" ? (
+                      <>
+                        {" "}· weak_support_score_min=<b>{runSummaryData.debug_active_downshift_support_score_min.toFixed(4)}</b>
+                      </>
+                    ) : null}
+                    {typeof runSummaryData.debug_active_downshift_weak_support_hits === "number" ? (
+                      <>
+                        {" "}· weak_support_hits=<b>{runSummaryData.debug_active_downshift_weak_support_hits}</b>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div>
                   active_transition_count=<b>{runSummaryData.regime_active_transition_count ?? "—"}</b>
                   {typeof runSummaryData.regime_effective_eta_mean === "number" ? (

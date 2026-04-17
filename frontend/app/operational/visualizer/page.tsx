@@ -101,6 +101,9 @@ type SeriesRes = {
   debug_recovery_block_counter?: number[];
   debug_leave_certified_counter?: number[];
   debug_trig_leave_certified_final?: number[];
+  debug_active_downshift_support_score?: number[];
+  debug_active_downshift_support_breadth?: number[];
+  debug_trig_down_weak_support_component?: number[];
 
   // Scalars (from summary.json via /series payload)
   eps_ref?: number | null;
@@ -189,6 +192,9 @@ type SeriesRes = {
   debug_recovery_utilization_margin_max?: number | null;
   debug_leave_certified_counter_max?: number | null;
   debug_leave_certified_trigger_hits?: number | null;
+  debug_active_downshift_support_score_mean?: number | null;
+  debug_active_downshift_support_score_min?: number | null;
+  debug_active_downshift_weak_support_hits?: number | null;
   regime_mechanism_audit_available?: boolean;
 };
 
@@ -809,7 +815,10 @@ export default function OperationalVisualizerPage() {
       (s.debug_recovery_counter?.length ?? 0) ||
       (s.debug_recovery_block_counter?.length ?? 0) ||
       (s.debug_leave_certified_counter?.length ?? 0) ||
-      (s.debug_trig_leave_certified_final?.length ?? 0);
+      (s.debug_trig_leave_certified_final?.length ?? 0) ||
+      (s.debug_active_downshift_support_score?.length ?? 0) ||
+      (s.debug_active_downshift_support_breadth?.length ?? 0) ||
+      (s.debug_trig_down_weak_support_component?.length ?? 0);
     return anyLen > 0;
   }, [series]);
 
@@ -910,6 +919,9 @@ export default function OperationalVisualizerPage() {
       debug_recovery_block_counter: atInt(series.debug_recovery_block_counter),
       debug_leave_certified_counter: atInt(series.debug_leave_certified_counter),
       debug_trig_leave_certified_final: atInt(series.debug_trig_leave_certified_final),
+      debug_active_downshift_support_score: at(series.debug_active_downshift_support_score),
+      debug_active_downshift_support_breadth: at(series.debug_active_downshift_support_breadth),
+      debug_trig_down_weak_support_component: atInt(series.debug_trig_down_weak_support_component),
     };
   }, [series, tt]);
 
@@ -1319,6 +1331,27 @@ export default function OperationalVisualizerPage() {
                         <> · effective_move_budget_cells_mean=<b>{series.regime_effective_move_budget_cells_mean.toFixed(3)}</b></>
                       ) : null}
                     </div>
+                    {(typeof series.debug_active_downshift_support_score_mean === "number" ||
+                      typeof series.debug_active_downshift_support_score_min === "number" ||
+                      typeof series.debug_active_downshift_weak_support_hits === "number") ? (
+                      <div>
+                        {typeof series.debug_active_downshift_support_score_mean === "number" ? (
+                          <>
+                            weak_support_score_mean=<b>{series.debug_active_downshift_support_score_mean.toFixed(4)}</b>
+                          </>
+                        ) : null}
+                        {typeof series.debug_active_downshift_support_score_min === "number" ? (
+                          <>
+                            {" "}· weak_support_score_min=<b>{series.debug_active_downshift_support_score_min.toFixed(4)}</b>
+                          </>
+                        ) : null}
+                        {typeof series.debug_active_downshift_weak_support_hits === "number" ? (
+                          <>
+                            {" "}· weak_support_hits=<b>{series.debug_active_downshift_weak_support_hits}</b>
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div>
                           {typeof series.regime_advisory_stage_eta_last === "number" ? (
                             <>advisory_certified_eta_last=<b>{series.regime_advisory_stage_eta_last.toFixed(4)}</b> · </>
@@ -1389,6 +1422,11 @@ export default function OperationalVisualizerPage() {
                     <div>
                       leave_certified_counter=<b>{fmtInt(cursorSummary.debug_leave_certified_counter)}</b>
                       {" "}· leave_certified_trigger=<b>{fmtInt(cursorSummary.debug_trig_leave_certified_final)}</b>
+                    </div>
+                    <div>
+                      weak_support_score=<b>{fmtNum(cursorSummary.debug_active_downshift_support_score, 4)}</b>
+                      {" "}· weak_support_breadth=<b>{fmtNum(cursorSummary.debug_active_downshift_support_breadth, 4)}</b>
+                      {" "}· weak_support_trigger=<b>{fmtInt(cursorSummary.debug_trig_down_weak_support_component)}</b>
                     </div>
                       </>
                     ) : null}
@@ -2139,6 +2177,34 @@ export default function OperationalVisualizerPage() {
                 ) : (
                   <div />
                 )}
+
+                {series?.debug_active_downshift_support_score?.length ? (
+                  <SparkLine
+                    title="Active weak-support score"
+                    values={series.debug_active_downshift_support_score.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.debug_active_downshift_support_score.length - 1))}
+                    height={PLOT_H}
+                    precision={4}
+                    include01
+                    subtitle="Lower values mean opportunistic posture is more weakly supported"
+                  />
+                ) : (
+                  <div />
+                )}
+
+                {series?.debug_trig_down_weak_support_component?.length ? (
+                  <SparkLine
+                    title="Active trigger: weak-support downshift"
+                    values={series.debug_trig_down_weak_support_component.map((v) => Number(v))}
+                    cursorT={Math.min(tt, Math.max(0, series.debug_trig_down_weak_support_component.length - 1))}
+                    height={PLOT_H}
+                    precision={0}
+                    include01
+                    subtitle="1 means the bounded weak-support shortcut is firing for active downshift"
+                  />
+                ) : (
+                  <div />
+                )}
               </SectionCard>
 
               {showMechanismAudit ? (
@@ -2283,6 +2349,33 @@ export default function OperationalVisualizerPage() {
                     <div />
                   )}
 
+                  {series?.debug_active_downshift_support_score?.length ? (
+                    <SparkLine
+                      title="Weak-support score (mechanism audit)"
+                      values={series.debug_active_downshift_support_score.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_active_downshift_support_score.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include01
+                      subtitle="Bounded active-support score used to expose weakly justified opportunistic posture"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.debug_active_downshift_support_breadth?.length ? (
+                    <SparkLine
+                      title="Weak-support breadth"
+                      values={series.debug_active_downshift_support_breadth.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_active_downshift_support_breadth.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include01
+                      subtitle="Front/support encounter breadth used alongside the weak-support score"
+                    />
+                  ) : (
+                    <div />
+                  )}
                   {series?.debug_trig_leave_certified_final?.length ? (
                     <SparkLine
                       title="Leave-certified trigger"

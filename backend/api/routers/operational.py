@@ -110,6 +110,21 @@ USEFULNESS_CAUTION_PERSISTENCE = 3
 USEFULNESS_RECOVER_EXIT_PERSISTENCE = 2
 USEFULNESS_EXPLOIT_PERSISTENCE = 3
 
+# v0.4 Subgoal 01:
+# active downshift should also be able to respond to persistently weak
+# operational support on bounded real-fire windows, not only corruption-style concern.
+# Keep this compact and backend-local for the first probe.
+ACTIVE_DOWNSHIFT_SUPPORT_THRESHOLD = 0.32
+ACTIVE_DOWNSHIFT_BREADTH_THRESHOLD = 0.12
+
+# v0.4 Subgoal 01 follow-up:
+# corruption-facing active downshift should be slightly easier to realize on
+# bounded real-fire windows. Keep this bounded and explicit rather than hiding
+# the calibration as scattered literals in the main loop.
+ACTIVE_CORRUPTION_MISLEADING_POS_FRAC_THRESHOLD = 0.20
+ACTIVE_CORRUPTION_ARRIVALS_HIGH_THRESHOLD = 0.70
+ACTIVE_CORRUPTION_DRIVER_INFO_LOW_THRESHOLD = 6.0e-4
+
 class ComparePoliciesRequest(BaseModel):
     """
     Create + run multiple operational runs from the same base manifest, varying only policy.
@@ -1545,6 +1560,32 @@ def _compute_leave_certified_trigger(
     return bool(score_ok and breadth_ok)
 
 
+def _compute_active_weak_support_trigger(
+    *,
+    support_score: float,
+    support_breadth: float,
+    support_threshold: float,
+    breadth_threshold: float,
+) -> bool:
+    """
+    Bounded active downshift shortcut for weakly justified opportunistic posture.
+
+    Intent:
+      - complement the current corruption-facing shortcut with a support-facing one
+      - allow realized active downshift on bounded real-fire windows even when
+        corruption-style evidence is not extreme
+      - remain compact and interpretable
+
+    Policy:
+      - weak support means pooled support score is BELOW threshold
+      - weak breadth means front/support encounter is BELOW threshold
+      - require both, so this remains a bounded path rather than a noisy trigger
+    """
+    score_weak = float(support_score) < float(support_threshold)
+    breadth_weak = float(support_breadth) < float(breadth_threshold)
+    return bool(score_weak and breadth_weak)
+
+
 def _update_active_regime_cooldowns(
     *,
     cur_state: int,
@@ -2304,6 +2345,9 @@ def run(req: RunRequest) -> dict:
         debug_requal_support_detect = np.zeros((T,), dtype=np.float32)
         debug_requal_support_info = np.zeros((T,), dtype=np.float32)
         debug_requal_support_health = np.zeros((T,), dtype=np.float32)
+        debug_active_downshift_support_score = np.zeros((T,), dtype=np.float32)
+        debug_active_downshift_support_breadth = np.zeros((T,), dtype=np.float32)
+        debug_trig_down_weak_support_component = np.zeros((T,), dtype=np.uint8)
 
         cumulative_exposure_running = 0.0
         # Epistemic trace (embedded)
@@ -2917,12 +2961,14 @@ def run(req: RunRequest) -> dict:
 
                 corruption_misleading_bad = bool(
                     misleading_pos_recent_t is not None
-                    and float(misleading_pos_recent_t) >= 0.30
+                    and float(misleading_pos_recent_t)
+                    >= float(ACTIVE_CORRUPTION_MISLEADING_POS_FRAC_THRESHOLD)
                 )
                 corruption_low_info_while_active = bool(
-                    float(arrivals_frac[t]) >= 0.80
+                    float(arrivals_frac[t]) >= float(ACTIVE_CORRUPTION_ARRIVALS_HIGH_THRESHOLD)
                     and driver_recent_t is not None
-                    and float(driver_recent_t) <= 4.0e-4
+                    and float(driver_recent_t)
+                    <= float(ACTIVE_CORRUPTION_DRIVER_INFO_LOW_THRESHOLD)
                 )
                 corruption_signal_t = bool(
                     corruption_misleading_bad and corruption_low_info_while_active
@@ -2940,6 +2986,51 @@ def run(req: RunRequest) -> dict:
                     use_trigger_bools=use_trigger_bools,
                     require_all=require_all_components,
                 )
+
+                # Certified exit should represent requalification for
+                # opportunistic control under renewed informative opportunity,
+                # not only healthy-side utilization / strict proxy.
+                info_scale = max(
+                    1e-6,
+                    float(np.max(driver_info_true[: t + 1])) if t >= 0 else 1.0,
+                )
+                support_front = float(np.clip(overlap_front_for_regime, 0.0, 1.0))
+                support_detect = float(np.clip(detections_arrived_frac[t], 0.0, 1.0))
+                support_info = float(np.clip(float(driver_info_true[t]) / info_scale, 0.0, 1.0))
+
+                u_thr_rec = _threshold_with_hysteresis(recovery_thr, "utilization_threshold", +1.0) if recovery_thr is not None else 0.0
+                s_thr_rec = _threshold_with_hysteresis(recovery_thr, "strict_drift_proxy_threshold", +1.0) if recovery_thr is not None else 0.0
+                util_health = 0.0
+                strict_health = 0.0
+                if u_thr_rec > 0.0:
+                    util_health = float(np.clip(float(utilization_t) / max(float(u_thr_rec), 1e-6), 0.0, 1.0))
+                if s_thr_rec > 0.0:
+                    strict_health = float(np.clip(float(strict_proxy_t) / max(float(s_thr_rec), 1e-6), 0.0, 1.0))
+                support_health = float(max(util_health, strict_health))
+
+                # v0.4 Subgoal 01:
+                # active downshift should also react to persistently weak support,
+                # not only corruption-facing concern.
+                active_downshift_support_score_t = float(
+                    (
+                        w_front * support_front
+                        + w_detect * support_detect
+                        + w_info * support_info
+                        + w_health * support_health
+                    ) / requal_w_sum
+                )
+                active_downshift_support_breadth_t = float(np.clip(overlap_front_for_regime, 0.0, 1.0))
+
+                weak_support_signal_t = (
+                    regime_active_enabled
+                    and _compute_active_weak_support_trigger(
+                        support_score=active_downshift_support_score_t,
+                        support_breadth=active_downshift_support_breadth_t,
+                        support_threshold=ACTIVE_DOWNSHIFT_SUPPORT_THRESHOLD,
+                        breadth_threshold=ACTIVE_DOWNSHIFT_BREADTH_THRESHOLD,
+                    )
+                )
+
                 # Subgoal 03:
                 # Auxiliary corruption participation was structurally valid but
                 # behaviorally too weak in Subgoal 02. For the next bounded
@@ -2952,6 +3043,7 @@ def run(req: RunRequest) -> dict:
                         regime_active_enabled
                         and corruption_signal_t
                     )
+                    or bool(weak_support_signal_t)
                 )
                 trig_switch = (
                     _combine_switch_to_certified_components_active(
@@ -2987,26 +3079,6 @@ def run(req: RunRequest) -> dict:
                     require_all=require_all_components,
                 )
 
-                # Certified exit should represent requalification for
-                # opportunistic control under renewed informative opportunity,
-                # not only healthy-side utilization / strict proxy.
-                info_scale = max(
-                    1e-6,
-                    float(np.max(driver_info_true[: t + 1])) if t >= 0 else 1.0,
-                )
-                support_front = float(np.clip(overlap_front_for_regime, 0.0, 1.0))
-                support_detect = float(np.clip(detections_arrived_frac[t], 0.0, 1.0))
-                support_info = float(np.clip(float(driver_info_true[t]) / info_scale, 0.0, 1.0))
-
-                u_thr_rec = _threshold_with_hysteresis(recovery_thr, "utilization_threshold", +1.0) if recovery_thr is not None else 0.0
-                s_thr_rec = _threshold_with_hysteresis(recovery_thr, "strict_drift_proxy_threshold", +1.0) if recovery_thr is not None else 0.0
-                util_health = 0.0
-                strict_health = 0.0
-                if u_thr_rec > 0.0:
-                    util_health = float(np.clip(float(utilization_t) / max(float(u_thr_rec), 1e-6), 0.0, 1.0))
-                if s_thr_rec > 0.0:
-                    strict_health = float(np.clip(float(strict_proxy_t) / max(float(s_thr_rec), 1e-6), 0.0, 1.0))
-                support_health = float(max(util_health, strict_health))
 
                 requal_support_score_t = float(
                     (
@@ -3024,6 +3096,11 @@ def run(req: RunRequest) -> dict:
                 debug_requal_support_detect[t] = support_detect
                 debug_requal_support_info[t] = support_info
                 debug_requal_support_health[t] = support_health
+
+
+                debug_active_downshift_support_score[t] = active_downshift_support_score_t
+                debug_active_downshift_support_breadth[t] = active_downshift_support_breadth_t
+                debug_trig_down_weak_support_component[t] = 1 if weak_support_signal_t else 0
 
                 trig_leave_certified = (
                     _compute_leave_certified_trigger(
@@ -3154,6 +3231,9 @@ def run(req: RunRequest) -> dict:
                     debug_recovery_block_counter[t] = 0
                     debug_leave_certified_counter[t] = 0
                     debug_trig_leave_certified_final[t] = 0
+                    debug_active_downshift_support_score[t] = 0.0
+                    debug_active_downshift_support_breadth[t] = 0.0
+                    debug_trig_down_weak_support_component[t] = 0
                     regime_active_state[t] = 0
                     regime_active_certified_stage_index[t] = -1
                     regime_active_opportunistic_level_index[t] = -1
@@ -3507,6 +3587,10 @@ def run(req: RunRequest) -> dict:
                 ("debug_requal_support_detect", debug_requal_support_detect.astype(np.float32), "f4"),
                 ("debug_requal_support_info", debug_requal_support_info.astype(np.float32), "f4"),
                 ("debug_requal_support_health", debug_requal_support_health.astype(np.float32), "f4"),
+                ("debug_active_downshift_support_score", debug_active_downshift_support_score.astype(np.float32), "f4"),
+                ("debug_active_downshift_support_breadth", debug_active_downshift_support_breadth.astype(np.float32), "f4"),
+                ("debug_trig_down_weak_support_component", debug_trig_down_weak_support_component.astype(np.uint8), "u1"),
+
             ],
         )
 
@@ -3681,6 +3765,7 @@ def run(req: RunRequest) -> dict:
                 or int(np.count_nonzero(debug_switch_counter)) > 0
                 or int(np.count_nonzero(debug_recovery_counter)) > 0
                 or int(np.count_nonzero(debug_leave_certified_counter)) > 0
+                or int(np.count_nonzero(debug_trig_down_weak_support_component)) > 0
                 or np.any(np.isfinite(debug_down_utilization_margin))
                 or np.any(np.isfinite(debug_switch_utilization_margin))
                 or np.any(np.isfinite(debug_recovery_utilization_margin))
@@ -3766,6 +3851,9 @@ def run(req: RunRequest) -> dict:
                     "debug_requal_support_detect": float(debug_requal_support_detect[t]),
                     "debug_requal_support_info": float(debug_requal_support_info[t]),
                     "debug_requal_support_health": float(debug_requal_support_health[t]),
+                    "debug_active_downshift_support_score": float(debug_active_downshift_support_score[t]),
+                    "debug_active_downshift_support_breadth": float(debug_active_downshift_support_breadth[t]),
+                    "debug_trig_down_weak_support_component": int(debug_trig_down_weak_support_component[t]),
                     "residual_cov": float(residual_cov[t]),
                     "residual_info": float(residual_info[t]),
                     "c_info": float(c_info),
@@ -3981,6 +4069,15 @@ def run(req: RunRequest) -> dict:
                 int(np.max(debug_leave_certified_counter)) if T > 0 else 0
             ),
             "debug_leave_certified_trigger_hits": int(np.count_nonzero(debug_trig_leave_certified_final)),
+            "debug_active_downshift_support_score_mean": (
+                float(np.mean(debug_active_downshift_support_score)) if T > 0 else None
+            ),
+            "debug_active_downshift_support_score_min": (
+                float(np.min(debug_active_downshift_support_score)) if T > 0 else None
+            ),
+            "debug_active_downshift_weak_support_hits": int(
+                np.count_nonzero(debug_trig_down_weak_support_component)
+            ),
             "regime_mechanism_audit_available": bool(mechanism_audit_available),
             # Mechanism diagnostics kept intentionally lightweight at summary
             # level; detailed inspection should use step series / CSV.
@@ -4265,6 +4362,9 @@ def series(opr_id: str) -> dict[str, Any]:
         "debug_recovery_block_counter": _read_1d_int("debug_recovery_block_counter"),
         "debug_leave_certified_counter": _read_1d_int("debug_leave_certified_counter"),
         "debug_trig_leave_certified_final": _read_1d_int("debug_trig_leave_certified_final"),
+        "debug_active_downshift_support_score": _read_1d("debug_active_downshift_support_score"),
+        "debug_active_downshift_support_breadth": _read_1d("debug_active_downshift_support_breadth"),
+        "debug_trig_down_weak_support_component": _read_1d_int("debug_trig_down_weak_support_component"),
 
         # Scalars from summary.json (not time-series). These are key to interpreting presets:
         # - eps_ref: user-specified band (0 => auto)
@@ -4421,6 +4521,16 @@ def series(opr_id: str) -> dict[str, Any]:
         "regime_active_state_certified_steps": s.get("regime_active_state_certified_steps", None),
         "debug_leave_certified_counter_max": s.get("debug_leave_certified_counter_max", None),
         "debug_leave_certified_trigger_hits": s.get("debug_leave_certified_trigger_hits", None),
+        "debug_active_downshift_support_score_mean": _as_float_or_none(
+            s.get("debug_active_downshift_support_score_mean", None)
+        ),
+        "debug_active_downshift_support_score_min": _as_float_or_none(
+            s.get("debug_active_downshift_support_score_min", None)
+        ),
+        "debug_active_downshift_weak_support_hits": s.get(
+            "debug_active_downshift_weak_support_hits",
+            None,
+        ),
         "debug_down_utilization_margin_min": _as_float_or_none(s.get("debug_down_utilization_margin_min", None)),
         "debug_down_utilization_margin_max": _as_float_or_none(s.get("debug_down_utilization_margin_max", None)),
         "debug_switch_utilization_margin_min": _as_float_or_none(s.get("debug_switch_utilization_margin_min", None)),
