@@ -125,6 +125,17 @@ ACTIVE_CORRUPTION_MISLEADING_POS_FRAC_THRESHOLD = 0.20
 ACTIVE_CORRUPTION_ARRIVALS_HIGH_THRESHOLD = 0.70
 ACTIVE_CORRUPTION_DRIVER_INFO_LOW_THRESHOLD = 6.0e-4
 
+# v0.4 Subgoal 03:
+# corruption-focused active expression should be able to accumulate into a
+# guarded downshift path on bounded real-fire windows, rather than requiring
+# a single-step extreme conjunction. Keep this compact, controller-visible,
+# and distinct from the weak-support shortcut.
+ACTIVE_CORRUPTION_GUARD_MISLEADING_POS_FRAC_THRESHOLD = 0.18
+ACTIVE_CORRUPTION_GUARD_ARRIVALS_HIGH_THRESHOLD = 0.60
+ACTIVE_CORRUPTION_GUARDED_PERSISTENCE = 6
+ACTIVE_CORRUPTION_GUARDED_SUPPORT_THRESHOLD = 0.52
+ACTIVE_CORRUPTION_GUARDED_BREADTH_THRESHOLD = 0.28
+
 class ComparePoliciesRequest(BaseModel):
     """
     Create + run multiple operational runs from the same base manifest, varying only policy.
@@ -1466,6 +1477,7 @@ def _update_active_regime_counters(
     cur_state: int,
     trig_down: bool,
     trig_switch: bool,
+    trig_corruption_hold: bool,
     trig_recovery: bool,
     trig_leave_certified: bool,
     down_counter: int,
@@ -1586,6 +1598,38 @@ def _compute_active_weak_support_trigger(
     return bool(score_weak and breadth_weak)
 
 
+def _compute_active_corruption_guarded_trigger(
+    *,
+    corruption_guard_seed: bool,
+    support_score: float,
+    support_breadth: float,
+    support_threshold: float,
+    breadth_threshold: float,
+) -> bool:
+    """
+    Bounded corruption-family guarded active trigger.
+
+    Intent:
+      - preserve corruption-led semantics
+      - allow corruption-like degradation to accumulate into a readable guarded
+        active path on bounded real-fire windows
+      - avoid collapsing corruption behavior into generic weak-support logic
+
+    Policy:
+      - milder corruption-style evidence must be present
+      - support must also be meaningfully weakened, but not necessarily at the
+        more severe weak-support shortcut threshold
+      - breadth is treated as an upper bound: corruption-led guarded posture is
+        most meaningful when support encounter is no longer broad/healthy
+    """
+    if not bool(corruption_guard_seed):
+        return False
+
+    support_guarded = float(support_score) < float(support_threshold)
+    breadth_guarded = float(support_breadth) < float(breadth_threshold)
+    return bool(support_guarded and breadth_guarded)
+
+
 def _update_active_regime_cooldowns(
     *,
     cur_state: int,
@@ -1629,6 +1673,7 @@ def _active_regime_transition(
     trig_down: bool,
     trig_switch: bool,
     trig_recovery: bool,
+    trig_corruption_hold: bool,
     trig_leave_certified: bool,
     down_counter: int,
     switch_counter: int,
@@ -1676,6 +1721,8 @@ def _active_regime_transition(
             short cooldown
           * recovery out of downshift is stricter than degradation into it:
             require recovery persistence AND absence of active downshift
+          * corruption-led downshift should not immediately recover while
+            corruption-like pressure is still visibly present
     """
     if not active_enabled:
         return 0, -1, -1, 0
@@ -1718,10 +1765,12 @@ def _active_regime_transition(
         #   - must survive recovery persistence
         #   - must not still be actively downshift-triggered
         #   - must wait out the anti-chatter cooldown
+        #   - must not still be under corruption-led hold pressure
         recovery_allowed = (
             recovery_block_counter <= 0
             and trig_recovery
             and (not trig_down)
+            and (not trig_corruption_hold)
             and recovery_counter >= recovery_persistence
         )
         if recovery_allowed:
@@ -2348,6 +2397,10 @@ def run(req: RunRequest) -> dict:
         debug_active_downshift_support_score = np.zeros((T,), dtype=np.float32)
         debug_active_downshift_support_breadth = np.zeros((T,), dtype=np.float32)
         debug_trig_down_weak_support_component = np.zeros((T,), dtype=np.uint8)
+        debug_active_corruption_guard_score = np.zeros((T,), dtype=np.float32)
+        debug_active_corruption_guard_breadth = np.zeros((T,), dtype=np.float32)
+        debug_corruption_guard_counter = np.zeros((T,), dtype=np.int32)
+        debug_trig_down_corruption_guard_component = np.zeros((T,), dtype=np.uint8)
 
         cumulative_exposure_running = 0.0
         # Epistemic trace (embedded)
@@ -2444,6 +2497,7 @@ def run(req: RunRequest) -> dict:
         switch_counter = 0
         recovery_counter = 0
         leave_certified_counter = 0
+        corruption_guard_counter = 0
         recovery_block_steps = max(1, int(down_persistence + recovery_persistence))
         recovery_block_counter = 0
         leave_certified_persistence = (
@@ -2814,21 +2868,41 @@ def run(req: RunRequest) -> dict:
             )
             cumulative_exposure_running += mean_entropy_after_bits_per_cell
 
-            # Current rolling-support locals.
-            # Keep these available to both:
+            # Current-step rolling-support locals.
+            #
+            # Important ordering note:
+            # regime-management trigger construction below needs the rolling
+            # support summaries for the CURRENT step, not the previous step and
+            # not the still-uninitialized values sitting in the output arrays at
+            # index t. Populate the rolling windows here first, then derive the
+            # current-step locals from those windows for both:
             #   1) regime-management trigger construction
-            #   2) usefulness_proto trigger construction
+            #   2) usefulness_proto trigger construction later in the loop
+            if obs_age_steps[t] >= 0:
+                usefulness_recent_obs_age_window.append(float(obs_age_steps[t]))
+            usefulness_recent_misleading_window.append(float(misleading_activity_t))
+            usefulness_recent_driver_info_window.append(float(driver_info_true[t]))
+
             age_recent_t = (
-                float(recent_obs_age_mean_valid[t])
-                if np.isfinite(recent_obs_age_mean_valid[t]) else None
+                float(np.mean(np.asarray(usefulness_recent_obs_age_window, dtype=np.float32)))
+                if len(usefulness_recent_obs_age_window) > 0 else None
+            )
+            misleading_mean_recent_t = (
+                float(np.mean(np.asarray(usefulness_recent_misleading_window, dtype=np.float32)))
+                if len(usefulness_recent_misleading_window) > 0 else None
             )
             misleading_pos_recent_t = (
-                float(recent_misleading_activity_pos_frac[t])
-                if np.isfinite(recent_misleading_activity_pos_frac[t]) else None
+                float(
+                    np.mean(
+                        (np.asarray(usefulness_recent_misleading_window, dtype=np.float32) > 0.0)
+                        .astype(np.float32)
+                    )
+                )
+                if len(usefulness_recent_misleading_window) > 0 else None
             )
             driver_recent_t = (
-                float(recent_driver_info_true_mean[t])
-                if np.isfinite(recent_driver_info_true_mean[t]) else None
+                float(np.mean(np.asarray(usefulness_recent_driver_info_window, dtype=np.float32)))
+                if len(usefulness_recent_driver_info_window) > 0 else None
             )
 
             if regime_enabled:
@@ -2973,6 +3047,19 @@ def run(req: RunRequest) -> dict:
                 corruption_signal_t = bool(
                     corruption_misleading_bad and corruption_low_info_while_active
                 )
+
+                # Subgoal 03 refinement:
+                # the guarded corruption path should be able to accumulate from
+                # milder corruption-led evidence than the stronger direct
+                # corruption signal. This keeps the family corruption-led
+                # without requiring the full strongest conjunction on a single
+                # step before the guard counter can even begin to rise.
+                corruption_guard_seed_t = bool(
+                    misleading_pos_recent_t is not None
+                    and float(misleading_pos_recent_t)
+                    >= float(ACTIVE_CORRUPTION_GUARD_MISLEADING_POS_FRAC_THRESHOLD)
+                    and float(arrivals_frac[t]) >= float(ACTIVE_CORRUPTION_GUARD_ARRIVALS_HIGH_THRESHOLD)
+                )
                 down_comps["corruption_signal"] = corruption_signal_t
                 switch_comps["corruption_signal"] = corruption_signal_t
 
@@ -3031,19 +3118,46 @@ def run(req: RunRequest) -> dict:
                     )
                 )
 
+                corruption_guarded_signal_raw_t = (
+                    regime_active_enabled
+                    and int(active_state_cur) == 1
+                    and _compute_active_corruption_guarded_trigger(
+                        corruption_guard_seed=corruption_guard_seed_t,
+                        support_score=active_downshift_support_score_t,
+                        support_breadth=active_downshift_support_breadth_t,
+                        support_threshold=ACTIVE_CORRUPTION_GUARDED_SUPPORT_THRESHOLD,
+                        breadth_threshold=ACTIVE_CORRUPTION_GUARDED_BREADTH_THRESHOLD,
+                    )
+                )
+                corruption_guard_counter = (
+                    int(corruption_guard_counter) + 1
+                    if corruption_guarded_signal_raw_t else 0
+                )
+                corruption_guarded_signal_t = bool(
+                    corruption_guard_counter >= int(ACTIVE_CORRUPTION_GUARDED_PERSISTENCE)
+                )
+
+                # Subgoal 03 final bounded check:
+                # once corruption-led pressure has pushed the active family
+                # into downshift, do not allow an immediate generic recovery
+                # while corruption-style evidence is still visibly present.
+                #
+                # Keep this compact and auditable:
+                #   - use existing controller-visible corruption signals
+                #   - do not add a new state
+                #   - do not broaden the family surface
+                trig_corruption_hold_t = bool(
+                    corruption_signal_t or corruption_guard_seed_t
+                )
                 # Subgoal 03:
-                # Auxiliary corruption participation was structurally valid but
-                # behaviorally too weak in Subgoal 02. For the next bounded
-                # probe, let corruption-facing evidence create a direct active
-                # downshift path while leaving advisory behavior, recovery, and
-                # switch-to-certified semantics unchanged.
+                # Preserve the generic weak-support shortcut, but give the
+                # corruption-focused family its own guarded accumulated path so
+                # corruption-led active expression does not depend on a single
+                # spiky conjunction.
                 trig_down = bool(
                     trig_down_base
-                    or (
-                        regime_active_enabled
-                        and corruption_signal_t
-                    )
                     or bool(weak_support_signal_t)
+                    or bool(corruption_guarded_signal_t)
                 )
                 trig_switch = (
                     _combine_switch_to_certified_components_active(
@@ -3101,6 +3215,10 @@ def run(req: RunRequest) -> dict:
                 debug_active_downshift_support_score[t] = active_downshift_support_score_t
                 debug_active_downshift_support_breadth[t] = active_downshift_support_breadth_t
                 debug_trig_down_weak_support_component[t] = 1 if weak_support_signal_t else 0
+                debug_active_corruption_guard_score[t] = active_downshift_support_score_t
+                debug_active_corruption_guard_breadth[t] = active_downshift_support_breadth_t
+                debug_corruption_guard_counter[t] = int(corruption_guard_counter)
+                debug_trig_down_corruption_guard_component[t] = 1 if corruption_guarded_signal_t else 0
 
                 trig_leave_certified = (
                     _compute_leave_certified_trigger(
@@ -3160,6 +3278,7 @@ def run(req: RunRequest) -> dict:
                         trig_down=trig_down,
                         trig_switch=trig_switch,
                         trig_recovery=trig_recovery,
+                        trig_corruption_hold=trig_corruption_hold_t,
                         trig_leave_certified=trig_leave_certified,
                         down_counter=down_counter,
                         switch_counter=switch_counter,
@@ -3184,6 +3303,7 @@ def run(req: RunRequest) -> dict:
                         level_idx_suggested=level_idx,
                         trig_down=trig_down,
                         trig_switch=trig_switch,
+                        trig_corruption_hold=trig_corruption_hold_t,
                         trig_recovery=trig_recovery,
                         trig_leave_certified=trig_leave_certified,
                         down_counter=down_counter,
@@ -3234,6 +3354,10 @@ def run(req: RunRequest) -> dict:
                     debug_active_downshift_support_score[t] = 0.0
                     debug_active_downshift_support_breadth[t] = 0.0
                     debug_trig_down_weak_support_component[t] = 0
+                    debug_active_corruption_guard_score[t] = 0.0
+                    debug_active_corruption_guard_breadth[t] = 0.0
+                    debug_corruption_guard_counter[t] = 0
+                    debug_trig_down_corruption_guard_component[t] = 0
                     regime_active_state[t] = 0
                     regime_active_certified_stage_index[t] = -1
                     regime_active_opportunistic_level_index[t] = -1
@@ -3321,23 +3445,23 @@ def run(req: RunRequest) -> dict:
             # Causal usefulness-aware rolling support + state update.
             # This is the compact three-regime Subgoal E scaffold and is only
             # active for policy == usefulness_proto.
-            if obs_age_steps[t] >= 0:
-                usefulness_recent_obs_age_window.append(float(obs_age_steps[t]))
-            misleading_activity[t] = np.float32(misleading_activity_t)
-            usefulness_recent_misleading_window.append(float(misleading_activity[t]))
-            usefulness_recent_driver_info_window.append(float(driver_info_true[t]))
 
-            if len(usefulness_recent_obs_age_window) > 0:
+            misleading_activity[t] = np.float32(misleading_activity_t)
+            if age_recent_t is not None:
                 recent_obs_age_mean_valid[t] = np.float32(
-                    np.mean(np.asarray(usefulness_recent_obs_age_window, dtype=np.float32))
+                    age_recent_t
                 )
-            if len(usefulness_recent_misleading_window) > 0:
-                mis_arr = np.asarray(usefulness_recent_misleading_window, dtype=np.float32)
-                recent_misleading_activity_mean[t] = np.float32(np.mean(mis_arr))
-                recent_misleading_activity_pos_frac[t] = np.float32(np.mean((mis_arr > 0.0).astype(np.float32)))
-            if len(usefulness_recent_driver_info_window) > 0:
+            if misleading_mean_recent_t is not None:
+                recent_misleading_activity_mean[t] = np.float32(
+                    misleading_mean_recent_t
+                )
+            if misleading_pos_recent_t is not None:
+                recent_misleading_activity_pos_frac[t] = np.float32(
+                    misleading_pos_recent_t
+                )
+            if driver_recent_t is not None:
                 recent_driver_info_true_mean[t] = np.float32(
-                    np.mean(np.asarray(usefulness_recent_driver_info_window, dtype=np.float32))
+                    driver_recent_t
                 )
 
             trig_recover_t = False
@@ -3590,7 +3714,10 @@ def run(req: RunRequest) -> dict:
                 ("debug_active_downshift_support_score", debug_active_downshift_support_score.astype(np.float32), "f4"),
                 ("debug_active_downshift_support_breadth", debug_active_downshift_support_breadth.astype(np.float32), "f4"),
                 ("debug_trig_down_weak_support_component", debug_trig_down_weak_support_component.astype(np.uint8), "u1"),
-
+                ("debug_active_corruption_guard_score", debug_active_corruption_guard_score.astype(np.float32), "f4"),
+                ("debug_active_corruption_guard_breadth", debug_active_corruption_guard_breadth.astype(np.float32), "f4"),
+                ("debug_corruption_guard_counter", debug_corruption_guard_counter.astype(np.int32), "i4"),
+                ("debug_trig_down_corruption_guard_component", debug_trig_down_corruption_guard_component.astype(np.uint8), "u1"),
             ],
         )
 
@@ -3766,6 +3893,7 @@ def run(req: RunRequest) -> dict:
                 or int(np.count_nonzero(debug_recovery_counter)) > 0
                 or int(np.count_nonzero(debug_leave_certified_counter)) > 0
                 or int(np.count_nonzero(debug_trig_down_weak_support_component)) > 0
+                or int(np.count_nonzero(debug_trig_down_corruption_guard_component)) > 0
                 or np.any(np.isfinite(debug_down_utilization_margin))
                 or np.any(np.isfinite(debug_switch_utilization_margin))
                 or np.any(np.isfinite(debug_recovery_utilization_margin))
@@ -3854,6 +3982,10 @@ def run(req: RunRequest) -> dict:
                     "debug_active_downshift_support_score": float(debug_active_downshift_support_score[t]),
                     "debug_active_downshift_support_breadth": float(debug_active_downshift_support_breadth[t]),
                     "debug_trig_down_weak_support_component": int(debug_trig_down_weak_support_component[t]),
+                    "debug_active_corruption_guard_score": float(debug_active_corruption_guard_score[t]),
+                    "debug_active_corruption_guard_breadth": float(debug_active_corruption_guard_breadth[t]),
+                    "debug_corruption_guard_counter": int(debug_corruption_guard_counter[t]),
+                    "debug_trig_down_corruption_guard_component": int(debug_trig_down_corruption_guard_component[t]),
                     "residual_cov": float(residual_cov[t]),
                     "residual_info": float(residual_info[t]),
                     "c_info": float(c_info),
@@ -4077,6 +4209,18 @@ def run(req: RunRequest) -> dict:
             ),
             "debug_active_downshift_weak_support_hits": int(
                 np.count_nonzero(debug_trig_down_weak_support_component)
+            ),
+            "debug_active_corruption_guard_score_mean": (
+                float(np.mean(debug_active_corruption_guard_score)) if T > 0 else None
+            ),
+            "debug_active_corruption_guard_score_min": (
+                float(np.min(debug_active_corruption_guard_score)) if T > 0 else None
+            ),
+            "debug_active_corruption_guard_hits": int(
+                np.count_nonzero(debug_trig_down_corruption_guard_component)
+            ),
+            "debug_corruption_guard_counter_max": (
+                int(np.max(debug_corruption_guard_counter)) if T > 0 else 0
             ),
             "regime_mechanism_audit_available": bool(mechanism_audit_available),
             # Mechanism diagnostics kept intentionally lightweight at summary
@@ -4365,6 +4509,11 @@ def series(opr_id: str) -> dict[str, Any]:
         "debug_active_downshift_support_score": _read_1d("debug_active_downshift_support_score"),
         "debug_active_downshift_support_breadth": _read_1d("debug_active_downshift_support_breadth"),
         "debug_trig_down_weak_support_component": _read_1d_int("debug_trig_down_weak_support_component"),
+        "debug_active_corruption_guard_score": _read_1d("debug_active_corruption_guard_score"),
+        "debug_active_corruption_guard_breadth": _read_1d("debug_active_corruption_guard_breadth"),
+        "debug_corruption_guard_counter": _read_1d_int("debug_corruption_guard_counter"),
+        "debug_trig_down_corruption_guard_component": _read_1d_int("debug_trig_down_corruption_guard_component"),
+
 
         # Scalars from summary.json (not time-series). These are key to interpreting presets:
         # - eps_ref: user-specified band (0 => auto)
@@ -4529,6 +4678,20 @@ def series(opr_id: str) -> dict[str, Any]:
         ),
         "debug_active_downshift_weak_support_hits": s.get(
             "debug_active_downshift_weak_support_hits",
+            None,
+        ),
+        "debug_active_corruption_guard_score_mean": _as_float_or_none(
+            s.get("debug_active_corruption_guard_score_mean", None)
+        ),
+        "debug_active_corruption_guard_score_min": _as_float_or_none(
+            s.get("debug_active_corruption_guard_score_min", None)
+        ),
+        "debug_active_corruption_guard_hits": s.get(
+            "debug_active_corruption_guard_hits",
+            None,
+        ),
+        "debug_corruption_guard_counter_max": s.get(
+            "debug_corruption_guard_counter_max",
             None,
         ),
         "debug_down_utilization_margin_min": _as_float_or_none(s.get("debug_down_utilization_margin_min", None)),
