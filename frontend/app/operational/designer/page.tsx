@@ -337,11 +337,64 @@ function makeBalancedLadder(): OpportunisticLevel[] {
   return [
     {
       level_id: "L0",
-      label: "Nominal opportunistic",
+      label: "Balanced nominal",
       eta_adjustment: 0.0,
       motion_adjustment: 0.0,
-      healthy_utilization_target: 0.90,
-      notes: "Default fast regime",
+      healthy_utilization_target: 0.94,
+      notes: "Default balanced opportunistic posture",
+    },
+    {
+      level_id: "L1",
+      label: "Balanced tempered",
+      eta_adjustment: -0.01,
+      motion_adjustment: -80.0,
+      healthy_utilization_target: 0.86,
+      notes: "First bounded downshift rung; mild movement reduction while retaining a balanced reading",
+    },
+    {
+      level_id: "L2",
+      label: "Balanced guarded",
+      eta_adjustment: -0.02,
+      motion_adjustment: -150.0,
+      healthy_utilization_target: 0.76,
+      notes: "Clearer guarded balanced posture before certified behavior becomes relevant",
+    },
+    {
+      level_id: "L3",
+      label: "Balanced deep-guarded",
+      eta_adjustment: -0.03,
+      motion_adjustment: -220.0,
+      healthy_utilization_target: 0.68,
+      notes: "Last balanced rung; still not a certified posture, but visibly more guarded than nominal",
+    },
+  ];
+}
+
+function makeCorruptionLadder(): OpportunisticLevel[] {
+  return [
+    {
+      level_id: "L0",
+      label: "Corruption nominal",
+      eta_adjustment: 0.0,
+      motion_adjustment: 0.0,
+      healthy_utilization_target: 0.92,
+      notes: "Nominal corruption-sensitive posture",
+    },
+    {
+      level_id: "L1",
+      label: "Corruption guarded",
+      eta_adjustment: -0.01,
+      motion_adjustment: -60.0,
+      healthy_utilization_target: 0.84,
+      notes: "First corruption-sensitive guarded rung under mixed concern",
+    },
+    {
+      level_id: "L2",
+      label: "Corruption defensive",
+      eta_adjustment: -0.03,
+      motion_adjustment: -140.0,
+      healthy_utilization_target: 0.74,
+      notes: "More defensive corruption-sensitive posture before certified behavior becomes relevant",
     },
   ];
 }
@@ -627,14 +680,14 @@ export default function OperationalDesignerPage() {
       if (family === "balanced") {
         setCertifiedStages(makeBalancedCertifiedStages());
         setOpportunisticLadder(makeBalancedLadder());
-        // v0.4 Subgoal 01 follow-up:
-        // make balanced meaningfully but still modestly active:
-        // - less entry damping for downshift
-        // - slightly harder certified entry so downshift has room to exist
-        // - still clearly milder than the opportunistic family
-        setDownshiftThresholds(makeThresholds(0.88, 0.22, 3, 0.05));
-        setSwitchToCertifiedThresholds(makeThresholds(0.68, 0.68, 4, 0.05));
-        setRecoveryThresholds(makeThresholds(0.95, 0.38, 4, 0.05));
+        // v0.4 Subgoal 02:
+        // Give balanced its own readable multi-rung structure.
+        // Keep certification meaningfully harder than downshift so
+        // balanced active runs have room to occupy non-nominal states
+        // without collapsing immediately into certified behavior.
+        setDownshiftThresholds(makeThresholds(0.90, 0.24, 3, 0.05));
+        setSwitchToCertifiedThresholds(makeThresholds(0.60, 0.60, 5, 0.05));
+        setRecoveryThresholds(makeThresholds(0.92, 0.34, 4, 0.05));
       } else if (family === "opportunistic") {
         setCertifiedStages(makeOpportunisticCertifiedStages());
         setOpportunisticLadder(makeOpportunisticLadder());
@@ -704,33 +757,29 @@ export default function OperationalDesignerPage() {
 
       setModerateObservationChannel();
       setCInfo(0.1);
-      setMoveM(650);
-      // Subgoal 01 semantic-probe refinement:
-      // - keep downshift readable and near-boundary
-      // - make certification harder so healthy cases do not certify so easily
-      // - keep recovery meaningfully reachable without collapsing back into verify-style
+      setMoveM(800);
+      // Subgoal 02 balanced structural probe:
+      // - preserve mixed support/downshift reading
+      // - give balanced more room to occupy intermediate active levels
+      // - make certification harder so balanced does not read as certified-heavy
       setDownshiftThresholds({
-        ...makeThresholds(0.68, 0.60, 2, 0.10),
-        // Subgoal 01 semantic-probe activation:
-        // make local drift actually participate in degradation detection.
+        ...makeThresholds(0.76, 0.62, 2, 0.10),
         local_drift_rate_threshold: 2.0e-5,
       });
       setSwitchToCertifiedThresholds({
-        ...makeThresholds(0.40, 0.32, 5, 0.10),
-        // Keep certified entry stricter than downshift, but allow persistent
-        // corruption-sensitive drift to contribute once it is clearly present.
+        ...makeThresholds(0.34, 0.28, 6, 0.10),
         local_drift_rate_threshold: 3.0e-5,
       });
-      setRecoveryThresholds(makeThresholds(0.80, 0.55, 2, 0.10));
+      setRecoveryThresholds(makeThresholds(0.84, 0.50, 2, 0.10));
     };
 
     const setCorruptionSemanticProbeDefaults = () => {
       setRegimeFamilyDefaults("balanced", "active");
+      setOpportunisticLadder(makeCorruptionLadder());
 
-      // Subgoal 04 corruption-sensitive semantic probe:
-      // keep the active machine unchanged, but place the probe family nearer
-      // the corruption/noise decision neighborhood than the ordinary balanced
-      // semantic probe.
+      // Subgoal 02 corruption structural probe:
+      // keep corruption sensitivity, but stop reusing the balanced ladder.
+      // Give corruption its own guarded / defensive posture structure.
       setUseUtilization(true);
       setUseStrictDriftProxy(true);
       setUseLocalDriftRate(true);
@@ -739,17 +788,17 @@ export default function OperationalDesignerPage() {
 
       setCorruptionProbeChannel();
       setCInfo(0.1);
-      setMoveM(500);
+      setMoveM(700);
 
       setDownshiftThresholds({
-        ...makeThresholds(0.62, 0.50, 2, 0.10),
+        ...makeThresholds(0.74, 0.56, 2, 0.10),
         local_drift_rate_threshold: 2.0e-5,
       });
       setSwitchToCertifiedThresholds({
-        ...makeThresholds(0.34, 0.26, 5, 0.10),
+        ...makeThresholds(0.28, 0.22, 7, 0.10),
         local_drift_rate_threshold: 3.0e-5,
       });
-      setRecoveryThresholds(makeThresholds(0.76, 0.52, 2, 0.10));
+      setRecoveryThresholds(makeThresholds(0.82, 0.48, 2, 0.10));
     };
 
     const setRegimeFamilyVerifyDefaults = (
@@ -1270,7 +1319,9 @@ export default function OperationalDesignerPage() {
       : presetId === "regime_active_balanced_hysteresis_probe"
       ? "Active regime · balanced · hysteresis probe"
       : presetId === "regime_active_balanced_semantic_probe"
-      ? "Active regime · balanced · semantic probe (mixed support/downshift)"
+      ? "Active regime · balanced · structural semantic probe"
+      : presetId === "regime_active_corruption_semantic_probe"
+      ? "Active regime · corruption-sensitive · structural semantic probe"
       : presetId === "regime_active_opportunistic_hysteresis_probe"
       ? "Active regime · opportunistic · hysteresis probe"
       : "Custom";
