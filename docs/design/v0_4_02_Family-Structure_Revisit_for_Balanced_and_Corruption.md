@@ -10,23 +10,23 @@
 
 This note defines the second disciplined subgoal of AWSRT v0.4.
 
-Subgoal 01 should now be read as a useful partial success. It confirmed that bounded transformed real-fire windows are a valid controller-facing evaluation surface and that visibly non-nominal active regime behavior can, in fact, be recovered on that surface. However, it also showed that this recovery was not uniform across families.
+Subgoal 01 should now be read as a useful but uneven result. It confirmed that bounded transformed real-fire windows are a valid controller-facing evaluation surface and that visibly non-nominal active regime behavior can in fact be recovered on that surface. However, it also showed that this recovery was not uniform across families.
 
-The main result of Subgoal 01 was not simply that one more trigger adjustment helped or failed. The deeper result was that:
+The most important result of Subgoal 01 was not merely that another trigger adjustment helped or failed. The deeper result was that:
 
 - the **opportunistic** family could already express visible active downshift,
-- the **balanced** family showed only weak realized non-nominal behavior,
-- and the **corruption-focused** family remained mostly nominal despite bounded trigger-side recalibration.
+- the **balanced** family showed only marginal realized non-nominal behavior,
+- and the **corruption-focused** family remained largely nominal despite bounded trigger-side recalibration.
 
 That changes the next question.
 
-The immediate problem is no longer primarily whether another local trigger tweak can rescue balanced and corruption behavior. The immediate problem is whether the **family structures themselves** are still too shallow, too compressed, or too weakly differentiated to express readable active posture changes on bounded real-fire windows.
+The immediate problem is no longer primarily whether one more local trigger tweak can rescue balanced and corruption behavior. The immediate problem is whether the **family structures themselves** remain too shallow, too compressed, or too weakly differentiated to express readable active posture changes on bounded real-fire windows.
 
 Subgoal 02 therefore asks:
 
 > What is the smallest bounded family-structure revision that lets the balanced and corruption-focused families express non-nominal active behavior on bounded real-fire windows without flattening them into opportunistic copies?
 
-The stance remains disciplined. This is not a license for broad redesign. It is a bounded structural revisit motivated by evidence produced in Subgoal 01.
+The stance remains disciplined. This is not a license for broad redesign. It is a bounded structural revisit motivated directly by the evidence produced in Subgoal 01 and early Subgoal 02 experimentation.
 
 ---
 
@@ -66,11 +66,19 @@ This remains the bridge into v0.4: the problem is now grounded in bounded real-f
 
 ### 2.4 v0.4 Subgoal 01 result
 
-Subgoal 01 added a bounded weak-support active downshift path and improved diagnostic visibility. That pass produced a clear success in the opportunistic family, weak movement in the balanced family, and little change in the corruption-focused family.
+Subgoal 01 added a bounded weak-support active downshift path and improved diagnostic visibility. That pass produced a clear success in the opportunistic family, weak movement in the balanced family, and little meaningful change in the corruption-focused family.
 
 This should be interpreted carefully.
 
-The important lesson is not merely that one family “worked better.” The important lesson is that the opportunistic family had enough internal posture structure to make active regime movement visible, while the other two families likely did not. That suggests the remaining bottleneck is not just trigger sensitivity. It is at least partly **family expressiveness**.
+The important lesson is not merely that one family “worked better.” The important lesson is that the opportunistic family already had enough internal posture shape to make active regime movement visible, while the other two families likely did not. That suggests the remaining bottleneck is not just trigger sensitivity. It is at least partly **family expressiveness**.
+
+### 2.5 Early Subgoal 02 result
+
+The first bounded Subgoal 02 pass should now be read as reinforcing that interpretation rather than overturning it.
+
+The balanced semantic probe appears somewhat improved, but still only modestly so. The corruption-focused family still does not appear to express a clearly new active story. By contrast, opportunistic remains the family in which non-nominal active posture is easiest to read.
+
+This is now enough evidence to say that the main remaining problem is structural, not merely parametric.
 
 ---
 
@@ -107,7 +115,7 @@ That distinction matters because otherwise the platform could drift into one act
 
 The present problem can be stated more precisely as follows:
 
-> On bounded transformed real-fire windows, balanced and corruption-focused active regime families still do not express readable non-nominal realized behavior, even after bounded trigger-side recalibration. We need a bounded structural revision that gives those families enough posture shape to become behaviorally legible without erasing their distinct meanings.
+> On bounded transformed real-fire windows, balanced and corruption-focused active regime families still do not express clearly readable non-nominal realized behavior, even after bounded trigger-side recalibration. We need a bounded structural revision that gives those families enough posture shape to become behaviorally legible without erasing their distinct meanings.
 
 The key issue is no longer whether a trigger can be made to fire occasionally. The issue is whether the family has a meaningful behavioral space in which a trigger can produce an interpretable realized posture.
 
@@ -126,7 +134,7 @@ The most plausible explanations are the following.
 
 ### 5.1 Balanced may still be too shallow to express downshift
 
-In Subgoal 01, balanced produced only weak realized active downshift even after weak-support sensitivity was added. That suggests the issue is not only that balanced lacked a trigger path. It suggests that balanced may still lack enough intermediate posture structure to occupy a readable downshift state before returning nominally or collapsing into certified-like behavior.
+In Subgoal 01 and the first Subgoal 02 pass, balanced produced only limited realized active downshift even after weak-support sensitivity and moderate preset adjustments were added. That suggests the issue is not only that balanced lacked a trigger path. It suggests that balanced may still lack enough intermediate posture structure to occupy a readable downshift state before returning nominally or collapsing toward certified-like behavior.
 
 A family with too little internal structure may technically transition while still looking behaviorally nominal.
 
@@ -141,7 +149,7 @@ This suggests the corruption family may need a structurally clearer active readi
 The opportunistic family should now be treated as evidence that visible active regime behavior on bounded real-fire windows requires internal posture shape:
 
 - multiple ladder levels,
-- enough motion/behavioral spacing between levels,
+- enough motion or behavioral spacing between levels,
 - enough time and room for downshift occupancy to appear,
 - and a certified boundary that does not immediately swallow the story.
 
@@ -157,11 +165,17 @@ That means Subgoal 02 must remain comparative and interpretive, not just behavio
 
 Subgoal 01 showed that auditability alone is not enough. We can now inspect more signals than before, but balanced and corruption still do not move much. The next requirement is that the **family itself** becomes readable.
 
-This means a family should be structured so that when it does move, we can say:
+A family should be structured so that when it does move, we can say:
 
 - what posture it left,
 - what intermediate posture it entered,
 - and why that movement belongs to that family rather than another one.
+
+### 5.6 Early Subgoal 02 adjustments were still too close to trigger tuning
+
+The first Subgoal 02 pass did make bounded preset changes, but the observed outcome suggests those changes were still closer to calibrated trigger reshaping than to true family-structure revision. Balanced changed slightly. Corruption barely changed. That is consistent with the view that the current family surfaces are still too shallow for bounded real-fire expression.
+
+This should be treated as useful evidence, not as failure. It narrows the next move.
 
 ---
 
@@ -176,7 +190,7 @@ The recommended direction is:
 - **not** copying the opportunistic ladder into all families,
 - but **yes** to a bounded structural revisit of the balanced and corruption-focused active families.
 
-The reason is now evidence-based. Subgoal 01 showed that trigger-side adjustments alone are not the main bottleneck. The remaining difficulty is whether the intended families have enough behavioral structure to express their meanings on bounded real-fire windows.
+The reason is now evidence-based. Subgoal 01 and the first Subgoal 02 pass together suggest that trigger-side adjustments alone are not the main bottleneck. The remaining difficulty is whether the intended families have enough behavioral structure to express their meanings on bounded real-fire windows.
 
 A bounded structural revisit is therefore the smaller scientifically honest move.
 
@@ -323,6 +337,12 @@ If the revised balanced and corruption-focused families become visibly active an
 
 This subgoal does not need to prove controller superiority. It needs to show that family structure can be revised in a bounded, honest, scientifically readable way.
 
+### 9.7 Step G: if bounded structural revision still fails, treat that as a result
+
+If balanced or corruption remain only weakly expressive after one disciplined structure revision, that should itself be recorded as a meaningful result. It may indicate that not all intended family readings are equally supportable on bounded real-fire windows, at least in the current controller framing.
+
+That is a legitimate scientific outcome and preferable to silently forcing family distinctness through arbitrary tuning.
+
 ---
 
 ## 10. Expected code and artifact touchpoints
@@ -354,3 +374,16 @@ It is **not** a full redesign of active regime management for real-fire data. It
 The key test is not whether every family becomes equally expressive. The key test is whether the balanced and corruption-focused families can be given enough structure to become visibly active and scientifically interpretable while preserving their distinct meanings.
 
 That is the right next controller-facing objective for AWSRT v0.4 after the Subgoal 01 freeze.
+
+---
+
+## 12. Immediate freeze-state reading
+
+At the current Subgoal 02 checkpoint, the most honest reading is:
+
+- opportunistic remains the reference success family,
+- balanced appears somewhat improved but still limited,
+- corruption remains weakly expressed,
+- and further progress is unlikely to come from one more small threshold nudge alone.
+
+This note should therefore guide the rest of Subgoal 02 away from micro-patching and toward one disciplined structural family revision pass.
