@@ -104,6 +104,11 @@ type SeriesRes = {
   debug_active_downshift_support_score?: number[];
   debug_active_downshift_support_breadth?: number[];
   debug_trig_down_weak_support_component?: number[];
+  debug_active_corruption_guard_score?: number[];
+  debug_active_corruption_guard_breadth?: number[];
+  debug_corruption_guard_counter?: number[];
+  debug_trig_down_corruption_guard_component?: number[];
+  debug_trig_down_corruption_led_final?: number[];
 
   // Scalars (from summary.json via /series payload)
   eps_ref?: number | null;
@@ -195,6 +200,11 @@ type SeriesRes = {
   debug_active_downshift_support_score_mean?: number | null;
   debug_active_downshift_support_score_min?: number | null;
   debug_active_downshift_weak_support_hits?: number | null;
+  debug_active_corruption_guard_score_mean?: number | null;
+  debug_active_corruption_guard_score_min?: number | null;
+  debug_active_corruption_guard_hits?: number | null;
+  debug_active_corruption_led_downshift_hits?: number | null;
+  debug_corruption_guard_counter_max?: number | null;
   regime_mechanism_audit_available?: boolean;
 };
 
@@ -818,7 +828,12 @@ export default function OperationalVisualizerPage() {
       (s.debug_trig_leave_certified_final?.length ?? 0) ||
       (s.debug_active_downshift_support_score?.length ?? 0) ||
       (s.debug_active_downshift_support_breadth?.length ?? 0) ||
-      (s.debug_trig_down_weak_support_component?.length ?? 0);
+      (s.debug_trig_down_weak_support_component?.length ?? 0) ||
+      (s.debug_active_corruption_guard_score?.length ?? 0) ||
+      (s.debug_active_corruption_guard_breadth?.length ?? 0) ||
+      (s.debug_corruption_guard_counter?.length ?? 0) ||
+      (s.debug_trig_down_corruption_guard_component?.length ?? 0) ||
+      (s.debug_trig_down_corruption_led_final?.length ?? 0);
     return anyLen > 0;
   }, [series]);
 
@@ -922,6 +937,11 @@ export default function OperationalVisualizerPage() {
       debug_active_downshift_support_score: at(series.debug_active_downshift_support_score),
       debug_active_downshift_support_breadth: at(series.debug_active_downshift_support_breadth),
       debug_trig_down_weak_support_component: atInt(series.debug_trig_down_weak_support_component),
+      debug_active_corruption_guard_score: at(series.debug_active_corruption_guard_score),
+      debug_active_corruption_guard_breadth: at(series.debug_active_corruption_guard_breadth),
+      debug_corruption_guard_counter: atInt(series.debug_corruption_guard_counter),
+      debug_trig_down_corruption_guard_component: atInt(series.debug_trig_down_corruption_guard_component),
+      debug_trig_down_corruption_led_final: atInt(series.debug_trig_down_corruption_led_final),
     };
   }, [series, tt]);
 
@@ -1352,6 +1372,29 @@ export default function OperationalVisualizerPage() {
                         ) : null}
                       </div>
                     ) : null}
+                    {(typeof series.debug_active_corruption_guard_score_mean === "number" ||
+                      typeof series.debug_active_corruption_guard_score_min === "number" ||
+                      typeof series.debug_active_corruption_guard_hits === "number" ||
+                      typeof series.debug_active_corruption_led_downshift_hits === "number") ? (
+                      <div>
+                        {typeof series.debug_active_corruption_guard_score_mean === "number" ? (
+                          <>
+                            corruption_guard_score_mean=<b>{series.debug_active_corruption_guard_score_mean.toFixed(4)}</b>
+                          </>
+                        ) : null}
+                        {typeof series.debug_active_corruption_guard_score_min === "number" ? (
+                          <>
+                            {" "}· corruption_guard_score_min=<b>{series.debug_active_corruption_guard_score_min.toFixed(4)}</b>
+                          </>
+                        ) : null}
+                        {typeof series.debug_active_corruption_guard_hits === "number" ? (
+                          <> · corruption_guard_hits=<b>{series.debug_active_corruption_guard_hits}</b></>
+                        ) : null}
+                        {typeof series.debug_active_corruption_led_downshift_hits === "number" ? (
+                          <> · corruption_led_downshift_hits=<b>{series.debug_active_corruption_led_downshift_hits}</b></>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div>
                           {typeof series.regime_advisory_stage_eta_last === "number" ? (
                             <>advisory_certified_eta_last=<b>{series.regime_advisory_stage_eta_last.toFixed(4)}</b> · </>
@@ -1427,6 +1470,17 @@ export default function OperationalVisualizerPage() {
                       weak_support_score=<b>{fmtNum(cursorSummary.debug_active_downshift_support_score, 4)}</b>
                       {" "}· weak_support_breadth=<b>{fmtNum(cursorSummary.debug_active_downshift_support_breadth, 4)}</b>
                       {" "}· weak_support_trigger=<b>{fmtInt(cursorSummary.debug_trig_down_weak_support_component)}</b>
+                    </div>
+                    <div>
+                      corruption_guard_score=<b>{fmtNum(cursorSummary.debug_active_corruption_guard_score, 4)}</b>
+                      {" "}· corruption_guard_breadth=<b>{fmtNum(cursorSummary.debug_active_corruption_guard_breadth, 4)}</b>
+                      {" "}· corruption_guard_counter=<b>{fmtInt(cursorSummary.debug_corruption_guard_counter)}</b>
+                    </div>
+                    <div>
+                      corruption_guard_trigger=<b>{fmtInt(cursorSummary.debug_trig_down_corruption_guard_component)}</b>
+                      {" "}· corruption_led_downshift=<b>{fmtInt(cursorSummary.debug_trig_down_corruption_led_final)}</b>
+                      {" "}· active_transition_evt=<b>{cursorSummary.regime_active_transition_event ?? "—"}</b>
+
                     </div>
                       </>
                     ) : null}
@@ -1527,6 +1581,15 @@ export default function OperationalVisualizerPage() {
                     <div>
                       leave_certified_trigger_hits=<b>{fmtInt(series.debug_leave_certified_trigger_hits)}</b>
                       {" "}· leave_certified_counter_max=<b>{fmtInt(series.debug_leave_certified_counter_max)}</b>
+                    </div>
+                    <div>
+                      corruption_guard_hits=<b>{fmtInt(series.debug_active_corruption_guard_hits)}</b>
+                      {" "}· corruption_led_downshift_hits=<b>{fmtInt(series.debug_active_corruption_led_downshift_hits)}</b>
+                      {" "}· corruption_guard_counter_max=<b>{fmtInt(series.debug_corruption_guard_counter_max)}</b>
+                    </div>
+                    <div>
+                      corruption_guard_score_mean=<b>{fmtNum(series.debug_active_corruption_guard_score_mean, 4)}</b>
+                      {" "}· corruption_guard_score_min=<b>{fmtNum(series.debug_active_corruption_guard_score_min, 4)}</b>
                     </div>
                     <div style={{ marginTop: 8, opacity: 0.82 }}>
                       Positive margin means the corresponding trigger condition is on its firing side of the effective hysteresis-adjusted threshold.
@@ -2372,6 +2435,76 @@ export default function OperationalVisualizerPage() {
                       precision={4}
                       include01
                       subtitle="Front/support encounter breadth used alongside the weak-support score"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.debug_active_corruption_guard_score?.length ? (
+                    <SparkLine
+                      title="Corruption-guard score"
+                      values={series.debug_active_corruption_guard_score.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_active_corruption_guard_score.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include01
+                      subtitle="Support score used by the bounded corruption-guarded active downshift path"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.debug_active_corruption_guard_breadth?.length ? (
+                    <SparkLine
+                      title="Corruption-guard breadth"
+                      values={series.debug_active_corruption_guard_breadth.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_active_corruption_guard_breadth.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include01
+                      subtitle="Breadth companion used with the corruption-guarded support score"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.debug_corruption_guard_counter?.length ? (
+                    <SparkLine
+                      title="Corruption-guard persistence counter"
+                      values={series.debug_corruption_guard_counter.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_corruption_guard_counter.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Persistence counter for the guarded corruption-led active downshift path"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.debug_trig_down_corruption_guard_component?.length ? (
+                    <SparkLine
+                      title="Active trigger: corruption guard"
+                      values={series.debug_trig_down_corruption_guard_component.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_trig_down_corruption_guard_component.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include01
+                      subtitle="1 means the guarded corruption-led downshift component is firing"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.debug_trig_down_corruption_led_final?.length ? (
+                    <SparkLine
+                      title="Active trigger: corruption-led downshift (realized)"
+                      values={series.debug_trig_down_corruption_led_final.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_trig_down_corruption_led_final.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include01
+                      subtitle="1 means realized active downshift is currently being explained by the mature corruption-led path"
                     />
                   ) : (
                     <div />

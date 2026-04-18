@@ -56,6 +56,9 @@ type RunSummaryRes = {
   debug_active_downshift_support_score_mean?: number | null;
   debug_active_downshift_support_score_min?: number | null;
   debug_active_downshift_weak_support_hits?: number | null;
+  debug_active_corruption_guard_hits?: number | null;
+  debug_active_corruption_led_downshift_hits?: number | null;
+  debug_corruption_guard_counter_max?: number | null;
 };
 
 
@@ -685,9 +688,9 @@ export default function OperationalDesignerPage() {
         // Keep certification meaningfully harder than downshift so
         // balanced active runs have room to occupy non-nominal states
         // without collapsing immediately into certified behavior.
-        setDownshiftThresholds(makeThresholds(0.90, 0.24, 3, 0.05));
+        setDownshiftThresholds(makeThresholds(0.86, 0.22, 3, 0.05));
         setSwitchToCertifiedThresholds(makeThresholds(0.60, 0.60, 5, 0.05));
-        setRecoveryThresholds(makeThresholds(0.92, 0.34, 4, 0.05));
+        setRecoveryThresholds(makeThresholds(0.82, 0.28, 3, 0.05));
       } else if (family === "opportunistic") {
         setCertifiedStages(makeOpportunisticCertifiedStages());
         setOpportunisticLadder(makeOpportunisticLadder());
@@ -703,7 +706,7 @@ export default function OperationalDesignerPage() {
         setCertifiedStages(makeCertifiedHeavyStages());
         setOpportunisticLadder(makeCertifiedLadder());
         setDownshiftThresholds(makeThresholds(0.90, 0.95, 3, 0.05));
-        setSwitchToCertifiedThresholds(makeThresholds(0.72, 0.85, 4, 0.05));
+        setSwitchToCertifiedThresholds(makeThresholds(0.82, 0.95, 3, 0.05));
         setRecoveryThresholds(makeThresholds(0.95, 1.10, 6, 0.05));
       }
     };
@@ -763,14 +766,14 @@ export default function OperationalDesignerPage() {
       // - give balanced more room to occupy intermediate active levels
       // - make certification harder so balanced does not read as certified-heavy
       setDownshiftThresholds({
-        ...makeThresholds(0.76, 0.62, 2, 0.10),
+        ...makeThresholds(0.70, 0.56, 2, 0.10),
         local_drift_rate_threshold: 2.0e-5,
       });
       setSwitchToCertifiedThresholds({
         ...makeThresholds(0.34, 0.28, 6, 0.10),
         local_drift_rate_threshold: 3.0e-5,
       });
-      setRecoveryThresholds(makeThresholds(0.84, 0.50, 2, 0.10));
+      setRecoveryThresholds(makeThresholds(0.78, 0.42, 2, 0.10));
     };
 
     const setCorruptionSemanticProbeDefaults = () => {
@@ -2743,6 +2746,27 @@ export default function OperationalDesignerPage() {
                     {typeof runSummaryData.debug_active_downshift_weak_support_hits === "number" ? (
                       <>
                         {" "}· weak_support_hits=<b>{runSummaryData.debug_active_downshift_weak_support_hits}</b>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
+                {(typeof runSummaryData.debug_active_corruption_guard_hits === "number" ||
+                  typeof runSummaryData.debug_active_corruption_led_downshift_hits === "number" ||
+                  typeof runSummaryData.debug_corruption_guard_counter_max === "number") ? (
+                  <div>
+                    {typeof runSummaryData.debug_active_corruption_guard_hits === "number" ? (
+                      <>
+                        corruption_guard_hits=<b>{runSummaryData.debug_active_corruption_guard_hits}</b>
+                      </>
+                    ) : null}
+                    {typeof runSummaryData.debug_active_corruption_led_downshift_hits === "number" ? (
+                      <>
+                        {" "}· corruption_led_downshift_hits=<b>{runSummaryData.debug_active_corruption_led_downshift_hits}</b>
+                      </>
+                    ) : null}
+                    {typeof runSummaryData.debug_corruption_guard_counter_max === "number" ? (
+                      <>
+                        {" "}· corruption_guard_counter_max=<b>{runSummaryData.debug_corruption_guard_counter_max}</b>
                       </>
                     ) : null}
                   </div>

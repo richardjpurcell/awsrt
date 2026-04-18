@@ -1672,6 +1672,7 @@ def _active_regime_transition(
     level_idx_suggested: int,
     trig_down: bool,
     trig_switch: bool,
+    trig_down_corruption_led: bool,
     trig_recovery: bool,
     trig_corruption_hold: bool,
     trig_leave_certified: bool,
@@ -1719,8 +1720,11 @@ def _active_regime_transition(
       - nominal/downshift anti-chatter:
           * after entering downshift, recovery is temporarily blocked by a
             short cooldown
-          * recovery out of downshift is stricter than degradation into it:
-            require recovery persistence AND absence of active downshift
+          * recovery out of downshift should remain bounded, but should not
+            require the whole generic downshift bundle to be fully absent on
+            the same step. Otherwise balanced bounded-window runs can remain
+            trapped in state 2 even when recovery evidence is persistent and
+            only mild non-corruption downshift pressure still flickers.
           * corruption-led downshift should not immediately recover while
             corruption-like pressure is still visibly present
     """
@@ -1761,15 +1765,25 @@ def _active_regime_transition(
         return next_state, next_stage_idx, next_level_idx, event
 
     if next_state == 2:
-        # Recovery is intentionally stricter than degradation:
+        # Recovery is intentionally stricter than degradation, but should not
+        # be blocked merely because some generic non-corruption downshift
+        # component still flickers while recovery evidence has already
+        # persisted. Keep the bounded protections:
         #   - must survive recovery persistence
-        #   - must not still be actively downshift-triggered
         #   - must wait out the anti-chatter cooldown
         #   - must not still be under corruption-led hold pressure
+        #   - must not be simultaneously switching to certified
+        #
+        # Do NOT require `not trig_down` here. That condition makes state-2
+        # exit too fragile on bounded real-fire windows, because ordinary
+        # downshift pressure can briefly coexist with sustained recovery
+        # evidence. Instead only block recovery on stronger/clearer causes:
+        # certified-switch pressure or corruption-led downshift pressure.
         recovery_allowed = (
             recovery_block_counter <= 0
             and trig_recovery
-            and (not trig_down)
+            and (not trig_switch)
+            and (not trig_down_corruption_led)
             and (not trig_corruption_hold)
             and recovery_counter >= recovery_persistence
         )
@@ -2401,6 +2415,7 @@ def run(req: RunRequest) -> dict:
         debug_active_corruption_guard_breadth = np.zeros((T,), dtype=np.float32)
         debug_corruption_guard_counter = np.zeros((T,), dtype=np.int32)
         debug_trig_down_corruption_guard_component = np.zeros((T,), dtype=np.uint8)
+        debug_trig_down_corruption_led_final = np.zeros((T,), dtype=np.uint8)
 
         cumulative_exposure_running = 0.0
         # Epistemic trace (embedded)
@@ -3138,27 +3153,47 @@ def run(req: RunRequest) -> dict:
                 )
 
                 # Subgoal 03 final bounded check:
-                # once corruption-led pressure has pushed the active family
-                # into downshift, do not allow an immediate generic recovery
-                # while corruption-style evidence is still visibly present.
+                # once corruption-led pressure has pushed the active family into
+                # downshift, do not allow an immediate generic recovery while
+                # corruption-style evidence is still materially present.
                 #
                 # Keep this compact and auditable:
                 #   - use existing controller-visible corruption signals
                 #   - do not add a new state
                 #   - do not broaden the family surface
-                trig_corruption_hold_t = bool(
-                    corruption_signal_t or corruption_guard_seed_t
-                )
-                # Subgoal 03:
-                # Preserve the generic weak-support shortcut, but give the
-                # corruption-focused family its own guarded accumulated path so
-                # corruption-led active expression does not depend on a single
-                # spiky conjunction.
+                # Subgoal 04:
+                # Treat this as a bounded stabilization-and-inspection step,
+                # not a broad redesign of active downshift semantics.
+                #
+                # Preserve:
+                #   - the base regime-trigger path
+                #   - the explicit corruption-led guarded path
+                #
+                # But do NOT allow the generic weak-support shortcut to act as
+                # an independent explanation of corruption-family entry.
+                # Weak-support remains logged as diagnostic context so we can
+                # inspect whether realized downshift still coincides with
+                # weakened support, without conflating that with corruption-led
+                # entry itself.
                 trig_down = bool(
                     trig_down_base
-                    or bool(weak_support_signal_t)
                     or bool(corruption_guarded_signal_t)
                 )
+                trig_down_corruption_led_final_t = bool(
+                    trig_down and bool(corruption_guarded_signal_t)
+                )
+
+                # Subgoal 04 refinement:
+                # recovery hold should track REALIZED / mature corruption-family
+                # pressure, not merely an early seed hint. Using the raw guard
+                # seed here made downshift exit too sticky on bounded real-fire
+                # windows, because recovery could remain blocked even when the
+                # corruption-led guarded path had not actually matured into the
+                # realized downshift story for the current step.
+                trig_corruption_hold_t = bool(
+                    trig_down_corruption_led_final_t
+                )
+
                 trig_switch = (
                     _combine_switch_to_certified_components_active(
                         switch_comps,
@@ -3219,7 +3254,9 @@ def run(req: RunRequest) -> dict:
                 debug_active_corruption_guard_breadth[t] = active_downshift_support_breadth_t
                 debug_corruption_guard_counter[t] = int(corruption_guard_counter)
                 debug_trig_down_corruption_guard_component[t] = 1 if corruption_guarded_signal_t else 0
-
+                debug_trig_down_corruption_led_final[t] = (
+                    1 if trig_down_corruption_led_final_t else 0
+                )
                 trig_leave_certified = (
                     _compute_leave_certified_trigger(
                         trig_switch=trig_switch,
@@ -3303,6 +3340,7 @@ def run(req: RunRequest) -> dict:
                         level_idx_suggested=level_idx,
                         trig_down=trig_down,
                         trig_switch=trig_switch,
+                        trig_down_corruption_led=trig_down_corruption_led_final_t,
                         trig_corruption_hold=trig_corruption_hold_t,
                         trig_recovery=trig_recovery,
                         trig_leave_certified=trig_leave_certified,
@@ -3358,6 +3396,7 @@ def run(req: RunRequest) -> dict:
                     debug_active_corruption_guard_breadth[t] = 0.0
                     debug_corruption_guard_counter[t] = 0
                     debug_trig_down_corruption_guard_component[t] = 0
+                    debug_trig_down_corruption_led_final[t] = 0
                     regime_active_state[t] = 0
                     regime_active_certified_stage_index[t] = -1
                     regime_active_opportunistic_level_index[t] = -1
@@ -3718,6 +3757,7 @@ def run(req: RunRequest) -> dict:
                 ("debug_active_corruption_guard_breadth", debug_active_corruption_guard_breadth.astype(np.float32), "f4"),
                 ("debug_corruption_guard_counter", debug_corruption_guard_counter.astype(np.int32), "i4"),
                 ("debug_trig_down_corruption_guard_component", debug_trig_down_corruption_guard_component.astype(np.uint8), "u1"),
+                ("debug_trig_down_corruption_led_final", debug_trig_down_corruption_led_final.astype(np.uint8), "u1"),
             ],
         )
 
@@ -3986,6 +4026,7 @@ def run(req: RunRequest) -> dict:
                     "debug_active_corruption_guard_breadth": float(debug_active_corruption_guard_breadth[t]),
                     "debug_corruption_guard_counter": int(debug_corruption_guard_counter[t]),
                     "debug_trig_down_corruption_guard_component": int(debug_trig_down_corruption_guard_component[t]),
+                    "debug_trig_down_corruption_led_final": int(debug_trig_down_corruption_led_final[t]),
                     "residual_cov": float(residual_cov[t]),
                     "residual_info": float(residual_info[t]),
                     "c_info": float(c_info),
@@ -4218,6 +4259,9 @@ def run(req: RunRequest) -> dict:
             ),
             "debug_active_corruption_guard_hits": int(
                 np.count_nonzero(debug_trig_down_corruption_guard_component)
+            ),
+            "debug_active_corruption_led_downshift_hits": int(
+                np.count_nonzero(debug_trig_down_corruption_led_final)
             ),
             "debug_corruption_guard_counter_max": (
                 int(np.max(debug_corruption_guard_counter)) if T > 0 else 0
@@ -4513,6 +4557,9 @@ def series(opr_id: str) -> dict[str, Any]:
         "debug_active_corruption_guard_breadth": _read_1d("debug_active_corruption_guard_breadth"),
         "debug_corruption_guard_counter": _read_1d_int("debug_corruption_guard_counter"),
         "debug_trig_down_corruption_guard_component": _read_1d_int("debug_trig_down_corruption_guard_component"),
+        "debug_trig_down_corruption_led_final": _read_1d_int(
+            "debug_trig_down_corruption_led_final"
+        ),
 
 
         # Scalars from summary.json (not time-series). These are key to interpreting presets:
@@ -4688,6 +4735,10 @@ def series(opr_id: str) -> dict[str, Any]:
         ),
         "debug_active_corruption_guard_hits": s.get(
             "debug_active_corruption_guard_hits",
+            None,
+        ),
+        "debug_active_corruption_led_downshift_hits": s.get(
+            "debug_active_corruption_led_downshift_hits",
             None,
         ),
         "debug_corruption_guard_counter_max": s.get(
