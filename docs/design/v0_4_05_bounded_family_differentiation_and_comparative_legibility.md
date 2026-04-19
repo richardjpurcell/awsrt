@@ -1,32 +1,28 @@
 # AWSRT v0.4 Subgoal 05: Bounded Family Differentiation and Comparative Legibility
 
-**Status:** Draft design note  
-**Applies to:** `v0.4-subgoal-05`  
-**Purpose:** Define the next bounded step after the Subgoal 04 freeze by testing and tightening whether the balanced and corruption active families now exhibit meaningfully distinct bounded behavior on the same transformed real-fire windows, without reopening broad controller redesign.
+**Status:** Updated design note
+**Applies to:** `v0.4-subgoal-05`
+**Purpose:** Record the bounded comparative findings of Subgoal 05 and refine the governing scope accordingly: the active family question is now best read as a three-family bounded comparative-legibility result on shared transformed real-fire windows, rather than as a prompt for another immediate controller redesign.
 
 ---
 
 ## 1. Purpose of this note
 
-This note defines the fifth disciplined subgoal of AWSRT v0.4.
+This note updates the Subgoal 05 framing after the first bounded comparative pass and bounded follow-up diagnostics were completed.
 
-Subgoal 04 should now be read as having accomplished two important things. First, it preserved the Subgoal 03 result that corruption-family active expression can be behaviorally present on bounded transformed real-fire windows. Second, it tightened the backend and frontend inspection surfaces enough that corruption-led activity is more honestly readable and auditable.
+Subgoal 04 should still be read as the stage that preserved corruption-family active expression and tightened the backend/frontend inspection surfaces enough that corruption-led activity became more honestly readable. Subgoal 05 began from the bounded question of whether the active families now read as meaningfully distinct controller expressions on the same transformed real-fire windows.
 
-That is real progress. But it also sharpens the next question.
+The comparative work now completed gives a more specific answer than the draft framing anticipated.
 
-The next question is no longer whether corruption-family activity can exist, nor whether it can be inspected. The next question is whether the currently available active families now read as **meaningfully distinct bounded controller expressions** on the same evaluation windows.
+The question is no longer best stated only as a balanced-versus-corruption question. In practice, the bounded comparison needed to read three active family lines together:
 
-Put simply:
+* **balanced** as a mixed bounded support/downshift family,
+* **opportunistic** as a staged opportunistic line whose realized behavior must remain distinguishable from both balanced and corruption-sensitive behavior,
+* **corruption-sensitive** as a corruption-led guarded/downshift family rather than merely another generic weak-support downshift variant.
 
-- the balanced family should not merely be “generic non-nominal behavior,”
-- the corruption family should not merely be “another way to downshift,”
-- and the difference between them should be interpretable without over-claiming optimization.
+The bounded comparison and follow-up runs show that these families can now be read as meaningfully differentiated on shared bounded transformed real-fire windows, although some of that distinctness only became fully legible once the comparison was extended with a bounded hysteresis-style clarification pass.
 
-Subgoal 05 therefore asks:
-
-> On the same bounded transformed real-fire windows, do the balanced and corruption active families now exhibit meaningfully different bounded realized behavior, and if not, what is the smallest disciplined refinement needed to keep their identities distinct and scientifically readable?
-
-This is still not a broad redesign. It is a bounded family-differentiation step.
+Subgoal 05 should therefore now be read primarily as a **comparison and validation subgoal** rather than as a semantics-tightening or redesign subgoal.
 
 ---
 
@@ -36,259 +32,272 @@ This is still not a broad redesign. It is a bounded family-differentiation step.
 
 The early v0.4 sequence should now be read as a staged recovery of active-controller-facing behavior on bounded real-fire windows.
 
-- **Subgoal 01** reopened the question of non-nominal active downshift on bounded transformed real-fire windows.
-- **Subgoal 02** revisited family structure, especially for balanced and corruption lines.
-- **Subgoal 03** recovered corruption-family active expression so that it could become behaviorally present rather than remaining largely absent.
-- **Subgoal 04** stabilized that expression enough to make corruption-led behavior more inspectable, bounded, and honestly represented in backend summaries and frontend inspection surfaces.
+* **Subgoal 01** reopened the question of non-nominal active downshift on bounded transformed real-fire windows.
+* **Subgoal 02** revisited family structure, especially for balanced and corruption lines.
+* **Subgoal 03** recovered corruption-family active expression so that it could become behaviorally present rather than remaining largely absent.
+* **Subgoal 04** stabilized that expression enough to make corruption-led behavior more inspectable, bounded, and honestly represented in backend summaries and frontend inspection surfaces.
 
-That sequence means the project has moved from absence, to expression, to inspection.
+That sequence moved the work from absence, to expression, to inspection.
 
-### 2.2 What remains unresolved
+### 2.2 What Subgoal 05 needed to resolve
 
-What remains unresolved is a comparative question.
+What remained unresolved after Subgoal 04 was a comparative question.
 
-Now that both balanced and corruption families can be run and inspected, we need to know whether they are actually behaving as different bounded controller lines or whether they still risk collapsing into nearby variants of the same story.
+Once multiple active-family lines could be run and inspected on the same bounded transformed real-fire windows, the next issue became whether those families were actually behaving as distinct bounded controller expressions or whether they still risked collapsing into nearby variants of the same realized story.
 
-This matters because v0.4 is increasingly about controller-facing interpretability on bounded real-fire windows. If family identities collapse, then the family surface becomes harder to defend scientifically.
+This mattered because v0.4 is increasingly about controller-facing interpretability on bounded real-fire windows. If family identities collapse in realized behavior, then the family surface becomes harder to defend scientifically, even if the backend semantics differ on paper.
 
-### 2.3 Why this is the right next step
+### 2.3 Why a bounded comparative pass was the right next step
 
-A direct family-differentiation subgoal is the right next move because it is smaller and more honest than either of the following:
+A direct family-differentiation pass was the right next move because it was smaller and more honest than either of the following:
 
-- broadening immediately into a large multi-window validation campaign before family semantics are settled,
-- or reopening broad controller redesign before the current bounded family lines have been comparatively read.
+* broadening immediately into a larger validation campaign before the family surface had been comparatively read,
+* or reopening controller redesign before the current bounded family lines had been carefully inspected on the same windows.
 
-Subgoal 05 should therefore sit at the boundary between controller refinement and controlled comparative evaluation.
-
----
-
-## 3. Problem statement
-
-The current problem can be stated as follows:
-
-> After Subgoal 04, the balanced and corruption active families are both more behaviorally visible and more inspectable, but it remains unclear whether they now form meaningfully distinct bounded realized behavior lines on the same transformed real-fire windows or whether they still partially collapse into one another.
-
-The key questions are:
-
-- When balanced and corruption differ, how do they differ?
-- Are those differences realized in occupancy, transitions, and timing, or only in backend diagnostic traces?
-- Can those differences be explained honestly without claiming one family is globally better?
-- If distinctness is still weak, what is the smallest bounded controller-facing refinement needed to preserve family identity?
+That judgment still looks correct in hindsight. The bounded comparative pass was sufficient to answer the main Subgoal 05 question without forcing another redesign cycle.
 
 ---
 
-## 4. Subgoal decision
+## 3. Updated problem statement
 
-Subgoal 05 should be a **bounded family-differentiation and comparative-legibility step**.
+The Subgoal 05 problem is now best stated as follows:
 
-It should be:
+> After Subgoal 04, the balanced, opportunistic, and corruption-sensitive active families were all behaviorally runnable and inspectable on bounded transformed real-fire windows, but it remained unclear whether they formed meaningfully distinct realized controller expressions on the same evaluation windows or whether some family boundaries still partially collapsed.
 
-- **not** a broad redesign of active regime management,
-- **not** a large schema expansion,
-- **not** a new family explosion,
-- **not** a broad plotting/UI overhaul,
+The key questions were:
 
-but **yes** to:
-
-- direct bounded comparison of balanced and corruption on the same transformed real-fire windows,
-- tightening family interpretation where needed,
-- and allowing one small controller-facing refinement only if the families still collapse too strongly in realized behavior.
-
-This keeps the scope disciplined while pushing the work forward meaningfully.
+* Does **balanced** read as a mixed but distinct bounded family rather than merely generic non-nominal behavior?
+* Does **opportunistic** retain a readable family identity rather than collapsing into either balanced or corruption-sensitive behavior?
+* Does **corruption-sensitive** read as specifically corruption-led rather than merely another weak-support downshift variant?
+* Are the differences visible not only in summaries, but also in realized transition neighborhoods?
+* If distinctness remained weak, what was the smallest disciplined next step: no patch, inspection-surface tightening, or one small semantics adjustment?
 
 ---
 
-## 5. What Subgoal 05 should focus on
+## 4. What was actually run in Subgoal 05
 
-### 5.1 Compare families on the same windows
+### 4.1 Core bounded comparison pass
 
-The first task is comparative.
+The first bounded comparison used one run per family on the same bounded transformed real-fire reference/window basis, varying only the family preset.
 
-Balanced and corruption should be run on the same bounded transformed real-fire windows already used in the recent v0.4 sequence. The point is not to widen the evaluation target yet, but to make the comparison direct and readable.
+The core family comparison used:
 
-The main outputs of interest are:
+1. `regime_active_balanced_semantic_probe`
+2. `regime_active_opportunistic`
+3. `regime_active_corruption_semantic_probe`
 
-- realized active state occupancy,
-- transition counts and transition timing,
-- nominal/downshift/certified fractions,
-- corruption-led hits and guard activity where relevant,
-- and any differences in effective applied controls.
+The comparison was interpreted at two levels:
 
-### 5.2 Distinguish generic non-nominal response from corruption-specific response
+* **summary level**, using state fractions, transition counts, and active diagnostic hit fields,
+* **step-transition neighborhood level**, using transition-adjacent trigger and counter fields.
 
-The key interpretive question is whether corruption-family activity is now specifically corruption-led, rather than merely another path into generic non-nominal active behavior.
+### 4.2 Initial finding from the core comparison
 
-Subgoal 05 should therefore inspect where the corruption family differs from balanced in terms of:
+The first comparison already showed one strong result and one weaker boundary.
 
-- entry conditions,
-- hold semantics,
-- release timing,
-- and realized occupancy patterns.
+* **Balanced** separated visibly from the other two lines. It was the only core-comparison run with nonzero certified occupancy and showed a mixed structure rather than a pure corruption-led oscillatory shape.
+* **Corruption-sensitive** read plausibly as corruption-led rather than generic weak-support downshift.
+* **Opportunistic**, however, initially appeared too close to corruption-sensitive in the first-pass summary layer. The boundary between those two families remained less legible than desired.
 
-This is not a “winner selection” exercise. It is a bounded identity clarification exercise.
+This was an important intermediate result: family differentiation was partly present, but not yet fully convincing across all boundaries.
 
-### 5.3 Preserve boundedness and scientific honesty
+### 4.3 Bounded follow-up clarification pass
 
-A strong temptation at this point would be to tune the corruption family until it “looks more different.” That is not the right goal.
+Because the opportunistic-versus-corruption-sensitive boundary still looked ambiguous after the first pass, a bounded follow-up diagnostic was run using hysteresis-style comparison presets.
 
-The goal is not maximal separation. The goal is **honest bounded distinctness**.
+The clarification pass used:
 
-Subgoal 05 should therefore preserve:
+* `regime_active_balanced_hysteresis_probe`
+* `regime_active_opportunistic_hysteresis_probe`
 
-- bounded semantics,
-- bounded interpretability,
-- and cautious claims.
-
-It is acceptable if the families are only modestly different, provided those differences are real, interpretable, and honestly stated.
-
-### 5.4 Refine only if distinctness is too weak
-
-If comparative inspection shows that balanced and corruption remain too collapsed in realized behavior, Subgoal 05 may allow one small controller-facing refinement.
-
-That refinement should be:
-
-- compact,
-- local,
-- clearly motivated by observed family collapse,
-- and not the beginning of a new redesign cycle.
+This was explicitly not treated as a new redesign campaign. It was used as a bounded mechanism/stability clarification step to determine whether the weak family boundary reflected a real semantic collapse or simply inadequate first-pass comparative legibility.
 
 ---
 
-## 6. Proposed Subgoal 05 direction
+## 5. Comparative findings
 
-### 6.1 Core recommendation
+### 5.1 Balanced now reads as a distinct bounded family
 
-Subgoal 05 should combine:
+The bounded comparison supports reading **balanced** as a distinct bounded family rather than as a generic non-nominal placeholder.
 
-- one bounded comparative evaluation pass, and
-- at most one bounded family-separation refinement if needed.
+In the core comparison, balanced was the only run with nonzero certified occupancy and a smaller realized transition count than the more corruption-led families. That already indicated a mixed family identity rather than a simple corruption-led nominal/downshift oscillation.
 
-The intended shift is:
+In the hysteresis follow-up, balanced did not present as corruption-led. Instead, it read as a **weak-support-led bounded downshift family** with no corruption-led hits and no certified occupancy in that particular clarification probe. This strengthened, rather than weakened, the case that balanced has its own family identity.
 
-- from “corruption-family behavior exists and is inspectable,”
-- to “balanced and corruption families now read as meaningfully distinct bounded controller expressions.”
+The correct reading is therefore not that balanced always occupies one simple operational shape, but that it remains interpretably distinct from both opportunistic and corruption-sensitive lines.
 
-### 6.2 Backend direction
+### 5.2 Opportunistic is distinguishable, but required bounded follow-up to read clearly
 
-Backend work should likely focus on three things.
+The key uncertainty in Subgoal 05 concerned the opportunistic family.
 
-#### A. Preserve Subgoal 04 stabilization
-Do not undo the stabilized corruption-family expression and tightened inspection surface.
+In the first comparison pass, opportunistic initially looked too close to corruption-sensitive. Its summary shape was near the corruption-sensitive line in transition count, nominal/downshift fractions, and corruption-led activity, which raised the possibility that the boundary between those families had not become legible enough yet.
 
-#### B. Compare realized family behavior directly
-Use the same bounded windows and inspect family differences through the active-state and audit traces already available.
+The hysteresis-style follow-up changed that reading materially.
 
-#### C. Refine only where collapse is specific and local
-If balanced and corruption remain too behaviorally similar, make the smallest possible adjustment to preserve family identity.
+In the bounded follow-up, opportunistic read as a **staged opportunistic family with substantial certified occupancy** and a much lower transition count than the follow-up balanced run. It no longer read like another corruption-led guarded/downshift oscillation. Instead, it presented as a family with a more staged realized operational structure that remained visibly distinct from both balanced and corruption-sensitive behavior.
 
-### 6.3 Frontend direction
+This result is important because it suggests that the earlier ambiguity reflected limited first-pass comparative legibility more than a fundamental failure of opportunistic semantics.
 
-Frontend should remain bounded in this subgoal.
+### 5.3 Corruption-sensitive now reads as specifically corruption-led
 
-The visualizer and designer were brought forward in Subgoal 04 as inspection-truthfulness surfaces. Subgoal 05 should only touch them if comparative family reading is still awkward or misleading.
+The corruption-sensitive line now reads as the most trigger-specific family.
 
-Acceptable bounded updates would be:
+In the core bounded comparison, corruption-sensitive showed strong corruption-guard and corruption-led downshift activity, with far less evidence of weak-support-driven identity and no certified occupancy. That is the intended scientific reading: the family is not simply non-nominal, but specifically **corruption-led and guarded/downshift-oriented**.
 
-- small wording refinements that better distinguish balanced vs corruption,
-- tiny visualizer clarifications if family comparison remains hard to read,
-- or preset text cleanup if the designer language no longer matches the actual family distinction.
+This was one of the main questions inherited from Subgoal 04, and the answer is now substantially clearer. The corruption-sensitive family no longer needs to be defended merely as “some different downshift behavior.” It is now interpretable as corruption-led bounded controller behavior.
 
-This is not a frontend-led subgoal.
+### 5.4 What the combined comparison now supports
 
----
+Taken together, the core comparison and bounded follow-up support the following three-family reading:
 
-## 7. Success criteria
+* **Balanced**: weak-support-led bounded downshift / mixed family, distinct from corruption-led behavior.
+* **Opportunistic**: staged opportunistic family that can retain a visibly different realized structure and may include substantial certified occupancy in bounded follow-up probes.
+* **Corruption-sensitive**: corruption-led guarded/downshift family.
 
-Subgoal 05 should be considered successful if it produces most or all of the following.
-
-1. **Balanced and corruption are directly compared on the same bounded windows**  
-   The comparison should be like-for-like, not based on shifted evaluation targets.
-
-2. **Family distinctness becomes more interpretable**  
-   The work should make it clearer where balanced and corruption diverge in realized behavior.
-
-3. **Corruption remains specifically readable as corruption-led**  
-   The corruption family should not collapse back into generic weak-support behavior.
-
-4. **Boundedness is preserved**  
-   Neither family should become an over-tuned or over-claimed controller.
-
-5. **Any controller refinement remains small and local**  
-   If refinement is needed, it should be minimal and clearly justified by observed family collapse.
-
-6. **Claims remain scientifically disciplined**  
-   The outcome should be framed as bounded family differentiation, not final controller optimization.
+This is not a claim of global optimality or a claim that each family always occupies a single invariant operational profile. It is a claim of **bounded family differentiation and comparative legibility** on shared transformed real-fire windows.
 
 ---
 
-## 8. Disciplined implementation plan
+## 6. Interpretation of what changed in Subgoal 05
 
-### 8.1 Step A: preserve the Subgoal 04 state
+### 6.1 The subgoal did not force another redesign
 
-Start from the frozen Subgoal 04 result without reopening broad redesign.
+One of the most important outcomes of Subgoal 05 is negative in the good sense: it did **not** produce evidence that would justify immediately reopening broad controller redesign.
 
-### 8.2 Step B: run direct family comparisons
+The family surface did show one weak boundary after the first pass, but the bounded follow-up was sufficient to clarify that boundary without invoking another redesign cycle.
 
-Evaluate balanced and corruption on the same bounded transformed real-fire windows used in the recent subgoals.
+That matters because it means the current active-family surface is now defensible enough to move forward with disciplined comparative interpretation rather than repeated structural rewriting.
 
-### 8.3 Step C: inspect where divergence actually appears
+### 6.2 The main remaining issue is comparative legibility, not family absence
 
-Read differences in:
+The remaining limitation is best understood as one of **comparative legibility across presets and surfaces**, not one of family nonexistence.
 
-- active-state occupancy,
-- transitions,
-- corruption-led diagnostics,
-- and effective control traces.
+The core pass alone did not make every family boundary equally legible. In particular, opportunistic needed a bounded follow-up mechanism/stability probe before its distinct realized identity became fully convincing.
 
-### 8.4 Step D: decide whether refinement is actually needed
+That is still a limitation worth stating. But it is a much narrower limitation than “the family semantics still collapse” or “the controller surface needs redesign.”
 
-Only if the families still collapse too strongly should a controller-side tweak be made.
+### 6.3 Step-level inspection still matters
 
-### 8.5 Step E: apply at most one bounded refinement
+Subgoal 05 also reinforced a methodological point.
 
-If required, make one compact refinement whose purpose is preserving family distinctness rather than broad performance tuning.
+Summary fields were enough to reveal broad shape differences and to expose the initial weak boundary. But step-level transition-neighborhood inspection remained important for understanding whether those differences reflected weak-support-led behavior, corruption-guarded behavior, or certified-entry/exit behavior.
 
-### 8.6 Step F: freeze with comparative interpretation
-
-Document not just what changed, but how balanced and corruption now read relative to one another and what remains unresolved.
+This confirms that active-family comparison on bounded real-fire windows should continue to be read through both summary and transition-neighborhood layers when scientific honesty matters.
 
 ---
 
-## 9. Expected code and artifact touchpoints
+## 7. Updated subgoal decision
 
-Likely backend file:
+Subgoal 05 should now be considered primarily a **comparison success / no controller patch yet** subgoal.
 
-- `backend/api/routers/operational.py`
+The strongest disciplined conclusion is:
 
-Possible frontend files only if needed:
+* the bounded active families are now meaningfully differentiated,
+* the corruption-sensitive family remains specifically corruption-led,
+* balanced retains a distinct weak-support-led or mixed bounded identity,
+* opportunistic can be read as a distinct staged family when bounded follow-up clarification is allowed,
+* and no immediate controller-side semantics patch is justified on the current evidence.
 
-- `frontend/app/operational/visualizer/page.tsx`
-- `frontend/app/operational/designer/page.tsx`
-
-Expected artifacts:
-
-- direct bounded family comparison runs,
-- summary comparison notes or tables,
-- possibly one compact refinement to preserve family identity,
-- and a freeze summary describing comparative findings and remaining limits.
+This updates the earlier draft expectation that Subgoal 05 might need one small controller-facing refinement. That refinement is no longer the preferred next move.
 
 ---
 
-## 10. Scope boundary
+## 8. Success criteria, updated against observed results
 
-Subgoal 05 is intentionally limited.
+Subgoal 05 should now be considered successful because it produced most or all of the following.
+
+1. **Families were directly compared on the same bounded windows**
+   The comparison remained like-for-like at the physical/windowing level.
+
+2. **Family distinctness became interpretable**
+   Balanced, opportunistic, and corruption-sensitive can now be read as distinct bounded controller expressions, even though one boundary required bounded follow-up clarification.
+
+3. **Corruption remained specifically readable as corruption-led**
+   The corruption-sensitive line did not collapse back into generic weak-support behavior.
+
+4. **Boundedness was preserved**
+   The work did not drift into broad redesign or large new validation scope.
+
+5. **No controller refinement was required to claim meaningful differentiation**
+   The family surface proved differentiable without another controller patch.
+
+6. **Claims remain scientifically disciplined**
+   The result is bounded family differentiation and comparative legibility, not final controller optimization.
+
+---
+
+## 9. Updated disciplined implementation reading
+
+### 9.1 What Subgoal 05 actually accomplished
+
+Subgoal 05 should be read as having done the following:
+
+* preserved the Subgoal 04 stabilized state,
+* performed direct bounded family comparison on shared transformed real-fire windows,
+* identified one weak family boundary after the first pass,
+* resolved that weak boundary sufficiently through a bounded follow-up comparison,
+* and concluded that no controller patch was presently required.
+
+### 9.2 What it did not need to do
+
+Subgoal 05 did not need to:
+
+* reopen family semantics broadly,
+* proliferate new active families,
+* trigger a new backend redesign cycle,
+* or launch a broad frontend overhaul.
+
+That restraint is part of the success of the subgoal, not a lack of ambition.
+
+---
+
+## 10. Backend and frontend implications
+
+### 10.1 Backend implication
+
+The backend implication of Subgoal 05 is primarily interpretive rather than structural.
+
+The current active-family surface is now strong enough to support bounded comparative reading without another immediate semantic patch. Backend work should therefore prefer preserving this state and using it for further disciplined evaluation rather than destabilizing it with unnecessary redesign.
+
+### 10.2 Frontend implication
+
+Frontend implications remain bounded.
+
+The designer and visualizer now appear sufficient for honest family comparison, although there is still room for small wording or presentation refinements if future reading continues to show that certain family boundaries are only obvious after deeper inspection.
+
+That would be an **inspection-surface clarity** task, not a frontend-led reinterpretation of controller semantics.
+
+---
+
+## 11. Expected artifacts and how this subgoal should freeze
+
+The Subgoal 05 freeze should now emphasize:
+
+* the direct bounded family comparison runs,
+* the bounded follow-up clarification runs,
+* summary and transition-neighborhood interpretation showing where the family lines differ,
+* and a freeze summary stating that family differentiation is now sufficiently legible without another controller patch.
+
+The freeze should make clear that the key output of Subgoal 05 is comparative interpretation, not a larger code redesign.
+
+---
+
+## 12. Scope boundary, updated
+
+Subgoal 05 remains intentionally limited.
 
 It is **not**:
 
-- a broad controller redesign,
-- a new family proliferation step,
-- a large validation campaign across many new windows,
-- or a claim that the active-controller problem is solved.
+* a broad controller redesign,
+* a new family proliferation step,
+* a large validation campaign across many new windows,
+* or a claim that active-controller design is solved.
 
 It **is**:
 
-- a bounded comparative family-reading step,
-- a bounded family-distinctness clarification step,
-- and, only if needed, a small controller-facing refinement to keep balanced and corruption from collapsing into the same realized story.
+* a bounded comparative family-reading step,
+* a bounded three-family differentiation step,
+* a bounded comparative-legibility validation step,
+* and a disciplined conclusion that no controller patch is currently required.
 
-That is the most disciplined next step after Subgoal 04.
+That is the most scientifically honest reading of what Subgoal 05 has now shown.
