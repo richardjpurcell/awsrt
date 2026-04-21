@@ -76,13 +76,13 @@ USEFULNESS_RECOVER_ARRIVALS_HIGH_THRESHOLD = 0.80
 
 # Enter caution when recent information quality looks strongly degraded.
 USEFULNESS_CAUTION_AGE_THRESHOLD = 2.0
-USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD = 0.30
+USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD = 0.40
 # Corruption-side caution should fire under materially weakened useful
 # information, not only near-total collapse. The previous 1e-6 threshold was
 # too strict relative to observed delayed-aligned driver magnitudes in
 # moderate/strong noise runs, so noisy-but-still-active cases stayed in
 # exploit even when misleadingness was clearly elevated.
-USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD = 2.0e-4
+USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD = 5.0e-5
 USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD = 0.80
 
 # Subgoal G:
@@ -94,6 +94,15 @@ USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD = 0.80
 # Keep this backend-local and compact for the first semantic pass.
 USEFULNESS_SEVERE_DELAY_AGE_THRESHOLD = 4.0
 
+# v0.5 Subgoal 01b:
+# delay-side refinement should preserve recover as the default stale-but-
+# restorable reading. If severe delay is going to escalate all the way to
+# caution, require a stronger corruption-like signature than the ordinary
+# caution path.
+USEFULNESS_SEVERE_DELAY_MISLEADING_POS_FRAC_THRESHOLD = 0.50
+USEFULNESS_SEVERE_DELAY_DRIVER_INFO_LOW_THRESHOLD = 1.0e-4
+USEFULNESS_SEVERE_DELAY_ARRIVALS_HIGH_THRESHOLD = 0.90
+
 # Return from caution to recover when support has partially requalified but is
 # not yet clean enough for full exploit.
 USEFULNESS_RECOVER_EXIT_AGE_THRESHOLD = 1.0
@@ -102,7 +111,7 @@ USEFULNESS_RECOVER_EXIT_DRIVER_INFO_RECOVER_THRESHOLD = 1.0e-5
 
 # Return to exploit only when recent conditions look clearly healthy again.
 USEFULNESS_EXPLOIT_AGE_THRESHOLD = 0.5
-USEFULNESS_EXPLOIT_MISLEADING_POS_FRAC_THRESHOLD = 0.15
+USEFULNESS_EXPLOIT_MISLEADING_POS_FRAC_THRESHOLD = 0.20
 USEFULNESS_EXPLOIT_DRIVER_INFO_RECOVER_THRESHOLD = 1.0e-5
 
 USEFULNESS_RECOVER_PERSISTENCE = 2
@@ -463,17 +472,18 @@ def _usefulness_trigger_caution(
     # Subgoal G semantics:
     # age-driven degradation should map to recover by default.
     # Pure staleness should only promote to caution when it is explicitly
-    # severe AND still reflects stale-but-active weak information flow.
+    # severe AND still reflects a stronger corruption-like signature rather
+    # than ordinary stale-but-restorable delay.
     severe_delay_bad = bool(
         recent_obs_age_mean_valid is not None
         and float(recent_obs_age_mean_valid) >= float(USEFULNESS_SEVERE_DELAY_AGE_THRESHOLD)
         and recent_misleading_activity_pos_frac is not None
         and float(recent_misleading_activity_pos_frac)
-        >= float(USEFULNESS_CAUTION_MISLEADING_POS_FRAC_THRESHOLD)
-        and float(arrivals_frac_t) >= float(USEFULNESS_CAUTION_ARRIVALS_HIGH_THRESHOLD)
+        >= float(USEFULNESS_SEVERE_DELAY_MISLEADING_POS_FRAC_THRESHOLD)
+        and float(arrivals_frac_t) >= float(USEFULNESS_SEVERE_DELAY_ARRIVALS_HIGH_THRESHOLD)
         and recent_driver_info_true_mean is not None
         and float(recent_driver_info_true_mean)
-        <= float(USEFULNESS_CAUTION_DRIVER_INFO_LOW_THRESHOLD)
+        <= float(USEFULNESS_SEVERE_DELAY_DRIVER_INFO_LOW_THRESHOLD)
     )
 
     return bool(corruption_bad or severe_delay_bad)

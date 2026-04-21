@@ -28,6 +28,16 @@ Items here are reminders and triage targets, not commitments.
 - **Question:** Is the issue caused by indexing, initialization, event timing semantics, or summary/reporting logic?
 - **Next check:** Revisit when doing metrics validation or summary auditing.
 
+### [UI] Summary and Trace boxes are present even if run doesn't use them
+- **Status:** Open
+- **Why it matters:** Too many boxes are appearing in the UI
+- **Question:** For usefulness runs we have introduced visible/non-visible summaries and traces based on if usefulness is used. Can we do the same for the regimes?
+
+### [Back/Frontend] Change Physical Designer from specific variables to more abstract case based
+- **Status:** Open
+- **Why it matters:** Users are expecting a complete physical simulator.
+- **Question:** Can we substitute specific models for more abstract ones. i.e. wind is just a vector variable type
+
 ---
 
 ## Parking lot

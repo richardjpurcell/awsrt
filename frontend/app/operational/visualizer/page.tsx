@@ -19,6 +19,12 @@ type MetaRes = {
   cell_size_m: number;
 };
 
+type ManifestRes = {
+  network?: {
+    policy?: string;
+  };
+};
+
 type SeriesRes = {
   // Detection semantics
   true_detections_any?: number[];
@@ -518,6 +524,7 @@ export default function OperationalVisualizerPage() {
   const [ids, setIds] = useState<string[]>([]);
   const [id, setId] = useState("");
   const [meta, setMeta] = useState<MetaRes | null>(null);
+  const [manifest, setManifest] = useState<ManifestRes | null>(null);
   const [series, setSeries] = useState<SeriesRes | null>(null);
   const [listLoaded, setListLoaded] = useState(false);
 
@@ -622,20 +629,27 @@ export default function OperationalVisualizerPage() {
     let alive = true;
 
     setMsg("");
+    setManifest(null);
     setSeries(null);
 
     if (!id) {
       setMeta(null);
+      setManifest(null);
       setT(0);
       return;
     }
 
-    Promise.allSettled([getJSON<MetaRes>(`/operational/${id}/meta`), getJSON<SeriesRes>(`/operational/${id}/series`)])
+    Promise.allSettled([
+      getJSON<MetaRes>(`/operational/${id}/meta`),
+      getJSON<SeriesRes>(`/operational/${id}/series`),
+      getJSON<ManifestRes>(`/operational/${id}/manifest`),
+    ])
       .then((res) => {
         if (!alive) return;
 
         const m = res[0].status === "fulfilled" ? res[0].value : null;
         const s = res[1].status === "fulfilled" ? res[1].value : null;
+        const mf = res[2].status === "fulfilled" ? res[2].value : null;
 
         if (m) {
           setMeta(m);
@@ -647,11 +661,13 @@ export default function OperationalVisualizerPage() {
         }
 
         setSeries(s);
+        setManifest(mf);
       })
       .catch((e: any) => {
         if (!alive) return;
         console.error(e);
         setMeta(null);
+        setManifest(null);
         setSeries(null);
         setT(0);
         setMsg(typeof e?.message === "string" ? e.message : "Failed to load run.");
@@ -975,18 +991,20 @@ export default function OperationalVisualizerPage() {
       ? series.regime_advisory_recovery_trigger_hits
       : null;
 
+  // Truthfulness gate for the compact usefulness layer:
+  // prefer the explicit backend scalar when it is truthy, but do not hide
+  // the section when a usefulness run clearly emitted usefulness-specific
+  // traces and the scalar is absent / stale / not yet wired truthfully.
+  // This keeps non-usefulness runs clean while still letting real usefulness
+  // probe runs show their compact-layer summaries.
   const usefulnessSummaryAvailable =
-    !!series?.usefulness_proto_enabled ||
-    (typeof series?.usefulness_regime_state_last === "number") ||
-    !!series?.usefulness_regime_state?.length;
+    manifest?.network?.policy === "usefulness_proto";
 
   const activeStateSummaryAvailable =
-    !!series?.regime_active_enabled ||
-    (typeof series?.regime_active_transition_count === "number") ||
-    (typeof series?.regime_active_last_state === "number");
+    series?.regime_active_enabled === true;
 
   const advisorySummaryAvailable =
-    !!series?.regime_enabled;
+    series?.regime_enabled === true;
 
     const activeLastStateIsCertified =
     typeof series?.regime_active_last_state === "number" &&
@@ -1126,7 +1144,7 @@ export default function OperationalVisualizerPage() {
           <div className="small" style={{ marginTop: 8, opacity: 0.82, lineHeight: 1.4 }}>
             Main interpretation path:
             <b> Current frame snapshot → Operational sensing and motion → Belief and entropy evolution → MDC residual diagnostics</b>.
-            Usefulness, advisory regime, and active regime sections are overlay/controller interpretations.
+            The compact usefulness layer, advisory regime, and active regime sections are controller-facing interpretations layered on top of that main path.
             Mechanism audit is a deeper diagnostic layer and is hidden by default.
           </div>
           <div className="imgbox">
@@ -1200,17 +1218,19 @@ export default function OperationalVisualizerPage() {
                       {" "}· recent_mislead_pos_frac=<b>{fmtNum(cursorSummary.recent_misleading_activity_pos_frac, 3)}</b>
                       {" "}· recent_driver_info=<b>{fmtNum(cursorSummary.recent_driver_info_true_mean, 6)}</b>
                     </div>
-                    <div>
-                      usefulness_state=<b>{usefulnessStateLabel(cursorSummary.usefulness_regime_state)}</b>
-                      {" "}· trig_recover=<b>{fmtInt(cursorSummary.usefulness_trigger_recover)}</b>
-                      {" "}· trig_caution=<b>{fmtInt(cursorSummary.usefulness_trigger_caution)}</b>
-                      {" "}· trig_recover_from_caution=<b>{fmtInt(cursorSummary.usefulness_trigger_recover_from_caution)}</b>
-                      {" "}· trig_exploit=<b>{fmtInt(cursorSummary.usefulness_trigger_exploit)}</b>
-                      {" "}· recover_counter=<b>{fmtInt(cursorSummary.usefulness_recover_counter)}</b>
-                      {" "}· caution_counter=<b>{fmtInt(cursorSummary.usefulness_caution_counter)}</b>
-                      {" "}· recover_exit_counter=<b>{fmtInt(cursorSummary.usefulness_recover_exit_counter)}</b>
-                      {" "}· exploit_counter=<b>{fmtInt(cursorSummary.usefulness_exploit_counter)}</b>
-                    </div>
+                    {usefulnessSummaryAvailable ? (
+                      <div>
+                        usefulness_state=<b>{usefulnessStateLabel(cursorSummary.usefulness_regime_state)}</b>
+                        {" "}· trig_recover=<b>{fmtInt(cursorSummary.usefulness_trigger_recover)}</b>
+                        {" "}· trig_caution=<b>{fmtInt(cursorSummary.usefulness_trigger_caution)}</b>
+                        {" "}· trig_recover_from_caution=<b>{fmtInt(cursorSummary.usefulness_trigger_recover_from_caution)}</b>
+                        {" "}· trig_exploit=<b>{fmtInt(cursorSummary.usefulness_trigger_exploit)}</b>
+                        {" "}· recover_counter=<b>{fmtInt(cursorSummary.usefulness_recover_counter)}</b>
+                        {" "}· caution_counter=<b>{fmtInt(cursorSummary.usefulness_caution_counter)}</b>
+                        {" "}· recover_exit_counter=<b>{fmtInt(cursorSummary.usefulness_recover_exit_counter)}</b>
+                        {" "}· exploit_counter=<b>{fmtInt(cursorSummary.usefulness_exploit_counter)}</b>
+                      </div>
+                    ) : null}
 
                     <div style={{ marginTop: 8, fontWeight: 600 }}>MDC diagnostics at current frame</div>
                     <div>
@@ -1243,13 +1263,15 @@ export default function OperationalVisualizerPage() {
 
               {usefulnessSummaryAvailable ? (
                 <div className="card" style={{ marginTop: 12 }}>
-                  <h2 style={{ marginTop: 0 }}>Usefulness prototype summary</h2>
+                  <h2 style={{ marginTop: 0 }}>Compact usefulness layer summary</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>
                     <div style={{ opacity: 0.82 }}>
-                      This section summarizes the compact usefulness-regime scaffold rather than the advisory/active regime-management machinery.
+                      This section summarizes the live compact usefulness-facing layer used by
+                      <b> usefulness_proto</b>. It is distinct from the broader advisory/active
+                      regime-management overlay shown below.
                     </div>
                     <div style={{ marginTop: 8 }}>
-                      usefulness_proto_enabled=<b>{series.usefulness_proto_enabled ? "yes" : "no"}</b>
+                      usefulness_policy=<b>{manifest?.network?.policy ?? "—"}</b>
                       {" "}· last_state=<b>{usefulnessStateLabel(series.usefulness_regime_state_last)}</b>
                     </div>
                     <div>
@@ -1262,6 +1284,17 @@ export default function OperationalVisualizerPage() {
                       {" "}· caution_hits=<b>{fmtInt(series.usefulness_trigger_caution_hits)}</b>
                       {" "}· recover_from_caution_hits=<b>{fmtInt(series.usefulness_trigger_recover_from_caution_hits)}</b>
                       {" "}· exploit_hits=<b>{fmtInt(series.usefulness_trigger_exploit_hits)}</b>
+                    </div>
+                    <div style={{ marginTop: 8, opacity: 0.82 }}>
+                      Compact reading:
+                      {" "}healthy runs should lean <b>exploit</b>,
+                      {" "}delay-heavy runs may shift toward <b>recover</b>,
+                      {" "}and corruption/noise-heavy runs may shift toward <b>caution</b>.
+                    </div>
+                    <div style={{ marginTop: 6, opacity: 0.78 }}>
+                      The editable richer usefulness manifest surface lives in the Designer,
+                      but this summary should be read primarily as a report on the
+                      <b> live compact usefulness path</b>.
                     </div>
                     <div>
                       recent_age_last=<b>{fmtNum(series.recent_obs_age_mean_valid_last, 3)}</b>
@@ -1598,9 +1631,9 @@ export default function OperationalVisualizerPage() {
                 </div>
               ) : null}
 
-              <SectionCard
-                title="Usefulness scaffold traces"
-                subtitle="Compact usefulness-prototype view: recent-window support quantities plus the exploit / recover / caution state and trigger traces."
+              {usefulnessSummaryAvailable ? <SectionCard
+                title="Compact usefulness layer traces"
+                subtitle="Live usefulness-facing trace view: recent-window support quantities plus the exploit / recover / caution state and trigger traces."
               >
                 {series?.recent_obs_age_mean_valid?.length ? (
                   <SparkLine
@@ -1652,7 +1685,7 @@ export default function OperationalVisualizerPage() {
                     height={PLOT_H}
                     precision={0}
                     include0
-                    subtitle="0 = exploit, 1 = recover, 2 = caution"
+                    subtitle="0 = exploit, 1 = recover, 2 = caution on the compact live usefulness path"
                   />
                 ) : (
                   <div />
@@ -1666,7 +1699,7 @@ export default function OperationalVisualizerPage() {
                     height={PLOT_H}
                     precision={0}
                     include01
-                    subtitle="1 means the caution condition is firing at that step"
+                    subtitle="1 means the compact usefulness caution condition is firing at that step"
                   />
                 ) : (
                   <div />
@@ -1680,7 +1713,7 @@ export default function OperationalVisualizerPage() {
                     height={PLOT_H}
                     precision={0}
                     include01
-                    subtitle="1 means weakened support is sufficient to leave exploit and enter recover"
+                    subtitle="1 means weakened support is sufficient to leave exploit and enter recover on the compact usefulness path"
                   />
                 ) : (
                   <div />
@@ -1693,7 +1726,7 @@ export default function OperationalVisualizerPage() {
                     height={PLOT_H}
                     precision={0}
                     include01
-                    subtitle="1 means partial requalification out of caution is firing"
+                    subtitle="1 means partial requalification out of caution is firing on the compact usefulness path"
                   />
                 ) : (
                   <div />
@@ -1707,7 +1740,7 @@ export default function OperationalVisualizerPage() {
                     height={PLOT_H}
                     precision={0}
                     include01
-                    subtitle="1 means strong healthy requalification for exploit is firing"
+                    subtitle="1 means strong healthy requalification for exploit is firing on the compact usefulness path"
                   />
                 ) : (
                   <div />
@@ -1810,7 +1843,7 @@ export default function OperationalVisualizerPage() {
                 ) : (
                   <div />
                 )}
-              </SectionCard>
+              </SectionCard> : null}
 
               <SectionCard
                 title="Operational sensing and motion"
@@ -2019,256 +2052,260 @@ export default function OperationalVisualizerPage() {
                     }
                   />
                 ) : null}
+              
               </SectionCard>
+              {advisorySummaryAvailable ? ( 
+                <SectionCard
+                  title="Advisory regime-management traces"
+                  subtitle="Suggested regime state, suggested certified stage / opportunistic ladder level, and advisory trigger booleans. These are recommendation-side traces, not realized active-state quantities."
+                >
+
+                  {series?.regime_utilization?.length ? (
+                    <SparkLine
+                      title="Regime utilization"
+                      values={series.regime_utilization.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_utilization.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include01
+                      subtitle="u_t = fraction of intended sensing budget still certificate-covered"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_strict_drift_proxy?.length ? (
+                    <SparkLine
+                      title="Regime strict drift proxy"
+                      values={series.regime_strict_drift_proxy.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_strict_drift_proxy.length - 1))}
+                      height={PLOT_H}
+                      precision={5}
+                      include0
+                      subtitle="Expected certified rate × utilization"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_local_drift_rate?.length ? (
+                    <SparkLine
+                      title="Regime local drift rate"
+                      values={series.regime_local_drift_rate.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_local_drift_rate.length - 1))}
+                      height={PLOT_H}
+                      precision={5}
+                      include0
+                      subtitle="Per-step entropy decrease after applying delayed observation"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_cumulative_exposure?.length ? (
+                    <SparkLine
+                      title="Regime cumulative exposure"
+                      values={series.regime_cumulative_exposure.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_cumulative_exposure.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include0
+                      subtitle="Running cumulative uncertainty exposure"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_trigger_downshift?.length ? (
+                    <SparkLine
+                      title="Advisory trigger: downshift"
+                      values={series.regime_trigger_downshift.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_trigger_downshift.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include01
+                      subtitle="Advisory trigger boolean per step: 1 means downshift condition fired"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_trigger_switch_to_certified?.length ? (
+                    <SparkLine
+                      title="Advisory trigger: switch to certified"
+                      values={series.regime_trigger_switch_to_certified.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_trigger_switch_to_certified.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include01
+                      subtitle="Advisory trigger boolean per step: 1 means certified-switch condition fired"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_trigger_recovery?.length ? (
+                    <SparkLine
+                      title="Advisory trigger: recovery"
+                      values={series.regime_trigger_recovery.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_trigger_recovery.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include01
+                      subtitle="Advisory trigger boolean per step: 1 means recovery condition fired"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_state?.length ? (
+                    <SparkLine
+                      title="Advisory regime state code"
+                      values={series.regime_state.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_state.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Advisory code derived from trigger conditions, not a realized active-state trace"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_certified_stage_index?.length ? (
+                    <SparkLine
+                      title="Advisory certified stage index"
+                      values={series.regime_certified_stage_index.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_certified_stage_index.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Suggested certified stage chosen from the advisory stage table"
+                    />
+                  ) : (
+                    <div />
+                  )}
+
+                  {series?.regime_opportunistic_level_index?.length ? (
+                    <SparkLine
+                      title="Advisory opportunistic level index"
+                      values={series.regime_opportunistic_level_index.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_opportunistic_level_index.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Suggested ladder level chosen from utilization before active-state persistence logic"
+                    />
+                  ) : (
+                    <div />
+                  )}
+                </SectionCard>
+              ) : null}
  
-              <SectionCard
-                title="Advisory regime-management traces"
-                subtitle="Suggested regime state, suggested certified stage / opportunistic ladder level, and advisory trigger booleans. These are recommendation-side traces, not realized active-state quantities."
-              >
+              {activeStateSummaryAvailable ? (
+                <SectionCard
+                  title="Active regime-management traces"
+                  subtitle="Realized active state, realized transition events, and the effective controls actually applied. This is the realized active-control layer, distinct from advisory suggestions."
+                >
+                  {series?.regime_active_state?.length ? (
+                    <SparkLine
+                      title="Active realized state code"
+                      values={series.regime_active_state.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_active_state.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Realized active state over time"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.regime_utilization?.length ? (
-                  <SparkLine
-                    title="Regime utilization"
-                    values={series.regime_utilization.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_utilization.length - 1))}
-                    height={PLOT_H}
-                    precision={4}
-                    include01
-                    subtitle="u_t = fraction of intended sensing budget still certificate-covered"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.regime_active_transition_event?.length ? (
+                    <SparkLine
+                      title="Active realized transition events"
+                      values={series.regime_active_transition_event.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_active_transition_event.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include0
+                      subtitle="Discrete realized transition events, not advisory trigger hits"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.regime_strict_drift_proxy?.length ? (
-                  <SparkLine
-                    title="Regime strict drift proxy"
-                    values={series.regime_strict_drift_proxy.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_strict_drift_proxy.length - 1))}
-                    height={PLOT_H}
-                    precision={5}
-                    include0
-                    subtitle="Expected certified rate × utilization"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.regime_effective_eta?.length ? (
+                    <SparkLine
+                      title="Effective eta (active control)"
+                      values={series.regime_effective_eta.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_effective_eta.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include0
+                      subtitle="Episode-step effective eta applied by active mode (nonzero only in realized certified state)"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.regime_local_drift_rate?.length ? (
-                  <SparkLine
-                    title="Regime local drift rate"
-                    values={series.regime_local_drift_rate.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_local_drift_rate.length - 1))}
-                    height={PLOT_H}
-                    precision={5}
-                    include0
-                    subtitle="Per-step entropy decrease after applying delayed observation"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.regime_advisory_stage_eta?.length ? (
+                    <SparkLine
+                      title="Advisory certified stage eta"
+                      values={series.regime_advisory_stage_eta.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_advisory_stage_eta.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include0
+                      subtitle="Eta implied by the advisory certified stage, regardless of realized active state"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.regime_cumulative_exposure?.length ? (
-                  <SparkLine
-                    title="Regime cumulative exposure"
-                    values={series.regime_cumulative_exposure.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_cumulative_exposure.length - 1))}
-                    height={PLOT_H}
-                    precision={4}
-                    include0
-                    subtitle="Running cumulative uncertainty exposure"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.regime_effective_move_budget_cells?.length ? (
+                    <SparkLine
+                      title="Effective move budget (cells)"
+                      values={series.regime_effective_move_budget_cells.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.regime_effective_move_budget_cells.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include0
+                      subtitle="Motion budget actually applied after ladder / certified adjustments"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.regime_trigger_downshift?.length ? (
-                  <SparkLine
-                    title="Advisory trigger: downshift"
-                    values={series.regime_trigger_downshift.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_trigger_downshift.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include01
-                    subtitle="Advisory trigger boolean per step: 1 means downshift condition fired"
-                  />
-                ) : (
-                  <div />
-                )}
+                  {series?.debug_active_downshift_support_score?.length ? (
+                    <SparkLine
+                      title="Active weak-support score"
+                      values={series.debug_active_downshift_support_score.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_active_downshift_support_score.length - 1))}
+                      height={PLOT_H}
+                      precision={4}
+                      include01
+                      subtitle="Lower values mean opportunistic posture is more weakly supported"
+                    />
+                  ) : (
+                    <div />
+                  )}
 
-                {series?.regime_trigger_switch_to_certified?.length ? (
-                  <SparkLine
-                    title="Advisory trigger: switch to certified"
-                    values={series.regime_trigger_switch_to_certified.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_trigger_switch_to_certified.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include01
-                    subtitle="Advisory trigger boolean per step: 1 means certified-switch condition fired"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_trigger_recovery?.length ? (
-                  <SparkLine
-                    title="Advisory trigger: recovery"
-                    values={series.regime_trigger_recovery.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_trigger_recovery.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include01
-                    subtitle="Advisory trigger boolean per step: 1 means recovery condition fired"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_state?.length ? (
-                  <SparkLine
-                    title="Advisory regime state code"
-                    values={series.regime_state.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_state.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="Advisory code derived from trigger conditions, not a realized active-state trace"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_certified_stage_index?.length ? (
-                  <SparkLine
-                    title="Advisory certified stage index"
-                    values={series.regime_certified_stage_index.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_certified_stage_index.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="Suggested certified stage chosen from the advisory stage table"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_opportunistic_level_index?.length ? (
-                  <SparkLine
-                    title="Advisory opportunistic level index"
-                    values={series.regime_opportunistic_level_index.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_opportunistic_level_index.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="Suggested ladder level chosen from utilization before active-state persistence logic"
-                  />
-                ) : (
-                  <div />
-                )}
-              </SectionCard>
- 
-              <SectionCard
-                title="Active regime-management traces"
-                subtitle="Realized active state, realized transition events, and the effective controls actually applied. This is the realized active-control layer, distinct from advisory suggestions."
-              >
-                {series?.regime_active_state?.length ? (
-                  <SparkLine
-                    title="Active realized state code"
-                    values={series.regime_active_state.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_active_state.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="Realized active state over time"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_active_transition_event?.length ? (
-                  <SparkLine
-                    title="Active realized transition events"
-                    values={series.regime_active_transition_event.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_active_transition_event.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include0
-                    subtitle="Discrete realized transition events, not advisory trigger hits"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_effective_eta?.length ? (
-                  <SparkLine
-                    title="Effective eta (active control)"
-                    values={series.regime_effective_eta.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_effective_eta.length - 1))}
-                    height={PLOT_H}
-                    precision={4}
-                    include0
-                    subtitle="Episode-step effective eta applied by active mode (nonzero only in realized certified state)"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_advisory_stage_eta?.length ? (
-                  <SparkLine
-                    title="Advisory certified stage eta"
-                    values={series.regime_advisory_stage_eta.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_advisory_stage_eta.length - 1))}
-                    height={PLOT_H}
-                    precision={4}
-                    include0
-                    subtitle="Eta implied by the advisory certified stage, regardless of realized active state"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.regime_effective_move_budget_cells?.length ? (
-                  <SparkLine
-                    title="Effective move budget (cells)"
-                    values={series.regime_effective_move_budget_cells.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.regime_effective_move_budget_cells.length - 1))}
-                    height={PLOT_H}
-                    precision={4}
-                    include0
-                    subtitle="Motion budget actually applied after ladder / certified adjustments"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.debug_active_downshift_support_score?.length ? (
-                  <SparkLine
-                    title="Active weak-support score"
-                    values={series.debug_active_downshift_support_score.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_active_downshift_support_score.length - 1))}
-                    height={PLOT_H}
-                    precision={4}
-                    include01
-                    subtitle="Lower values mean opportunistic posture is more weakly supported"
-                  />
-                ) : (
-                  <div />
-                )}
-
-                {series?.debug_trig_down_weak_support_component?.length ? (
-                  <SparkLine
-                    title="Active trigger: weak-support downshift"
-                    values={series.debug_trig_down_weak_support_component.map((v) => Number(v))}
-                    cursorT={Math.min(tt, Math.max(0, series.debug_trig_down_weak_support_component.length - 1))}
-                    height={PLOT_H}
-                    precision={0}
-                    include01
-                    subtitle="1 means the bounded weak-support shortcut is firing for active downshift"
-                  />
-                ) : (
-                  <div />
-                )}
-              </SectionCard>
+                  {series?.debug_trig_down_weak_support_component?.length ? (
+                    <SparkLine
+                      title="Active trigger: weak-support downshift"
+                      values={series.debug_trig_down_weak_support_component.map((v) => Number(v))}
+                      cursorT={Math.min(tt, Math.max(0, series.debug_trig_down_weak_support_component.length - 1))}
+                      height={PLOT_H}
+                      precision={0}
+                      include01
+                      subtitle="1 means the bounded weak-support shortcut is firing for active downshift"
+                    />
+                  ) : (
+                    <div />
+                  )}
+                </SectionCard>
+              ) : null}
 
               {showMechanismAudit ? (
                 <SectionCard

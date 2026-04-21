@@ -31,6 +31,15 @@ type RunSummaryRes = {
   eps_ref?: number | null;
   eps_ref_eff_info?: number | null;
   eps_ref_eff_cov?: number | null;
+  usefulness_proto_enabled?: boolean;
+  usefulness_regime_state_last?: number | null;
+  usefulness_regime_state_exploit_frac?: number | null;
+  usefulness_regime_state_recover_frac?: number | null;
+  usefulness_regime_state_caution_frac?: number | null;
+  usefulness_trigger_recover_hits?: number | null;
+  usefulness_trigger_caution_hits?: number | null;
+  usefulness_trigger_recover_from_caution_hits?: number | null;
+  usefulness_trigger_exploit_hits?: number | null;
   regime_enabled?: boolean;
   regime_mode?: string | null;
   regime_utilization_mean?: number | null;
@@ -207,6 +216,9 @@ type PresetId =
   | ""
   | "baseline_random_feasible_dynamic_ideal"
   | "baseline_greedy_dynamic_ideal"
+  | "usefulness_proto_healthy_probe"
+  | "usefulness_proto_delay_probe"
+  | "usefulness_proto_noise_probe"
   | "baseline_uncertainty_dynamic_ideal"
   | "usefulness_proto_diagnostic_ideal"
   | "mdc_info_reward_light_ideal"
@@ -811,6 +823,40 @@ export default function OperationalDesignerPage() {
       setRegimeFamilyDefaults(family, modeIn);
       setReducedActiveVerifySignals();
     };
+
+    const setUsefulnessProbeDefaults = (
+      channel: "healthy" | "delay" | "noise"
+    ) => {
+      setRegimeEnabled(false);
+      setMode("dynamic");
+      setPolicy("usefulness_proto");
+      setCInfo(0.1);
+
+      // Keep the compact usefulness layer visible and repeatable.
+      // The richer manifest surface remains present for alignment,
+      // but the live controller reading still comes from the compact path.
+      setUsefulnessRegimeEnabled(true);
+      setUsefulnessMiddleLabel("recover");
+      setUsefulnessExploitPolicy("greedy");
+      setUsefulnessRecoverPolicy("uncertainty");
+      setUsefulnessCautionPolicy("mdc_info");
+      setUsefulnessRecoverEntry(makeUsefulnessThresholds(1.0, 0.15, 5.0e-4, 0.80, 2));
+      setUsefulnessCautionEntry(makeUsefulnessThresholds(2.0, 0.30, 2.0e-4, 0.80, 3));
+      setUsefulnessRecoverExit(makeUsefulnessExploitThresholds(1.0, 0.20, 1.0e-5, 2));
+      setUsefulnessExploitEntry(makeUsefulnessExploitThresholds(0.5, 0.10, 1.0e-5, 3));
+
+      if (channel === "healthy") {
+        setIdealObservationChannel();
+      } else if (channel === "delay") {
+        setNoiseLevel(0.0);
+        setDelaySteps(4);
+        setLossProb(0.0);
+      } else {
+        setNoiseLevel(0.25);
+        setDelaySteps(0);
+        setLossProb(0.0);
+      }
+    };
     setCoreDefaults();
 
     switch (id) {
@@ -834,6 +880,15 @@ export default function OperationalDesignerPage() {
         setPolicy("uncertainty");
         setIdealObservationChannel();
         setCInfo(1.0);
+        return;
+      case "usefulness_proto_healthy_probe":
+        setUsefulnessProbeDefaults("healthy");
+        return;
+      case "usefulness_proto_delay_probe":
+        setUsefulnessProbeDefaults("delay");
+        return;
+      case "usefulness_proto_noise_probe":
+        setUsefulnessProbeDefaults("noise");
         return;
       case "usefulness_proto_diagnostic_ideal":
         setRegimeEnabled(false);
@@ -1120,6 +1175,29 @@ export default function OperationalDesignerPage() {
       typeof runSummaryData?.regime_active_state_downshift_frac === "number" ||
       typeof runSummaryData?.regime_active_state_certified_frac === "number"
     );
+
+  const usefulnessStateLabel = (code: number | null | undefined) => {
+    switch (Number(code)) {
+      case 0:
+        return "exploit";
+      case 1:
+        return "recover";
+      case 2:
+        return "caution";
+      default:
+        return "—";
+    }
+  };
+
+  const hasUsefulnessSummary =
+    Boolean(runSummaryData?.usefulness_proto_enabled) &&
+    (
+      typeof runSummaryData?.usefulness_regime_state_last === "number" ||
+      typeof runSummaryData?.usefulness_regime_state_exploit_frac === "number" ||
+      typeof runSummaryData?.usefulness_regime_state_recover_frac === "number" ||
+      typeof runSummaryData?.usefulness_regime_state_caution_frac === "number"
+    );
+
   const ladderValidationErrors = useMemo(
     () => validateOpportunisticLadder(opportunisticLadder),
     [opportunisticLadder]
@@ -1279,6 +1357,12 @@ export default function OperationalDesignerPage() {
   const presetLabel =
     presetId === "baseline_random_feasible_dynamic_ideal"
       ? "Baseline · random feasible · dynamic · ideal observation channel"
+      : presetId === "usefulness_proto_healthy_probe"
+      ? "Usefulness · healthy probe"
+      : presetId === "usefulness_proto_delay_probe"
+      ? "Usefulness · delay probe"
+      : presetId === "usefulness_proto_noise_probe"
+      ? "Usefulness · noise probe"
       : presetId === "baseline_greedy_dynamic_ideal"
       ? "Baseline · greedy belief · dynamic · ideal observation channel"
       : presetId === "baseline_uncertainty_dynamic_ideal"
@@ -1458,6 +1542,17 @@ export default function OperationalDesignerPage() {
               <option value="baseline_random_feasible_dynamic_ideal">Baseline · random feasible · dynamic · ideal observation channel</option>
               <option value="baseline_greedy_dynamic_ideal">Baseline · greedy belief · dynamic · ideal observation channel</option>
               <option value="baseline_uncertainty_dynamic_ideal">Baseline · uncertainty entropy · dynamic · ideal observation channel</option>
+            </optgroup>
+            <optgroup label="Diagnostic · Usefulness triad probes">
+              <option value="usefulness_proto_healthy_probe">
+                Usefulness · healthy probe
+              </option>
+              <option value="usefulness_proto_delay_probe">
+                Usefulness · delay probe
+              </option>
+              <option value="usefulness_proto_noise_probe">
+                Usefulness · noise probe
+              </option>
             </optgroup>
             <optgroup label="Main comparison · MDC families">
               <option value="mdc_info_reward_light_ideal">MDC · info-driver · light reward · dynamic · ideal</option>
@@ -1658,27 +1753,27 @@ export default function OperationalDesignerPage() {
       </div>
       {policy === "usefulness_proto" ? (
         <div className="card" style={{ marginTop: 10 }}>
-          <h2 style={{ marginTop: 0 }}>Usefulness regime manifest surface</h2>
+          <h2 style={{ marginTop: 0 }}>Compact usefulness layer</h2>
           <div className="small" style={{ opacity: 0.85, lineHeight: 1.4 }}>
-            Experimental usefulness-aware surface for the compact usefulness prototype.
-            This is separate from the broader regime-management system.
+            This section corresponds to the live compact usefulness-facing path used by
+            <b> usefulness_proto</b>. It is separate from the broader regime-management layer.
           </div>
           <div className="small" style={{ opacity: 0.82, lineHeight: 1.4, marginTop: 6 }}>
-            Important status note: the current live backend behavior is still driven mainly by the
-            compact router-side <b>usefulness_proto</b> scaffold. That compact path is already
-            <b> behaviorally active</b> on the live controller path, but the editable manifest fields
-            in this section are retained for alignment and future convergence and should currently be
-            treated as a <b>partially wired experimental surface</b>, not yet as the fully authoritative controller API.
+            Live compact reading:
+            {" "}exploit → <b>greedy</b>,
+            {" "}recover → <b>uncertainty</b>,
+            {" "}caution → <b>mdc_info</b>.
+            The current backend usefulness behavior is already <b>behaviorally active</b> through
+            this compact path.
           </div>
           <div className="small" style={{ opacity: 0.8, lineHeight: 1.4, marginTop: 6 }}>
-            Practical reading for now:
-            <b> the compact usefulness controller path is live;</b> the richer exploit/recover/caution
-            manifest controls below are still ahead of the compact backend implementation and are not
-            yet a unified controller surface with regime management.
+            The editable exploit / recover / caution manifest controls below are retained for alignment
+            and future convergence, but should currently be treated as a
+            <b> partially wired experimental surface</b>, not yet as the fully authoritative controller API.
           </div>
           <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
             <div className="small" style={{ opacity: 0.82 }}>
-              Status: <b>partially wired experimental manifest surface</b>
+              Status: <b>live compact usefulness path + experimental richer manifest surface</b>
             </div>
             <button
               type="button"
@@ -1686,8 +1781,13 @@ export default function OperationalDesignerPage() {
               disabled={busy}
               style={{ marginLeft: "auto" }}
             >
-              {showUsefulnessAdvanced ? "Hide experimental controls" : "Show experimental controls"}
+              {showUsefulnessAdvanced ? "Hide experimental manifest controls" : "Show experimental manifest controls"}
             </button>
+          </div>
+          <div className="small" style={{ marginTop: 10, opacity: 0.82, lineHeight: 1.4 }}>
+            This section should be read in two layers:
+            {" "}first, the <b>live compact usefulness triad</b>;
+            {" "}second, the <b>experimental richer manifest surface</b> shown below.
           </div>
 
           <div className="row" style={{ marginTop: 10 }}>
@@ -1716,7 +1816,7 @@ export default function OperationalDesignerPage() {
           </div>
 
           <div className="small" style={{ marginTop: 8, opacity: 0.82, lineHeight: 1.4 }}>
-            Current manifest summary:
+            Experimental manifest summary:
             {" "}exploit=<b>{usefulnessExploitPolicy}</b>,
             {" "}{usefulnessMiddleLabel}=<b>{usefulnessRecoverPolicy}</b>,
             {" "}caution=<b>{usefulnessCautionPolicy}</b>.
@@ -1724,6 +1824,11 @@ export default function OperationalDesignerPage() {
             {" "}caution entry p=<b>{usefulnessCautionEntry.persistence_steps}</b>,
             {" "}recover exit p=<b>{usefulnessRecoverExit.persistence_steps}</b>,
             {" "}exploit entry p=<b>{usefulnessExploitEntry.persistence_steps}</b>.
+          </div>
+
+          <div className="small" style={{ marginTop: 6, opacity: 0.78, lineHeight: 1.4 }}>
+            This manifest summary is useful for alignment and future cleanup, but it should not yet be
+            read as the primary operational truth of the current usefulness controller.
           </div>
 
           {showUsefulnessAdvanced ? (
@@ -2672,6 +2777,31 @@ export default function OperationalDesignerPage() {
                     {" "}· moved_frac_mean=<b>{runSummaryData.moved_frac_mean.toFixed(4)}</b>
                   </>
                 ) : null}
+              </div>
+            ) : null}
+            {hasUsefulnessSummary ? (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontWeight: 600 }}>
+                  Usefulness triad summary
+                </div>
+                <div className="small" style={{ opacity: 0.82, marginBottom: 2 }}>
+                  This summarizes the live compact usefulness layer, not the broader regime-management overlay.
+                </div>
+                <div>
+                  usefulness_proto_enabled=<b>{runSummaryData.usefulness_proto_enabled ? "yes" : "no"}</b>
+                  {" "}· last_state=<b>{usefulnessStateLabel(runSummaryData.usefulness_regime_state_last)}</b>
+                </div>
+                <div>
+                  exploit_frac=<b>{typeof runSummaryData.usefulness_regime_state_exploit_frac === "number" ? runSummaryData.usefulness_regime_state_exploit_frac.toFixed(3) : "—"}</b>
+                  {" "}· recover_frac=<b>{typeof runSummaryData.usefulness_regime_state_recover_frac === "number" ? runSummaryData.usefulness_regime_state_recover_frac.toFixed(3) : "—"}</b>
+                  {" "}· caution_frac=<b>{typeof runSummaryData.usefulness_regime_state_caution_frac === "number" ? runSummaryData.usefulness_regime_state_caution_frac.toFixed(3) : "—"}</b>
+                </div>
+                <div>
+                  recover_hits=<b>{typeof runSummaryData.usefulness_trigger_recover_hits === "number" ? runSummaryData.usefulness_trigger_recover_hits : "—"}</b>
+                  {" "}· caution_hits=<b>{typeof runSummaryData.usefulness_trigger_caution_hits === "number" ? runSummaryData.usefulness_trigger_caution_hits : "—"}</b>
+                  {" "}· recover_from_caution_hits=<b>{typeof runSummaryData.usefulness_trigger_recover_from_caution_hits === "number" ? runSummaryData.usefulness_trigger_recover_from_caution_hits : "—"}</b>
+                  {" "}· exploit_hits=<b>{typeof runSummaryData.usefulness_trigger_exploit_hits === "number" ? runSummaryData.usefulness_trigger_exploit_hits : "—"}</b>
+                </div>
               </div>
             ) : null}
 
