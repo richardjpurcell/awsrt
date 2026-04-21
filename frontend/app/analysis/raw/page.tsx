@@ -800,6 +800,59 @@ export default function AnalysisRawPage() {
               </div>
             )}
           </div>
+          <div className="card" style={{ marginTop: 10 }}>
+            <h2 style={{ marginTop: 0 }}>Usefulness audit table</h2>
+            <div className="small" style={{ opacity: 0.9 }}>
+              Compact audit view for the Subgoal-07 pilot question: how do delivered information, belief quality,
+              and responsiveness line up across policies in the current study summary?
+            </div>
+            <div style={{ overflowX: "auto", marginTop: 8 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 6 }}>policy</th>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 6 }}>delivered_info_proxy_mean</th>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 6 }}>driver_info_true_mean</th>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 6 }}>mean_entropy_auc</th>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 6 }}>ttfd</th>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 6 }}>coverage_auc</th>
+                    <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 6 }}>mdc_violation_rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const p1 = batchPolicyStatsForMetric(summary, "delivered_info_proxy_mean");
+                    const p2 = batchPolicyStatsForMetric(summary, "driver_info_true_mean");
+                    const p3 = batchPolicyStatsForMetric(summary, "mean_entropy_auc");
+                    const p4 = batchPolicyStatsForMetric(summary, "ttfd");
+                    const p5 = batchPolicyStatsForMetric(summary, "coverage_auc");
+                    const p6 = batchPolicyStatsForMetric(summary, "mdc_violation_rate");
+                    const pols = Array.from(
+                      new Set([
+                        ...Object.keys(p1 || {}),
+                        ...Object.keys(p2 || {}),
+                        ...Object.keys(p3 || {}),
+                        ...Object.keys(p4 || {}),
+                        ...Object.keys(p5 || {}),
+                        ...Object.keys(p6 || {}),
+                      ])
+                    ).sort();
+                    return pols.map((pol) => (
+                      <tr key={pol}>
+                        <td style={{ borderBottom: "1px solid #eee", padding: 6 }}>{pol}</td>
+                        <td style={{ borderBottom: "1px solid #eee", padding: 6 }}>{fmtNum(p1?.[pol]?.mean, 6)}</td>
+                        <td style={{ borderBottom: "1px solid #eee", padding: 6 }}>{fmtNum(p2?.[pol]?.mean, 6)}</td>
+                        <td style={{ borderBottom: "1px solid #eee", padding: 6 }}>{fmtNum(p3?.[pol]?.mean, 6)}</td>
+                        <td style={{ borderBottom: "1px solid #eee", padding: 6 }}>{fmtNum(p4?.[pol]?.mean, 6)}</td>
+                        <td style={{ borderBottom: "1px solid #eee", padding: 6 }}>{fmtNum(p5?.[pol]?.mean, 6)}</td>
+                        <td style={{ borderBottom: "1px solid #eee", padding: 6 }}>{fmtNum(p6?.[pol]?.mean, 6)}</td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
           <div className="card" style={{ marginTop: 10 }}>
             <h2 style={{ marginTop: 0 }}>MDC-truth quick read</h2>

@@ -49,6 +49,46 @@ function toNumberOrNull(x: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function usefulnessProxyRead(summary: Summary | null): {
+  deliveredMetric: string;
+  deliveredValue: number | null;
+  beliefMetric: string;
+  beliefValue: number | null;
+  ttfdValue: number | null;
+  note: string;
+} {
+  if (!summary) {
+    return {
+      deliveredMetric: "—",
+      deliveredValue: null,
+      beliefMetric: "—",
+      beliefValue: null,
+      ttfdValue: null,
+      note: "No usefulness-oriented reading available.",
+    };
+  }
+
+  const by = (summary as any)?.policy_stats_by_metric ?? {};
+  const bestPolicy = String((summary as any)?.best?.policy ?? "").trim();
+  const deliveredMetric =
+    by?.delivered_info_proxy_mean?.[bestPolicy]?.mean != null
+      ? "delivered_info_proxy_mean"
+      : by?.driver_info_true_mean?.[bestPolicy]?.mean != null
+      ? "driver_info_true_mean"
+      : "delivered_info_proxy_mean";
+  const deliveredValue = toNumberOrNull(by?.[deliveredMetric]?.[bestPolicy]?.mean);
+  const beliefMetric = "mean_entropy_auc";
+  const beliefValue = toNumberOrNull(by?.mean_entropy_auc?.[bestPolicy]?.mean);
+  const ttfdValue = toNumberOrNull(by?.ttfd?.[bestPolicy]?.mean);
+
+  const note =
+    deliveredValue === null || beliefValue === null
+      ? "Usefulness-style reading is partial here because one or more proxy metrics are missing from the current summary artifact."
+      : "Read delivered information and belief quality side by side. A strong real-fire usefulness-style slice does not assume that more delivered information automatically yields better belief improvement.";
+
+  return { deliveredMetric, deliveredValue, beliefMetric, beliefValue, ttfdValue, note };
+}
+
 function summarizeStudyRole(summary: Summary | null): string {
   if (!summary) return "Study summary artifact";
   const sem = (summary as any)?.study_semantics ?? {};
@@ -835,6 +875,7 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
           const regimeSemantics = studySemantics?.regime_semantics ?? {};
           const metricSemantics = (s as any)?.metric_semantics ?? {};
           const tierStyle = tierCardStyle(studySemantics?.comparison_tier);
+          const usefulnessRead = usefulnessProxyRead(s);
           const net = baseManifest?.network || {};
           const impairments = baseManifest?.impairments || {};
           const o1 = baseManifest?.o1 || {};
@@ -1029,6 +1070,43 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
                 </div>
               </div>
             ) : null}
+            <div className="card" style={{ marginTop: 10 }}>
+              <h2 style={{ marginTop: 0 }}>Usefulness-oriented quick read</h2>
+              <div className="small" style={{ opacity: 0.84, lineHeight: 1.5 }}>
+                This bounded Subgoal-07 reading block reconnects the study to the earlier usefulness-wedge logic:
+                compare <b>information delivered</b> with <b>belief improvement</b>, then interpret <b>ttfd</b>
+                as supporting context rather than as the whole story.
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 8,
+                  marginTop: 10,
+                }}
+                className="studySummaryStatsGrid"
+              >
+                <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
+                  <h2 style={{ marginTop: 0, fontSize: 16 }}>Delivered information proxy</h2>
+                  <div className="small">
+                    <b>{usefulnessRead.deliveredMetric}</b>
+                    <div style={{ marginTop: 6, opacity: 0.82 }}>{fmt(usefulnessRead.deliveredValue, 6)}</div>
+                  </div>
+                </div>
+                <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
+                  <h2 style={{ marginTop: 0, fontSize: 16 }}>Belief-quality proxy</h2>
+                  <div className="small">
+                    <b>{usefulnessRead.beliefMetric}</b>
+                    <div style={{ marginTop: 6, opacity: 0.82 }}>{fmt(usefulnessRead.beliefValue, 6)}</div>
+                  </div>
+                </div>
+                <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
+                  <h2 style={{ marginTop: 0, fontSize: 16 }}>Responsiveness context</h2>
+                  <div className="small"><b>ttfd</b><div style={{ marginTop: 6, opacity: 0.82 }}>{fmt(usefulnessRead.ttfdValue, 6)}</div></div>
+                </div>
+              </div>
+              <div className="small" style={{ marginTop: 10, opacity: 0.8 }}>{usefulnessRead.note}</div>
+            </div>
 
             <div className="card" style={{ marginTop: 10 }}>
               <h2 style={{ marginTop: 0 }}>Protocol reading note</h2>

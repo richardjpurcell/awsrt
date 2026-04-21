@@ -625,6 +625,9 @@ function summarizeBaseManifestContext(args: {
   cCov: number;
   epsRef: number;
   regimeEnabled: boolean;
+  executionWindowEnabled: boolean;
+  executionWindowStartStep: number;
+  executionWindowEndStepExclusive: string;
   regimeMode: "advisory" | "active";
 }): string {
   const parts: string[] = [];
@@ -644,6 +647,15 @@ function summarizeBaseManifestContext(args: {
       : "belief_update:off"
   );
   parts.push(
+    args.executionWindowEnabled
+      ? `window=${args.executionWindowStartStep}:${
+          String(args.executionWindowEndStepExclusive).trim() === ""
+            ? "end"
+            : String(args.executionWindowEndStepExclusive).trim()
+        }`
+      : "window=full"
+  );
+  parts.push(
     args.regimeEnabled
       ? `regime=${args.regimeMode}`
       : "regime=off"
@@ -660,6 +672,9 @@ export default function AnalysisBatchPage() {
   const [phyIds, setPhyIds] = useState<string[]>([]);
   const [phyId, setPhyId] = useState("");
   const [studyPresetId, setStudyPresetId] = useState<StudyPresetId>("");
+  const [executionWindowEnabled, setExecutionWindowEnabled] = useState(false);
+  const [executionWindowStartStep, setExecutionWindowStartStep] = useState(0);
+  const [executionWindowEndStepExclusive, setExecutionWindowEndStepExclusive] = useState("");
   const [presetId, setPresetId] = useState<PresetId>("");
   const [studyFamily, setStudyFamily] = useState<StudyFamily>("baseline_compare");
   const [comparisonAxis, setComparisonAxis] = useState<ComparisonAxis>("policy");
@@ -941,6 +956,9 @@ export default function AnalysisBatchPage() {
         cCov,
         epsRef,
         regimeEnabled,
+        executionWindowEnabled,
+        executionWindowStartStep,
+        executionWindowEndStepExclusive,
         regimeMode,
       }),
     [mode, tieBreaking, n, radiusM, moveM, maxMovesPerStep, minSepM, noiseLevel, delaySteps, lossProb, o1Enabled, cInfo, cCov, epsRef, regimeEnabled, regimeMode]
@@ -984,6 +1002,15 @@ export default function AnalysisBatchPage() {
       const manifest = {
         run_mode: "closed_loop",
         phy_id: phyId,
+        execution_window: executionWindowEnabled
+          ? {
+              start_step: Math.max(0, executionWindowStartStep),
+              end_step_exclusive:
+                executionWindowEndStepExclusive.trim() === ""
+                  ? null
+                  : Math.max(1, parseInt(executionWindowEndStepExclusive, 10) || 1),
+            }
+          : null,
 
         impairments: {
           // delta/epsilon/rho/tau are operational MDC knobs; keep defaults consistent with Operational Designer
@@ -1137,6 +1164,14 @@ export default function AnalysisBatchPage() {
       <div className="small" style={{ opacity: 0.82, lineHeight: 1.45, marginTop: 6 }}>
         <b>{studyDesignerRoleText()}</b>
       </div>
+        <div className="small" style={{ opacity: 0.8, lineHeight: 1.45, marginTop: 8 }}>
+          For Subgoal 07, prefer bounded transformed real-fire comparison studies that help answer a narrow readiness question:
+          can current analysis surfaces support one usefulness-style verification slice without broad rework?
+        </div>
+        <div className="small" style={{ opacity: 0.76, lineHeight: 1.45, marginTop: 6 }}>
+          In practice, that usually means one real-fire physical context, a small policy set, a small seed set,
+          and one clean comparison contrast rather than a broad campaign.
+        </div>
 
       <div className="card" style={{ marginTop: 10, background: "rgba(0,0,0,0.02)" }}>
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Role of this page</h2>
@@ -1150,6 +1185,45 @@ export default function AnalysisBatchPage() {
 
       <div style={{ marginTop: 10 }}>
         <RunPicker label="Physical Run" ids={phyIds} value={phyId} onChange={setPhyId} />
+      </div>
+
+      <div className="card" style={{ marginTop: 10 }}>
+        <h2 style={{ marginTop: 0 }}>Execution window</h2>
+        <div className="small" style={{ opacity: 0.85, lineHeight: 1.4 }}>
+          Optional bounded execution interval within the selected source physical run.
+          This lets Analysis Batch create studies against a local real-fire window rather than the full source horizon.
+        </div>
+
+        <div className="row" style={{ marginTop: 10 }}>
+          <label>enabled</label>
+          <select
+            value={executionWindowEnabled ? "yes" : "no"}
+            onChange={(e) => setExecutionWindowEnabled(e.target.value === "yes")}
+            disabled={busy}
+          >
+            <option value="no">no</option>
+            <option value="yes">yes</option>
+          </select>
+
+          <label>start_step</label>
+          <input
+            type="number"
+            min={0}
+            value={executionWindowStartStep}
+            onChange={(e) => setExecutionWindowStartStep(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            disabled={busy || !executionWindowEnabled}
+          />
+
+          <label>end_step_exclusive</label>
+          <input
+            type="number"
+            min={1}
+            value={executionWindowEndStepExclusive}
+            onChange={(e) => setExecutionWindowEndStepExclusive(e.target.value)}
+            disabled={busy || !executionWindowEnabled}
+            placeholder="leave blank = source horizon end"
+          />
+        </div>
       </div>
 
       <div className="card" style={{ marginTop: 10 }}>
@@ -1231,7 +1305,7 @@ export default function AnalysisBatchPage() {
             <h2 style={{ marginTop: 0, fontSize: 16 }}>Good first main studies</h2>
             <div className="small" style={{ lineHeight: 1.5 }}>
               <b>baseline_policy_main</b>, <b>mdc_policy_main</b>, <b>budget_main</b>, <b>regime_active_main</b>,
-              <b>regime_advisory_main</b><b>regime_active_main</b>
+              <b>regime_advisory_main</b>
             </div>
           </div>
           <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
@@ -1239,8 +1313,21 @@ export default function AnalysisBatchPage() {
             <div className="small" style={{ lineHeight: 1.5 }}>
               <b>impairment_diagnostic</b>, <b>delay_diagnostic</b>, <b>noise_diagnostic</b>,
               <b>regime_persistence_diagnostic</b>, <b>regime_hysteresis_diagnostic</b>, <b>verification_quick</b>
-<b>regime_hysteresis_diagnostic</b>, <b>verification_quick</b>
             </div>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: 10, background: "rgba(0,0,0,0.02)" }}>
+          <h2 style={{ marginTop: 0, fontSize: 16 }}>Subgoal 07 bounded pilot guidance</h2>
+          <div className="small" style={{ lineHeight: 1.5 }}>
+            Prefer a single transformed real-fire <b>phy_id</b>, a compact policy set such as
+            <b> greedy / uncertainty / mdc_info</b>, and one small contrast family
+            (for example, <b>base + one moderate impairment case</b>).
+          </div>
+          <div className="small" style={{ marginTop: 8, lineHeight: 1.5, opacity: 0.82 }}>
+            The immediate aim is not a broad sweep. It is to verify that Analysis can summarize and display
+            <b> delivered information</b>, <b>belief improvement</b>, and any visible gap between them
+            on a bounded real-fire study.
           </div>
         </div>
       </div>
@@ -1693,24 +1780,6 @@ export default function AnalysisBatchPage() {
           </div>
         ) : null}
 
-        <div className="card" style={{ marginTop: 10, background: "rgba(0,0,0,0.02)" }}>
-          <h2 style={{ marginTop: 0, fontSize: 16 }}>Curated v0.2 bundle guide</h2>
-          <div className="small" style={{ lineHeight: 1.5 }}>
-            For Subgoal M, prefer a small release-facing bundle rather than a broad campaign.
-          </div>
-          <div className="small" style={{ marginTop: 8, lineHeight: 1.5 }}>
-            <b>Bundle A — compact usefulness triad:</b> use representative single runs in Operational Visualizer
-            for healthy / delay-heavy / noise-heavy usefulness-prototype reading.
-          </div>
-          <div className="small" style={{ marginTop: 6, lineHeight: 1.5 }}>
-            <b>Bundle B — advisory vs active comparison:</b> start with <b>regime_advisory_main</b> and <b>regime_active_main</b>.
-          </div>
-          <div className="small" style={{ marginTop: 6, lineHeight: 1.5 }}>
-            <b>Bundle C — mechanism-audit bundle:</b> use one active opportunistic-family study here,
-            then inspect one representative run in Operational Visualizer with mechanism audit enabled.
-          </div>
-        </div>
-
         <div
           style={{
             display: "grid",
@@ -1917,6 +1986,9 @@ export default function AnalysisBatchPage() {
           <div className="small" style={{ lineHeight: 1.6 }}>
             <div>
               physical run: <b>{phyId || "—"}</b>
+            </div>
+            <div>
+              execution window: <b>{executionWindowEnabled ? `${executionWindowStartStep}:${executionWindowEndStepExclusive.trim() || "end"}` : "full source horizon"}</b>
             </div>
             <div>
               study family: <b>{studyFamily}</b> · axis: <b>{comparisonAxis}</b> · tier: <b>{comparisonTier}</b>
