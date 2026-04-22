@@ -19,6 +19,13 @@ type FigureKind = "ablation" | "winrate" | "tradeoff";
 type FigureSize = "single" | "compact" | "double";
 type DisplayWidth = "full" | "half" | "third";
 
+function usefulnessMetricOptionsFor(summary: any): string[] {
+  const xs = Array.isArray(summary?.metrics_catalog?.usefulness_centered)
+    ? (summary.metrics_catalog.usefulness_centered as any[]).map(String)
+    : [];
+  return xs.filter(Boolean);
+}
+
 function metricOptionsFor(summary: any): string[] {
   const mdir = summary?.metrics_catalog?.direction ?? {};
   const keys = Object.keys(mdir || {});
@@ -26,6 +33,13 @@ function metricOptionsFor(summary: any): string[] {
     "ttfd",
     "mean_entropy_auc",
     "coverage_auc",
+    "usefulness_regime_state_exploit_frac",
+    "usefulness_regime_state_recover_frac",
+    "usefulness_regime_state_caution_frac",
+    "usefulness_trigger_recover_hits",
+    "usefulness_trigger_caution_hits",
+    "usefulness_trigger_recover_from_caution_hits",
+    "usefulness_trigger_exploit_hits",
     "regime_utilization_mean",
     "regime_strict_drift_proxy_mean",
     "regime_local_drift_rate_mean",
@@ -42,6 +56,23 @@ function metricOptionsFor(summary: any): string[] {
   ];
   const rest = keys.filter((k) => !prefer.includes(k)).sort();
   return [...prefer.filter((k) => keys.includes(k)), ...rest];
+}
+
+function defaultTradeoffYFor(summary: any): string {
+  const usefulness = usefulnessMetricOptionsFor(summary);
+  if (usefulness.includes("usefulness_regime_state_recover_frac")) {
+    return "usefulness_regime_state_recover_frac";
+  }
+  if (usefulness.includes("usefulness_regime_state_caution_frac")) {
+    return "usefulness_regime_state_caution_frac";
+  }
+  if (usefulness.includes("usefulness_regime_state_exploit_frac")) {
+    return "usefulness_regime_state_exploit_frac";
+  }
+  if (metricOptionsFor(summary).includes("mean_entropy_auc")) {
+    return "mean_entropy_auc";
+  }
+  return "coverage_auc";
 }
 
 function caseKeys(summary: any): string[] {
@@ -97,7 +128,7 @@ export default function FigureStudio({ summaries, orderedStudyIds, defaultStudyI
   const [displayWidth, setDisplayWidth] = useState<DisplayWidth>("half");
 
   // Tradeoff controls
-  const [tradeY, setTradeY] = useState<string>("mean_entropy_auc");
+  const [tradeY, setTradeY] = useState<string>("coverage_auc");
   const [tradeCase, setTradeCase] = useState<string>("__all__");
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -105,6 +136,15 @@ export default function FigureStudio({ summaries, orderedStudyIds, defaultStudyI
   const s = summaries?.[activeStudy] ?? null;
 
   const metrics = useMemo(() => (s ? metricOptionsFor(s) : []), [s]);
+  const usefulnessMetrics = useMemo(
+    () => (s ? usefulnessMetricOptionsFor(s) : []),
+    [s]
+  );
+
+  React.useEffect(() => {
+    if (!s) return;
+    setTradeY((prev) => (prev && prev !== "coverage_auc" ? prev : defaultTradeoffYFor(s)));
+  }, [s]);
 
   const chosenMetric = useMemo(() => {
     if (!s) return "";
@@ -260,6 +300,21 @@ export default function FigureStudio({ summaries, orderedStudyIds, defaultStudyI
             <select value={tradeY} onChange={(e) => setTradeY(String(e.target.value))} style={{ minWidth: 260 }}>
               <option value="mean_entropy_auc">mean_entropy_auc</option>
               <option value="coverage_auc">coverage_auc</option>
+              {usefulnessMetrics.includes("usefulness_regime_state_exploit_frac") ? (
+                <option value="usefulness_regime_state_exploit_frac">usefulness_regime_state_exploit_frac</option>
+              ) : null}
+              {usefulnessMetrics.includes("usefulness_regime_state_recover_frac") ? (
+                <option value="usefulness_regime_state_recover_frac">usefulness_regime_state_recover_frac</option>
+              ) : null}
+              {usefulnessMetrics.includes("usefulness_regime_state_caution_frac") ? (
+                <option value="usefulness_regime_state_caution_frac">usefulness_regime_state_caution_frac</option>
+              ) : null}
+              {usefulnessMetrics.includes("usefulness_trigger_recover_hits") ? (
+                <option value="usefulness_trigger_recover_hits">usefulness_trigger_recover_hits</option>
+              ) : null}
+              {usefulnessMetrics.includes("usefulness_trigger_caution_hits") ? (
+                <option value="usefulness_trigger_caution_hits">usefulness_trigger_caution_hits</option>
+              ) : null}
               <option value="regime_utilization_mean">regime_utilization_mean</option>
               <option value="regime_strict_drift_proxy_mean">regime_strict_drift_proxy_mean</option>
               <option value="regime_local_drift_rate_mean">regime_local_drift_rate_mean</option>
@@ -368,12 +423,14 @@ export default function FigureStudio({ summaries, orderedStudyIds, defaultStudyI
             <b>{String(s?.choose_best_by ?? "—")}</b>
             {" "}· size: <b>{preset.label}</b>
             {" "}· display: <b>{displayWidth}</b>
+            {" "}· usefulness-metrics: <b>{usefulnessMetrics.length}</b>
           </>
         ) : null}
       </div>
       <div className="small" style={{ marginTop: 6, opacity: 0.72 }}>
-        Regime metrics are exposed here as diagnostic / proxy / control-behavior summaries. They are useful for sweep analysis,
-        but should not be interpreted by themselves as proof of control correctness or MDC truth.
+        Regime and usefulness-family metrics are exposed here as diagnostic, family-reading, and control-behavior summaries.
+        They are useful for bounded sweep analysis, but should not be interpreted by themselves as proof of controller correctness or as a substitute for study-level scientific reading.
+
       </div>
     </div>
   );

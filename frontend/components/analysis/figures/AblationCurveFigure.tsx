@@ -33,6 +33,38 @@ type Props = {
 
 type Point = { x: number; y: number; err: number | null };
 
+function metricDisplayLabel(metric: string): string {
+  const m = String(metric || "").trim();
+  if (!m) return "metric";
+
+  const usefulnessLabels: Record<string, string> = {
+    usefulness_regime_state_exploit_frac: "exploit fraction",
+    usefulness_regime_state_recover_frac: "recover fraction",
+    usefulness_regime_state_caution_frac: "caution fraction",
+    usefulness_trigger_recover_hits: "recover trigger hits",
+    usefulness_trigger_caution_hits: "caution trigger hits",
+    usefulness_trigger_recover_from_caution_hits: "recover-from-caution trigger hits",
+    usefulness_trigger_exploit_hits: "exploit trigger hits",
+  };
+
+  if (m in usefulnessLabels) return usefulnessLabels[m];
+  return m;
+}
+
+function defaultXAxisLabel(summary: any): string {
+  const sweepCtx = summary?.sweep_context ?? {};
+  const primarySweepKey = String(sweepCtx?.primary_sweep_key ?? "").trim();
+
+  if (primarySweepKey === "impairments.delay_steps") return "delay level";
+  if (primarySweepKey === "impairments.noise_level") return "noise level";
+  if (primarySweepKey === "impairments.loss_prob") return "loss level";
+  if (primarySweepKey === "n_sensors") return "sensor budget level";
+  if (primarySweepKey === "persistence_steps") return "persistence level";
+  if (primarySweepKey === "hysteresis_band") return "hysteresis level";
+
+  return "case (ablation level)";
+}
+
 function caseOrderAndLabels(summary: any): Array<{ key: string; label: string; level: number }> {
   const sweep = Array.isArray(summary?.sweep) ? summary.sweep : [];
   if (sweep.length) {
@@ -52,6 +84,18 @@ function metricDirection(summary: any, metric: string): "min" | "max" {
   const d = String(summary?.metrics_catalog?.direction?.[metric] ?? "").toLowerCase().trim();
   if (d === "min" || d === "max") return d;
   const m = String(metric || "").toLowerCase();
+
+  if (m === "usefulness_regime_state_exploit_frac") return "max";
+  if (m === "usefulness_regime_state_recover_frac") return "max";
+  if (m === "usefulness_regime_state_caution_frac") return "max";
+  if (m === "usefulness_trigger_recover_hits") return "max";
+  if (m === "usefulness_trigger_caution_hits") return "max";
+  if (m === "usefulness_trigger_recover_from_caution_hits") return "max";
+  if (m === "usefulness_trigger_exploit_hits") return "max";
+
+  if (m.includes("exploit_frac")) return "max";
+  if (m.includes("recover_frac")) return "max";
+  if (m.includes("caution_frac")) return "max";
   if (m === "ttfd") return "min";
   if (m.includes("time") || m.includes("latency")) return "min";
   if (m.includes("entropy")) return "min";
@@ -82,6 +126,8 @@ export default function AblationCurveFigure({
   const data = useMemo(() => {
     const m = String(metric || "").trim();
     const cases = caseOrderAndLabels(summary);
+    const metricLabel = metricDisplayLabel(m);
+    void metricLabel;
 
     // Shape (from your sample): case_policy_stats_by_metric[metric][case][policy] = {mean,std,n}
     const byMetric = summary?.case_policy_stats_by_metric ?? {};
@@ -176,7 +222,8 @@ export default function AblationCurveFigure({
 
   const xTickLabels = data.cases.map((c) => (caseLabelMode === "level" ? String(c.level) : c.label));
   const yTicks = niceTicks(yMin, yMax, 5);
-
+  const resolvedYLabel = yLabel ?? metricDisplayLabel(metric);
+  const resolvedXLabel = xLabel ?? defaultXAxisLabel(summary);
   const legendRows = layoutLegendRows(
     data.policies.map((p, i) => ({ key: p, label: p, i })),
     innerW,
@@ -268,7 +315,7 @@ export default function AblationCurveFigure({
 
           {/* Axis labels */}
           <text x={margin.l + innerW / 2} y={xLabelY} fontSize="12" textAnchor="middle" fill="rgba(0,0,0,0.78)">
-            {xLabel ?? "case (ablation level)"}
+            {resolvedXLabel}
           </text>
           <text
             x={16}
@@ -278,7 +325,7 @@ export default function AblationCurveFigure({
             fill="rgba(0,0,0,0.78)"
             transform={`rotate(-90 16 ${margin.t + innerH / 2})`}
           >
-            {yLabel ?? metric}
+            {resolvedYLabel}
           </text>
 
           {/* Series */}
@@ -333,7 +380,7 @@ export default function AblationCurveFigure({
                   return (
                     <circle key={i} cx={x} cy={y} r={3.2} fill="rgba(0,0,0,0.78)">
                       <title>
-                        {`${policyDisplayLabel(summary, p)} · ${caseLabelMode === "level" ? `level=${pt.x}` : xTickLabels[pt.x] ?? `level=${pt.x}`} · ${metric}=${fmt(pt.y, Math.min(6, yTickDigits + 1))}${pt.err !== null ? ` ± ${fmt(pt.err, Math.min(6, yTickDigits + 1))}` : ""}`}
+                        {`${policyDisplayLabel(summary, p)} · ${caseLabelMode === "level" ? `level=${pt.x}` : xTickLabels[pt.x] ?? `level=${pt.x}`} · ${resolvedYLabel}=${fmt(pt.y, Math.min(6, yTickDigits + 1))}${pt.err !== null ? ` ± ${fmt(pt.err, Math.min(6, yTickDigits + 1))}` : ""}`}
                       </title>
                     </circle>
                   );
@@ -383,8 +430,13 @@ export default function AblationCurveFigure({
       </div>
 
       <div className="small" style={{ marginTop: 8, opacity: 0.75 }}>
-        Evidence: <b>summary.json.case_policy_stats_by_metric</b> → mean ± {errorMode === "stderr" ? "stderr" : errorMode} across seeds.{" "}
-        Interpretation: <b>{direction === "min" ? "lower is better" : "higher is better"}</b>.
+        Evidence: <b>summary.json.case_policy_stats_by_metric</b> → mean ± {errorMode === "stderr" ? "stderr" : errorMode} across seeds.
+        {" "}Interpretation: <b>{direction === "min" ? "lower is better" : "higher is better"}</b>.
+      </div>
+      <div className="small" style={{ marginTop: 6, opacity: 0.72 }}>
+        This figure is suitable for bounded sweep reading across impairment levels, usefulness-family occupancy fractions,
+        trigger-hit summaries, and other case-ordered study metrics. Interpret it as a family-behavior view, not as a replacement
+        for full study semantics.
       </div>
     </div>
   );

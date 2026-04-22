@@ -26,6 +26,20 @@ type Props = {
   height?: number;
 };
 
+function defaultXAxisLabel(summary: any): string {
+  const sweepCtx = summary?.sweep_context ?? {};
+  const primarySweepKey = String(sweepCtx?.primary_sweep_key ?? "").trim();
+
+  if (primarySweepKey === "impairments.delay_steps") return "delay level";
+  if (primarySweepKey === "impairments.noise_level") return "noise level";
+  if (primarySweepKey === "impairments.loss_prob") return "loss level";
+  if (primarySweepKey === "n_sensors") return "sensor budget level";
+  if (primarySweepKey === "persistence_steps") return "persistence level";
+  if (primarySweepKey === "hysteresis_band") return "hysteresis level";
+
+  return "case (ablation level)";
+}
+
 function caseOrderAndLabels(summary: any): Array<{ key: string; label: string; level: number }> {
   const sweep = Array.isArray(summary?.sweep) ? summary.sweep : [];
   if (sweep.length) {
@@ -142,7 +156,9 @@ export default function WinRateFigure({
 
   const xTickLabels = data.cases.map((c) => (caseLabelMode === "level" ? String(c.level) : c.label));
   const yTicks = niceTicks(0, 1, 5);
-
+  const resolvedXLabel = defaultXAxisLabel(summary);
+  const xLabelsNeedRotation = caseLabelMode === "label" && xTickLabels.some((s) => String(s).length > 10);
+  const xTickY = axisY + (xLabelsNeedRotation ? 14 : 22);
   const showEveryXTicks = data.cases.length > 10 ? 2 : 1;
 
   const legendRows = layoutLegendRows(
@@ -156,16 +172,21 @@ export default function WinRateFigure({
   );
 
   const axisY = margin.t + innerH;
-  const xLabelY = axisY + 48;      // below tick labels, above legend
-  const legendBaseY = H - 18;      // bottom padding for legend last row
-  const legendRowDy = 22;          // row spacing
+  const xLabelY = axisY + 48;
+  const legendBaseY = H - 18;
+  const legendRowDy = 22;
+  const studyFamily = String(summary?.study_semantics?.study_family ?? "").trim();
+  const usefulnessFamilyLike = studyFamily === "usefulness_family_compare" || studyFamily === "verification" || studyFamily === "impairment_diagnostic";
+
 
   return (
     <div>
       <div className="small" style={{ marginBottom: 8 }}>
         <b>{title}</b>{" "}
         <span style={{ opacity: 0.75 }}>
-          · metric=<b>{metric}</b> · baseline=<b>{baselinePolicy}</b> · higher is better
+          · metric=<b>{metric}</b>
+          {" · "}baseline=<b>{baselinePolicy}</b>
+          {" · "}higher is better
         </span>
       </div>
 
@@ -220,7 +241,14 @@ export default function WinRateFigure({
               <g key={c.key}>
                 <line x1={x} y1={margin.t} x2={x} y2={y0} stroke="rgba(0,0,0,0.06)" />
                 <line x1={x} y1={y0} x2={x} y2={y0 + 6} stroke="rgba(0,0,0,0.55)" />
-                <text x={x} y={y0 + 22} fontSize="12" textAnchor="middle" fill="rgba(0,0,0,0.78)">
+                <text
+                  x={x}
+                  y={xTickY}
+                  fontSize="12"
+                  textAnchor="middle"
+                  fill="rgba(0,0,0,0.78)"
+                  transform={xLabelsNeedRotation ? `rotate(-30 ${x} ${xTickY})` : undefined}
+                >
                   {xTickLabels[i]}
                 </text>
               </g>
@@ -228,7 +256,7 @@ export default function WinRateFigure({
           })}
 
           <text x={margin.l + innerW / 2} y={xLabelY} fontSize="12" textAnchor="middle" fill="rgba(0,0,0,0.78)">
-            case (ablation level)
+            {resolvedXLabel}
           </text>
           <text
             x={16}
@@ -325,6 +353,12 @@ export default function WinRateFigure({
       </div>
       <div className="small" style={{ marginTop: 4, opacity: 0.72 }}>
         The dashed horizontal line marks <b>0.5</b> win-rate, i.e. parity with the baseline under paired comparisons.
+      </div>
+      <div className="small" style={{ marginTop: 4, opacity: 0.72 }}>
+        {usefulnessFamilyLike
+          ? "For bounded usefulness-family studies, read this as a comparative dominance view across case levels rather than as a standalone semantic proof. It is strongest when used alongside occupancy fractions, trigger-hit summaries, and the study semantics block."
+          : "Use this figure as a paired-comparison view across case levels; it complements mean/variance summaries rather than replacing them."
+        }
       </div>
     </div>
   );

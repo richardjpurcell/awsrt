@@ -13,6 +13,8 @@ type SweepCase = { label: string; overrides: Record<string, any> };
 type StudyFamily =
   | "baseline_compare"
   | "mdc_compare"
+  | "usefulness_family_compare"
+  | "usefulness_diagnostic"
   | "regime_advisory_compare"
   | "regime_active_compare"
   | "impairment_diagnostic"
@@ -21,6 +23,7 @@ type StudyFamily =
 type ComparisonAxis =
   | "policy"
   | "regime_family"
+  | "usefulness_family"
   | "impairment"
   | "budget"
   | "persistence"
@@ -36,6 +39,7 @@ type StudyPresetId =
   | ""
   | "baseline_policy_main"
   | "mdc_policy_main"
+  | "usefulness_family_main"
   | "budget_main"
   | "regime_advisory_main"
   | "regime_active_main"
@@ -53,6 +57,7 @@ type StudyPresetId =
 type PresetId =
   | ""
   | "loss"
+  | "usefulness_family"
   | "delay"
   | "noise"
   | "budget_n_sensors"
@@ -166,6 +171,38 @@ function hysteresisSweepCasesForFamily(
   }));
 }
 
+function usefulnessOverridesForProbe(
+  probe: "healthy" | "delay" | "noise"
+): Record<string, any> {
+  const common = {
+    "network.policy": "usefulness_proto",
+    "study.case_family": "usefulness",
+  };
+
+  if (probe === "healthy") {
+    return mergeOverrides(common, {
+      "impairments.noise_level": 0.0,
+      "impairments.delay_steps": 0,
+      "impairments.loss_prob": 0.0,
+      "study.case_kind": "healthy",
+    });
+  }
+  if (probe === "delay") {
+    return mergeOverrides(common, {
+      "impairments.noise_level": 0.0,
+      "impairments.delay_steps": 4,
+      "impairments.loss_prob": 0.0,
+      "study.case_kind": "delay",
+    });
+  }
+  return mergeOverrides(common, {
+    "impairments.noise_level": 0.2,
+    "impairments.delay_steps": 0,
+    "impairments.loss_prob": 0.0,
+    "study.case_kind": "noise",
+  });
+}
+
 const SWEEP_PRESETS: Array<{ id: PresetId; label: string; cases: SweepCase[] }> = [
   {
     id: "loss",
@@ -174,6 +211,15 @@ const SWEEP_PRESETS: Array<{ id: PresetId; label: string; cases: SweepCase[] }> 
       label: `loss=${v.toFixed(2)}`,
       overrides: { "impairments.loss_prob": v },
     })),
+  },
+  {
+    id: "usefulness_family",
+    label: "Usefulness family: healthy vs delay vs noise",
+    cases: [
+      { label: "healthy", overrides: usefulnessOverridesForProbe("healthy") },
+      { label: "delay", overrides: usefulnessOverridesForProbe("delay") },
+      { label: "noise", overrides: usefulnessOverridesForProbe("noise") },
+    ],
   },
   {
     id: "delay",
@@ -289,6 +335,7 @@ type StudyPresetConfig = {
   id: StudyPresetId;
   group:
     | "Main comparison · Policy studies"
+    | "Main comparison · Usefulness studies"
     | "Main comparison · Resource / budget studies"
     | "Main comparison · Regime studies"
     | "Diagnostic · Impairment studies"
@@ -341,6 +388,26 @@ const STUDY_PRESETS: StudyPresetConfig[] = [
     },
     presetId: "",
     studyLabel: "MDC vs baseline policy comparison",
+  },
+  {
+    id: "usefulness_family_main",
+    group: "Main comparison · Usefulness studies",
+    label: "Main · Usefulness family comparison",
+    description:
+      "A bounded study comparing canonical healthy / delay / noise usefulness probes across transformed real-fire contexts.",
+    studyFamily: "usefulness_family_compare",
+    comparisonAxis: "usefulness_family",
+    comparisonTier: "main",
+    chooseBestBy: "mean_entropy_auc",
+    policies: {
+      random_feasible: false,
+      greedy: false,
+      uncertainty: false,
+      mdc_info: false,
+      usefulness_proto: true,
+    },
+    presetId: "usefulness_family",
+    studyLabel: "Usefulness family comparison",
   },
   {
     id: "budget_main",
@@ -582,6 +649,7 @@ const STUDY_PRESETS: StudyPresetConfig[] = [
 
 const STUDY_PRESET_GROUP_ORDER: StudyPresetConfig["group"][] = [
   "Main comparison · Policy studies",
+  "Main comparison · Usefulness studies",
   "Main comparison · Resource / budget studies",
   "Main comparison · Regime studies",
   "Diagnostic · Impairment studies",
@@ -663,6 +731,14 @@ function summarizeBaseManifestContext(args: {
   return parts.join(" · ");
 }
 
+function effectivePresetOrigin(presetId: PresetId): string {
+  // Avoid sending the legacy usefulness preset-origin tag, because older
+  // backend semantics may normalize it into an implicit base + probes study
+  // even when the visible sweep only contains healthy / delay / noise.
+  if (presetId === "usefulness_family") return "analysis_batch_usefulness_triad";
+  return presetId || "analysis_batch_custom";
+}
+
 function studyDesignerRoleText(): string {
   return "This is the canonical place to create ana-* comparison artifacts. Operational Designer now focuses on single-run opr-* authoring.";
 }
@@ -736,6 +812,7 @@ export default function AnalysisBatchPage() {
   const [policies, setPolicies] = useState<Record<string, boolean>>({
     random_feasible: true,
     greedy: true,
+    usefulness_proto: false,
     uncertainty: true,
     mdc_info: true,
   });
@@ -743,9 +820,9 @@ export default function AnalysisBatchPage() {
 
   // Sweep cases (JSON overrides)
   const [cases, setCases] = useState<SweepCase[]>([
-    { label: "base", overrides: {} },
-    { label: "lossy", overrides: { "impairments.loss_prob": 0.3 } },
-    { label: "delayed", overrides: { "impairments.delay_steps": 4 } },
+    { label: "healthy", overrides: usefulnessOverridesForProbe("healthy") },
+    { label: "delay", overrides: usefulnessOverridesForProbe("delay") },
+    { label: "noise", overrides: usefulnessOverridesForProbe("noise") },
   ]);
   const [caseJsonErr, setCaseJsonErr] = useState<Record<number, string>>({});
 
@@ -760,9 +837,9 @@ export default function AnalysisBatchPage() {
   const [caseOverridesText, setCaseOverridesText] = useState<Record<number, string>>(() => {
     const init: Record<number, string> = {};
     const baseCases: SweepCase[] = [
-      { label: "base", overrides: {} },
-      { label: "lossy", overrides: { "impairments.loss_prob": 0.3 } },
-      { label: "delayed", overrides: { "impairments.delay_steps": 4 } },
+      { label: "healthy", overrides: usefulnessOverridesForProbe("healthy") },
+      { label: "delay", overrides: usefulnessOverridesForProbe("delay") },
+      { label: "noise", overrides: usefulnessOverridesForProbe("noise") },
     ];
     baseCases.forEach((c, i) => (init[i] = JSON.stringify(c.overrides ?? {}, null, 2)));
     return init;
@@ -776,6 +853,13 @@ export default function AnalysisBatchPage() {
       setComparisonTier("diagnostic");
       return;
     }
+    if (presetId === "usefulness_family") {
+      setStudyFamily("usefulness_family_compare");
+      setComparisonAxis("usefulness_family");
+      setComparisonTier("main");
+      return;
+    }
+
     if (presetId === "budget_n_sensors") {
       setStudyFamily("baseline_compare");
       setComparisonAxis("budget");
@@ -874,9 +958,9 @@ export default function AnalysisBatchPage() {
       applyPreset(p.presetId);
     } else {
       setPresetId("");
-      const nextCases: SweepCase[] = [{ label: "base", overrides: {} }];
+      const nextCases: SweepCase[] = [{ label: "healthy", overrides: usefulnessOverridesForProbe("healthy") }];
       setCases(nextCases);
-      setCaseOverridesText({ 0: JSON.stringify({}, null, 2) });
+      setCaseOverridesText({ 0: JSON.stringify(usefulnessOverridesForProbe("healthy"), null, 2) });
       setCaseJsonErr({});
     }
   }
@@ -968,6 +1052,8 @@ export default function AnalysisBatchPage() {
   const studyFamilyHelp: Record<StudyFamily, string> = {
     baseline_compare: "Compare baseline deployment policies under a controlled study design.",
     mdc_compare: "Compare MDC-style information policies against baseline deployment families.",
+    usefulness_family_compare: "Compare the canonical usefulness-family probes as a bounded scientific family.",
+    usefulness_diagnostic: "Usefulness-focused diagnostic studies for stress-testing or edge-case clarification.",
     regime_advisory_compare: "Study regime-managed behavior where advisory semantics are part of the interpretation.",
     regime_active_compare: "Study active regime families where realized motion-control behavior is central.",
     impairment_diagnostic: "Stress the system with impairment sweeps for diagnostic interpretation rather than headline claims.",
@@ -977,6 +1063,7 @@ export default function AnalysisBatchPage() {
   const axisHelp: Record<ComparisonAxis, string> = {
     policy: "Use when the main comparison is across policy families.",
     regime_family: "Use when the comparison centers on balanced / opportunistic / certified regime bundles.",
+    usefulness_family: "Use when the comparison centers on healthy / delay / noise usefulness-family members.",
     impairment: "Use when channel impairment or observation degradation is the main swept factor.",
     budget: "Use when sensor count or deployment budget is the main varying quantity.",
     persistence_balanced: "Use when persistence is swept specifically within the balanced active family.",
@@ -1122,12 +1209,16 @@ export default function AnalysisBatchPage() {
           study_family: studyFamily,
           comparison_axis: comparisonAxis,
           comparison_tier: comparisonTier,
-          preset_origin: presetId || "analysis_batch_custom",
+          preset_origin: effectivePresetOrigin(presetId),
           study_label: studyLabel.trim(),
         },
         policies: selectedPolicies,
         seeds,
-        sweep: cases,
+        sweep: cases.map((c) => ({
+          label: String(c.label || ""),
+          overrides:
+            c.overrides && typeof c.overrides === "object" ? { ...c.overrides } : {},
+        })),
         choose_best_by: chooseBestBy,
       });
 
@@ -1166,7 +1257,7 @@ export default function AnalysisBatchPage() {
       </div>
         <div className="small" style={{ opacity: 0.8, lineHeight: 1.45, marginTop: 8 }}>
           For Subgoal 07, prefer bounded transformed real-fire comparison studies that help answer a narrow readiness question:
-          can current analysis surfaces support one usefulness-style verification slice without broad rework?
+          can current analysis surfaces support one bounded usefulness-family comparison without broad rework?
         </div>
         <div className="small" style={{ opacity: 0.76, lineHeight: 1.45, marginTop: 6 }}>
           In practice, that usually means one real-fire physical context, a small policy set, a small seed set,
@@ -1304,6 +1395,7 @@ export default function AnalysisBatchPage() {
           <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
             <h2 style={{ marginTop: 0, fontSize: 16 }}>Good first main studies</h2>
             <div className="small" style={{ lineHeight: 1.5 }}>
+              <b>usefulness_family_main</b>,{" "}
               <b>baseline_policy_main</b>, <b>mdc_policy_main</b>, <b>budget_main</b>, <b>regime_active_main</b>,
               <b>regime_advisory_main</b>
             </div>
@@ -1320,9 +1412,9 @@ export default function AnalysisBatchPage() {
         <div className="card" style={{ marginTop: 10, background: "rgba(0,0,0,0.02)" }}>
           <h2 style={{ marginTop: 0, fontSize: 16 }}>Subgoal 07 bounded pilot guidance</h2>
           <div className="small" style={{ lineHeight: 1.5 }}>
-            Prefer a single transformed real-fire <b>phy_id</b>, a compact policy set such as
-            <b> greedy / uncertainty / mdc_info</b>, and one small contrast family
-            (for example, <b>base + one moderate impairment case</b>).
+            Prefer a single transformed real-fire <b>phy_id</b>, one usefulness-family policy
+            (<b>usefulness_proto</b>), and the canonical three-case contrast:
+            <b> healthy / delay / noise</b>.
           </div>
           <div className="small" style={{ marginTop: 8, lineHeight: 1.5, opacity: 0.82 }}>
             The immediate aim is not a broad sweep. It is to verify that Analysis can summarize and display
@@ -1344,6 +1436,8 @@ export default function AnalysisBatchPage() {
           <select value={studyFamily} onChange={(e) => setStudyFamily(e.target.value as StudyFamily)} disabled={busy}>
             <option value="baseline_compare">baseline_compare</option>
             <option value="mdc_compare">mdc_compare</option>
+          <option value="usefulness_family_compare">usefulness_family_compare</option>
+          <option value="usefulness_diagnostic">usefulness_diagnostic</option>
             <option value="regime_advisory_compare">regime_advisory_compare</option>
             <option value="regime_active_compare">regime_active_compare</option>
             <option value="impairment_diagnostic">impairment_diagnostic</option>
@@ -1354,6 +1448,7 @@ export default function AnalysisBatchPage() {
           <select value={comparisonAxis} onChange={(e) => setComparisonAxis(e.target.value as ComparisonAxis)} disabled={busy}>
             <option value="policy">policy</option>
             <option value="regime_family">regime_family</option>
+            <option value="usefulness_family">usefulness_family</option>
             <option value="impairment">impairment</option>
             <option value="budget">budget</option>
             <option value="persistence">persistence</option>
@@ -1442,7 +1537,7 @@ export default function AnalysisBatchPage() {
         <div className="row">
           <label>Policies</label>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {["random_feasible", "greedy", "uncertainty", "mdc_info"].map((p) => (
+            {["random_feasible", "greedy", "uncertainty", "mdc_info", "usefulness_proto"].map((p) => (
               <label key={p} className="small" style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <input
                   type="checkbox"
@@ -1796,6 +1891,13 @@ export default function AnalysisBatchPage() {
             <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
               Good examples: <b>budget_n_sensors</b>, <b>regime_family_active</b>, <b>regime_mode_family</b>,
               {" "}and family-specific sensitivity studies when the question is about one active family only.
+            </div>
+            <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
+              For usefulness-family work, prefer <b>usefulness_family</b> with
+              {" "}<b>usefulness_proto</b> as the only participating policy and let the
+              {" "}family contrast live in the sweep cases
+              {" "}(<b>healthy</b>, <b>delay</b>, <b>noise</b>), with each case explicitly
+              setting all three impairment knobs.
             </div>
           </div>
           <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>

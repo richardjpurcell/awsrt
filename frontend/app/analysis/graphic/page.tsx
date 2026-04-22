@@ -49,6 +49,86 @@ function toNumberOrNull(x: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function hasUsefulnessSummary(summary: Summary): boolean {
+  if (!summary || typeof summary !== "object") return false;
+  const usefulnessCentered = Array.isArray((summary as any)?.metrics_catalog?.usefulness_centered)
+    ? ((summary as any).metrics_catalog.usefulness_centered as any[])
+    : [];
+  const policyStats = (summary as any)?.policy_stats_by_metric ?? {};
+  const usefulnessSemantics = (summary as any)?.study_semantics?.usefulness_semantics ?? {};
+
+  return (
+    Boolean(usefulnessSemantics?.usefulness_present) ||
+    Boolean(usefulnessSemantics?.usefulness_metrics_present) ||
+    "usefulness_regime_state_exploit_frac" in summary ||
+    "usefulness_regime_state_recover_frac" in summary ||
+    "usefulness_regime_state_caution_frac" in summary ||
+    "usefulness_trigger_recover_hits" in summary ||
+    "usefulness_trigger_caution_hits" in summary ||
+    usefulnessCentered.length > 0 ||
+    "usefulness_regime_state_exploit_frac" in policyStats ||
+    "usefulness_regime_state_recover_frac" in policyStats ||
+    "usefulness_regime_state_caution_frac" in policyStats ||
+    "usefulness_trigger_recover_hits" in policyStats ||
+    "usefulness_trigger_caution_hits" in policyStats
+  );
+}
+
+function usefulnessStateDominanceRead(summary: Summary | null): {
+  exploitFrac: number | null;
+  recoverFrac: number | null;
+  cautionFrac: number | null;
+  recoverHits: number | null;
+  cautionHits: number | null;
+  recoverFromCautionHits: number | null;
+  exploitHits: number | null;
+  dominantLabel: string;
+  note: string;
+} {
+  const by = (summary as any)?.policy_stats_by_metric ?? {};
+  const bestPolicy = String((summary as any)?.best?.policy ?? "").trim();
+
+  const exploitFrac = toNumberOrNull(by?.usefulness_regime_state_exploit_frac?.[bestPolicy]?.mean);
+  const recoverFrac = toNumberOrNull(by?.usefulness_regime_state_recover_frac?.[bestPolicy]?.mean);
+  const cautionFrac = toNumberOrNull(by?.usefulness_regime_state_caution_frac?.[bestPolicy]?.mean);
+
+  const recoverHits = toNumberOrNull(by?.usefulness_trigger_recover_hits?.[bestPolicy]?.mean);
+  const cautionHits = toNumberOrNull(by?.usefulness_trigger_caution_hits?.[bestPolicy]?.mean);
+  const recoverFromCautionHits = toNumberOrNull(
+    by?.usefulness_trigger_recover_from_caution_hits?.[bestPolicy]?.mean
+  );
+  const exploitHits = toNumberOrNull(by?.usefulness_trigger_exploit_hits?.[bestPolicy]?.mean);
+
+  const vals = [
+    { label: "exploit-facing", value: exploitFrac },
+    { label: "recover-facing", value: recoverFrac },
+    { label: "caution-facing", value: cautionFrac },
+  ].filter((x) => x.value !== null) as Array<{ label: string; value: number }>;
+
+  let dominantLabel = "—";
+  if (vals.length) {
+    vals.sort((a, b) => b.value - a.value);
+    dominantLabel = vals[0].label;
+  }
+
+  const note =
+    exploitFrac === null && recoverFrac === null && cautionFrac === null
+      ? "No compact usefulness-family occupancy summary is available for the currently selected best policy."
+      : "Read these fractions as bounded family semantics, not as optimization claims: the main question is whether the selected study preserves an exploit / recover / caution reading under modest widening.";
+
+  return {
+    exploitFrac,
+    recoverFrac,
+    cautionFrac,
+    recoverHits,
+    cautionHits,
+    recoverFromCautionHits,
+    exploitHits,
+    dominantLabel,
+    note,
+  };
+}
+
 function usefulnessProxyRead(summary: Summary | null): {
   deliveredMetric: string;
   deliveredValue: number | null;
@@ -109,6 +189,10 @@ function summarizeStudyRole(summary: Summary | null): string {
       ? "impairment diagnostic"
       : family === "verification"
       ? "verification study"
+      : family === "usefulness_family_compare"
+      ? "usefulness-family comparison"
+      : family === "usefulness_family_validation"
+      ? "usefulness-family validation"
       : "study";
 
   const axisText = axis ? ` centered on ${axis}` : "";
@@ -873,9 +957,11 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
           const baseManifest = manifestForCard?.base_manifest || {};
           const studySemantics = (s as any)?.study_semantics ?? {};
           const regimeSemantics = studySemantics?.regime_semantics ?? {};
+          const usefulnessSemantics = studySemantics?.usefulness_semantics ?? {};
           const metricSemantics = (s as any)?.metric_semantics ?? {};
           const tierStyle = tierCardStyle(studySemantics?.comparison_tier);
           const usefulnessRead = usefulnessProxyRead(s);
+          const usefulnessStateRead = usefulnessStateDominanceRead(s);
           const net = baseManifest?.network || {};
           const impairments = baseManifest?.impairments || {};
           const o1 = baseManifest?.o1 || {};
@@ -987,6 +1073,7 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
                   preset=<b>{String(studySemantics?.preset_origin ?? "—")}</b>
                   {" · "}baseline-policy-group=<b>{String(studySemantics?.policy_semantics?.contains_baseline ?? "—")}</b>
                   {" · "}mdc-policy-group=<b>{String(studySemantics?.policy_semantics?.contains_mdc ?? "—")}</b>
+                  {" · "}usefulness-policy-group=<b>{String(studySemantics?.policy_semantics?.contains_usefulness ?? "—")}</b>
                 </div>
                 <div className="small" style={{ marginTop: 6, opacity: 0.8, lineHeight: 1.45 }}>
                   {studyRoleText}
@@ -995,6 +1082,72 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
                   base manifest: <span title={manifestSummaryText}>{manifestSummaryText}</span>
                 </div>
               </div>
+
+            {hasUsefulnessSummary(s) ? (
+              <div className="card" style={{ marginTop: 10 }}>
+                <h2 style={{ marginTop: 0 }}>Usefulness-family summary</h2>
+                <div className="small" style={{ opacity: 0.88, lineHeight: 1.45, marginBottom: 8 }}>
+                  usefulness_present=<b>{String(usefulnessSemantics?.usefulness_present ?? "—")}</b>
+                  {" · "}metrics_present=<b>{String(usefulnessSemantics?.usefulness_metrics_present ?? "—")}</b>
+                  {" · "}distinct-family-read=<b>{String(usefulnessSemantics?.frontend_should_treat_usefulness_as_distinct_family ?? "—")}</b>
+                </div>
+                <div className="small" style={{ opacity: 0.8, marginBottom: 10 }}>
+                  This block is the compact family-reading surface for usefulness-family studies. It should be read alongside the delivered-information / belief-quality block below, not replaced by it.
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gap: 8,
+                    marginTop: 8,
+                  }}
+                  className="regimeSummaryStatsGrid"
+                >
+                  <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
+                    <h2 style={{ marginTop: 0, fontSize: 16 }}>State occupancy</h2>
+                    <div className="small" style={{ lineHeight: 1.5 }}>
+                      <div>
+                        exploit_frac=<b>{fmtPct(usefulnessStateRead.exploitFrac, 1)}</b>
+                      </div>
+                      <div>
+                        recover_frac=<b>{fmtPct(usefulnessStateRead.recoverFrac, 1)}</b>
+                      </div>
+                      <div>
+                        caution_frac=<b>{fmtPct(usefulnessStateRead.cautionFrac, 1)}</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
+                    <h2 style={{ marginTop: 0, fontSize: 16 }}>Trigger activity</h2>
+                    <div className="small" style={{ lineHeight: 1.5 }}>
+                      <div>
+                        recover_hits=<b>{fmtNum(usefulnessStateRead.recoverHits, 0)}</b>
+                        {" · "}caution_hits=<b>{fmtNum(usefulnessStateRead.cautionHits, 0)}</b>
+                      </div>
+                      <div>
+                        recover_from_caution_hits=<b>{fmtNum(usefulnessStateRead.recoverFromCautionHits, 0)}</b>
+                      </div>
+                      <div>
+                        exploit_hits=<b>{fmtNum(usefulnessStateRead.exploitHits, 0)}</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ marginTop: 0, background: "rgba(0,0,0,0.02)" }}>
+                    <h2 style={{ marginTop: 0, fontSize: 16 }}>Family reading</h2>
+                    <div className="small" style={{ lineHeight: 1.5 }}>
+                      <div>
+                        dominant_reading=<b>{usefulnessStateRead.dominantLabel}</b>
+                      </div>
+                      <div style={{ marginTop: 8, opacity: 0.84 }}>
+                        {usefulnessStateRead.note}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
 
             {hasRegimeSummary(s) ? (
               <div className="card" style={{ marginTop: 10 }}>
@@ -1073,7 +1226,7 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
             <div className="card" style={{ marginTop: 10 }}>
               <h2 style={{ marginTop: 0 }}>Usefulness-oriented quick read</h2>
               <div className="small" style={{ opacity: 0.84, lineHeight: 1.5 }}>
-                This bounded Subgoal-07 reading block reconnects the study to the earlier usefulness-wedge logic:
+                This reading block reconnects the study to the earlier usefulness-wedge logic:
                 compare <b>information delivered</b> with <b>belief improvement</b>, then interpret <b>ttfd</b>
                 as supporting context rather than as the whole story.
               </div>
@@ -1154,6 +1307,12 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
                 {metricSemantics?.[activeMetric]?.semantic_role ? (
                   <>
                     {" · "}role: <b>{String(metricSemantics[activeMetric].semantic_role)}</b>
+                  </>
+                ) : null}
+                {Array.isArray((s as any)?.metrics_catalog?.usefulness_centered) &&
+                (s as any).metrics_catalog.usefulness_centered.includes(activeMetric) ? (
+                  <>
+                    {" · "}family-surface: <b>usefulness</b>
                   </>
                 ) : null}
               </div>

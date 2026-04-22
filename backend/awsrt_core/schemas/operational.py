@@ -168,10 +168,12 @@ class NetworkSpec(BaseModel):
         under the SAME operational constraints, enabling "budget emulation"
         baselines (random sensing under realized action-interface budget).
       - `usefulness_proto` is the compact usefulness-aware controller family.
-        In the current v0.2 backend, this is the main live usefulness-aware
-        deployment policy. Its effective transition logic and regime-to-policy
-        mapping remain compact and backend-led rather than fully driven by the
-        richer `usefulness_regime` manifest surface below.
+        In the current backend, this is the main live usefulness-family policy
+        used for bounded exploit / recover / caution studies, including
+        usefulness-family validation and bounded batch-sweep workflows.
+        Its effective transition logic and regime-to-policy mapping remain
+        compact and backend-led rather than fully driven by the richer
+        `usefulness_regime` manifest surface below.
     """
     policy: Literal[
         "greedy",
@@ -328,7 +330,9 @@ class UsefulnessRegimeSpec(BaseModel):
         deployment behavior is still the compact `network.policy="usefulness_proto"`
         scaffold implemented in the router,
       - therefore this block should currently be read as partially wired /
-        experimental rather than as the fully authoritative controller API.
+        experimental rather than as the fully authoritative controller API,
+      - and bounded usefulness-family studies should currently prefer
+        `network.policy="usefulness_proto"` as the operative live path.
     """
     enabled: bool = Field(
         default=False,
@@ -617,7 +621,10 @@ class OperationalManifest(BaseModel):
       - `usefulness_regime` is retained as an intended richer usefulness surface,
         but the current main live usefulness-aware deployment behavior is still
         centered on the compact backend usefulness prototype selected by
-        `network.policy="usefulness_proto"`.
+        `network.policy="usefulness_proto"`,
+      - which is also the preferred live path for bounded usefulness-family
+        validation and batch-sweep studies unless and until the richer
+        usefulness manifest surface becomes controller-authoritative.
     """
     run_mode: Literal["closed_loop", "replay"] = Field(default="closed_loop")
 

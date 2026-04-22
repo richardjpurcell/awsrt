@@ -60,7 +60,7 @@ class CreateOperationalStudyRequest(BaseModel):
     semantics: StudySemanticsRequest = Field(default_factory=StudySemanticsRequest)
     policies: list[str] = Field(default_factory=lambda: ["random_feasible", "greedy", "uncertainty", "mdc_info"])
     seeds: list[int] = Field(default_factory=lambda: list(range(10)))
-    sweep: list[SweepCase] = Field(default_factory=lambda: [SweepCase(label="base", overrides={})])
+    sweep: list[SweepCase] = Field(default_factory=list)
     columns: list[str] = Field(default_factory=list)
     choose_best_by: str = "ttfd"
 
@@ -301,6 +301,7 @@ def _policy_semantics(policies: list[str]) -> dict[str, Any]:
     return {
         "contains_baseline": _contains_any(xs, ["random_feasible", "greedy", "uncertainty"]),
         "contains_mdc": _contains_any(xs, ["mdc_info", "mdc_arrival", "balance"]),
+        "contains_usefulness": _contains_any(xs, ["usefulness_proto"]),
         "contains_advisory_regime": False,
         "contains_active_regime": False,
         "contains_verify": False,
@@ -334,6 +335,46 @@ def _regime_semantics_from_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "regime_families_present": sorted(family_labels),
     }
 
+def _usefulness_semantics_from_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Compact usefulness-family presence / packaging summary for Analysis studies.
+
+    This does not try to infer scientific success. It only records whether the
+    study materially contains usefulness-family policy participation and
+    usefulness-family metrics that Graphic / downstream extraction can trust.
+    """
+    usefulness_policy_present = False
+    usefulness_metrics_present = False
+    case_labels: set[str] = set()
+
+    for r in rows or []:
+        pol = str(r.get("policy", "") or "").strip()
+        if pol == "usefulness_proto":
+            usefulness_policy_present = True
+
+        if any(
+            k in r
+            for k in [
+                "usefulness_regime_state_exploit_frac",
+                "usefulness_regime_state_recover_frac",
+                "usefulness_regime_state_caution_frac",
+                "usefulness_trigger_recover_hits",
+                "usefulness_trigger_caution_hits",
+            ]
+        ):
+            usefulness_metrics_present = True
+
+        lbl = str(r.get("case", "") or "").strip()
+        if lbl:
+            case_labels.add(lbl)
+
+    return {
+        "usefulness_present": usefulness_policy_present,
+        "usefulness_metrics_present": usefulness_metrics_present,
+        "frontend_should_treat_usefulness_as_distinct_family": usefulness_policy_present and usefulness_metrics_present,
+        "usefulness_case_labels_present": sorted(case_labels),
+    }
+
 
 def _metric_semantics(catalog: dict[str, Any]) -> dict[str, Any]:
     """
@@ -343,6 +384,7 @@ def _metric_semantics(catalog: dict[str, Any]) -> dict[str, Any]:
     headline = set(catalog.get("headline", []) or [])
     mdc_centered = set(catalog.get("mdc_centered", []) or [])
     regime_centered = set(catalog.get("regime_centered", []) or [])
+    usefulness_centered = set(catalog.get("usefulness_centered", []) or [])
     directions = dict(catalog.get("direction", {}) or {})
 
     for m, d in directions.items():
@@ -364,6 +406,19 @@ def _metric_semantics(catalog: dict[str, Any]) -> dict[str, Any]:
                 entry["semantic_role"] = "advisory"
             elif "active_transition" in m or "move_budget" in m:
                 entry["semantic_role"] = "active"
+            else:
+                entry["semantic_role"] = "diagnostic"
+        elif m in usefulness_centered:
+            entry["domain"] = "usefulness"
+            entry["tier"] = "primary" if m in {
+                "usefulness_regime_state_exploit_frac",
+                "usefulness_regime_state_recover_frac",
+                "usefulness_regime_state_caution_frac",
+            } else "secondary"
+            if "state_" in m:
+                entry["semantic_role"] = "state_occupancy"
+            elif "trigger_" in m:
+                entry["semantic_role"] = "trigger_count"
             else:
                 entry["semantic_role"] = "diagnostic"
         out[m] = entry
@@ -420,8 +475,23 @@ def _sweep_context(
     regime_families = sorted(
         set(str(r.get("regime_family_cfg", "")).strip() for r in rows if str(r.get("regime_family_cfg", "")).strip())
     )
-    impairment_levels = sorted(
-        set(str(r.get("impairment_level_cfg", "")).strip() for r in rows if str(r.get("impairment_level_cfg", "")).strip())
+    explicit_usefulness_case_kinds = sorted(
+        set(
+            str((c.overrides or {}).get("study.case_kind", "")).strip()
+            for c in (sweep_cases or [])
+            if str((c.overrides or {}).get("study.case_kind", "")).strip() in {"healthy", "delay", "noise"}
+        )
+    )
+    impairment_levels = (
+        explicit_usefulness_case_kinds
+        if explicit_usefulness_case_kinds
+        else sorted(
+            set(
+                str(r.get("impairment_level_cfg", "")).strip()
+                for r in rows
+                if str(r.get("impairment_level_cfg", "")).strip()
+            )
+        )
     )
     regime_modes = sorted(
         set(str(r.get("regime_mode_cfg", "")).strip() for r in rows if str(r.get("regime_mode_cfg", "")).strip())
@@ -488,6 +558,24 @@ REGIME_CENTERED_METRICS = [
     "regime_effective_eta_mean",
     "regime_effective_move_budget_cells_mean",
 ]
+
+# Compact usefulness-family metrics promoted to first-class batch-summary support.
+# These are the main quantities needed for bounded usefulness-family validation
+# and modest batch widening:
+#   - state occupancy fractions
+#   - trigger-hit summaries
+#
+# They remain family-reading diagnostics, not optimization claims.
+USEFULNESS_CENTERED_METRICS = [
+    "usefulness_regime_state_exploit_frac",
+    "usefulness_regime_state_recover_frac",
+    "usefulness_regime_state_caution_frac",
+    "usefulness_trigger_recover_hits",
+    "usefulness_trigger_caution_hits",
+    "usefulness_trigger_recover_from_caution_hits",
+    "usefulness_trigger_exploit_hits",
+]
+
 
 # Some runs export "raw" evidence fields (e.g. residual_info_mean) rather than the
 # reviewer-facing names above. We derive the stable names here if missing.
@@ -697,6 +785,7 @@ def _metric_catalog(choose_best_by: str) -> dict[str, Any]:
                 *HEADLINE_METRICS,
                 *MDC_CENTERED_METRICS,
                 *REGIME_CENTERED_METRICS,
+                *USEFULNESS_CENTERED_METRICS,
                 choose,
             ]
         )
@@ -706,6 +795,7 @@ def _metric_catalog(choose_best_by: str) -> dict[str, Any]:
         "headline": list(HEADLINE_METRICS),
         "mdc_centered": list(MDC_CENTERED_METRICS),
         "regime_centered": list(REGIME_CENTERED_METRICS),
+        "usefulness_centered": list(USEFULNESS_CENTERED_METRICS),
         "derived_from": dict(DERIVED_FROM),
         "direction": {m: _direction_for_metric(m) for m in metrics},
         "all_metrics": metrics,  # convenient + still small
@@ -1403,7 +1493,22 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
         raise HTTPException(status_code=400, detail="sweep list is empty")
 
     # Ensure at least one empty/base case exists for sanity
-    if not any((c.overrides or {}) == {} for c in sweep_cases):
+    study_family = str(req.semantics.study_family or "")
+    preset_origin = str(req.semantics.preset_origin or "")
+
+    explicit_named_case_family = (
+        study_family == "usefulness_family_compare"
+        or preset_origin == "usefulness_family"
+    )
+
+    # Legacy/custom studies often benefit from an implicit empty-overrides base case
+    # when the caller provides only modified cases. However, explicit named-case
+    # families such as the usefulness-family preset must remain exactly as authored:
+    # healthy / delay / noise, with no synthetic "base" prepended.
+    if (
+        not explicit_named_case_family
+        and not any((c.overrides or {}) == {} for c in sweep_cases)
+    ):
         sweep_cases = [SweepCase(label="base", overrides={}), *sweep_cases]
 
     ana_id = new_id("ana")
@@ -1579,11 +1684,22 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
     semantics = req.semantics.model_dump()
     policy_semantics = _policy_semantics(policies)
     regime_semantics = _regime_semantics_from_rows(ok_rows)
+    usefulness_semantics = _usefulness_semantics_from_rows(ok_rows)
     policy_semantics["contains_advisory_regime"] = regime_semantics["advisory_metrics_present"]
     policy_semantics["contains_active_regime"] = regime_semantics["active_metrics_present"]
+    policy_semantics["contains_usefulness"] = usefulness_semantics["usefulness_present"]
 
     sweep_context = _sweep_context(sweep_cases, ok_rows)
 
+    study_semantics_payload = {
+        "section": "analysis",
+        "source_section": "operational",
+        **semantics,
+        "taxonomy_version": "analysis_v2",
+        "policy_semantics": policy_semantics,
+        "regime_semantics": regime_semantics,
+        "usefulness_semantics": usefulness_semantics,
+    }
 
     save_manifest(
         ana_id,
@@ -1594,14 +1710,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
             "study_type": "operational_study",
             "created_at": created_at,
             "base_manifest": base_manifest_dict,
-            "study_semantics": {
-                "section": "analysis",
-                "source_section": "operational",
-                **semantics,
-                "taxonomy_version": "analysis_v2",
-                "policy_semantics": policy_semantics,
-                "regime_semantics": regime_semantics,
-            },
+            "study_semantics": study_semantics_payload,
             "sweep_context": sweep_context,
             "policies": policies,
             "seeds": seeds,
@@ -1626,6 +1735,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
         *HEADLINE_METRICS,
         *MDC_CENTERED_METRICS,
         *REGIME_CENTERED_METRICS,
+        *USEFULNESS_CENTERED_METRICS,
     ]
     used_cols = _write_table_csv(table_path, ok_rows, req.columns, ensure_cols=ensure_cols)
 
@@ -1693,6 +1803,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
             "headline": catalog["headline"],
             "mdc_centered": catalog["mdc_centered"],
             "regime_centered": catalog["regime_centered"],
+            "usefulness_centered": catalog["usefulness_centered"],
             "direction": {m: directions[m] for m in metrics_all},
         }
     )
@@ -1705,14 +1816,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
             "analysis_contract_version": "analysis_v2",
             "study_type": "operational_study",
             "created_at": created_at,
-            "study_semantics": {
-                "section": "analysis",
-                "source_section": "operational",
-                **semantics,
-                "taxonomy_version": "analysis_v2",
-                "policy_semantics": policy_semantics,
-                "regime_semantics": regime_semantics,
-            },
+            "study_semantics": study_semantics_payload,
             "sweep_context": sweep_context,
             "policies": policies,
             "seeds": seeds,
@@ -1725,6 +1829,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
                 "headline": catalog["headline"],
                 "mdc_centered": catalog["mdc_centered"],
                 "regime_centered": catalog["regime_centered"],
+                "usefulness_centered": catalog["usefulness_centered"],
                 "direction": {m: directions[m] for m in metrics_all},
                 "derived_from": catalog["derived_from"],
             },

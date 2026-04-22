@@ -150,9 +150,16 @@ class ComparePoliciesRequest(BaseModel):
     Create + run multiple operational runs from the same base manifest, varying only policy.
 
     Intended for fast iteration now; later Analysis/Graphic can call this endpoint or reuse its logic.
+
+    Note:
+      usefulness_proto is a live compact usefulness-family policy and may be
+      included in comparison bundles when the caller wants usefulness-family
+      runs rather than the older baseline-policy set.
     """
     manifest: OperationalManifest
-    policies: list[str] = Field(default_factory=lambda: ["random_feasible", "uncertainty", "mdc_info"])
+    policies: list[str] = Field(
+        default_factory=lambda: ["random_feasible", "uncertainty", "mdc_info", "usefulness_proto"]
+    )
 
 
 

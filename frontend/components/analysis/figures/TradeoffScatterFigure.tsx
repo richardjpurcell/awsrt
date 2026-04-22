@@ -34,6 +34,38 @@ type Pt = {
   studyIndex: number;
 };
 
+function sweepContextPrimaryLabel(summary: any): string {
+  const ctx = summary?.sweep_context ?? {};
+  const primarySweepKey = String(ctx?.primary_sweep_key ?? "").trim();
+
+  if (primarySweepKey === "impairments.delay_steps") return "delay sweep";
+  if (primarySweepKey === "impairments.noise_level") return "noise sweep";
+  if (primarySweepKey === "impairments.loss_prob") return "loss sweep";
+  if (primarySweepKey === "n_sensors") return "sensor-budget sweep";
+  if (primarySweepKey === "persistence_steps") return "persistence sweep";
+  if (primarySweepKey === "hysteresis_band") return "hysteresis sweep";
+  if (primarySweepKey === "regime_management") return "regime-management sweep";
+  if (primarySweepKey === "impairments") return "impairment sweep";
+  return primarySweepKey || "case sweep";
+}
+
+function caseReadLabel(caseKey: string | "__all__"): string {
+  if (caseKey === "__all__") return "mean over cases";
+  return String(caseKey || "selected case");
+}
+
+function studyRoleShort(summary: any): string {
+  const sem = summary?.study_semantics ?? {};
+  const family = String(sem?.study_family ?? "").trim();
+  const axis = String(sem?.comparison_axis ?? "").trim();
+  const tier = String(sem?.comparison_tier ?? "").trim();
+
+  if (family && axis && tier) return `${family} · ${axis} · ${tier}`;
+  if (family && axis) return `${family} · ${axis}`;
+  if (family) return family;
+  return "operational study";
+}
+
 function studyDisplayLabel(summary: any, anaId: string): string {
   const explicit = String(summary?.study_semantics?.study_label ?? "").trim();
   if (explicit) return explicit;
@@ -41,6 +73,10 @@ function studyDisplayLabel(summary: any, anaId: string): string {
   const axis = String(summary?.study_semantics?.comparison_axis ?? "").trim();
   if (fam && axis) return `${anaId} · ${fam} · ${axis}`;
   if (fam) return `${anaId} · ${fam}`;
+
+  const sweepLabel = sweepContextPrimaryLabel(summary);
+  if (sweepLabel) return `${anaId} · ${sweepLabel}`;
+
   return anaId;
 }
 
@@ -141,6 +177,30 @@ export default function TradeoffScatterFigure({
   const anchorSummary = orderedStudyIds.length ? summaries?.[orderedStudyIds[0]] : null;
   const xDir = metricDirection(anchorSummary, xMetric);
   const yDir = metricDirection(anchorSummary, yMetric);
+  const tradeoffContextText = useMemo(() => {
+    if (!anchorSummary) return "";
+
+    const sem = anchorSummary?.study_semantics ?? {};
+    const family = String(sem?.study_family ?? "").trim();
+    const axis = String(sem?.comparison_axis ?? "").trim();
+    const tier = String(sem?.comparison_tier ?? "").trim();
+    const sweepLabel = sweepContextPrimaryLabel(anchorSummary);
+    const caseLabel = caseReadLabel(caseKey);
+
+    if (
+      family === "usefulness_family_compare" ||
+      family === "verification" ||
+      family === "impairment_diagnostic"
+    ) {
+      return `Bounded usefulness-style tradeoff view across ${sweepLabel}, using ${caseLabel}. Read relative policy placement as comparative evidence, not as a standalone semantic proof.`;
+    }
+
+    if (family && axis && tier) {
+      return `${family} / ${axis} / ${tier} tradeoff view across ${sweepLabel}, using ${caseLabel}.`;
+    }
+
+    return `Tradeoff view across ${sweepLabel}, using ${caseLabel}.`;
+  }, [anchorSummary, caseKey]);
 
   const labelPts = useMemo(() => {
     return pts.length <= 14 ? pts : [];
@@ -202,11 +262,14 @@ export default function TradeoffScatterFigure({
       <div className="small" style={{ marginBottom: 8 }}>
         <b>{title}</b>{" "}
         <span style={{ opacity: 0.75 }}>
-          · x=<b>{xMetric}</b> ({xDir === "min" ? "lower better" : "higher better"}){" "}
-          · y=<b>{yMetric}</b> ({yDir === "min" ? "lower better" : "higher better"}){" "}
-          · better region=<b>{betterCorner(xDir, yDir)}</b>{" "}
-          · case={caseKey === "__all__" ? "mean over cases" : caseKey}
+          · x=<b>{xMetric}</b> ({xDir === "min" ? "lower better" : "higher better"})
+          {" · "}y=<b>{yMetric}</b> ({yDir === "min" ? "lower better" : "higher better"})
+          {" · "}better region=<b>{betterCorner(xDir, yDir)}</b>
+          {" · "}case=<b>{caseReadLabel(caseKey)}</b>
         </span>
+        {tradeoffContextText ? (
+          <div style={{ marginTop: 6, opacity: 0.72 }}>{tradeoffContextText}</div>
+        ) : null}
       </div>
 
       <div
@@ -283,10 +346,18 @@ export default function TradeoffScatterFigure({
             const fill = "rgba(0,0,0,0.75)";
             const stroke = "rgba(0,0,0,0.35)";
 
+            const pointTitle = [
+              policyDisplayLabel(summaries?.[p.anaId], p.policy),
+              studyDisplayLabel(summaries?.[p.anaId], p.anaId),
+              studyRoleShort(summaries?.[p.anaId]),
+              `${xMetric}=${fmt(p.x, xTickDigits)}`,
+              `${yMetric}=${fmt(p.y, yTickDigits)}`,
+            ].join(" · ");
+
             if (shape === "square") {
               return (
                 <rect key={i} x={x - 4} y={y - 4} width={8} height={8} fill={fill} stroke={stroke}>
-                  <title>{`${policyDisplayLabel(summaries?.[p.anaId], p.policy)} · ${studyDisplayLabel(summaries?.[p.anaId], p.anaId)} · ${xMetric}=${fmt(p.x, xTickDigits)} · ${yMetric}=${fmt(p.y, yTickDigits)}`}</title>
+                  <title>{pointTitle}</title>                
                 </rect>
               );
             }
@@ -300,7 +371,7 @@ export default function TradeoffScatterFigure({
             }
             return (
               <circle key={i} cx={x} cy={y} r={4} fill={fill} stroke={stroke}>
-                <title>{`${policyDisplayLabel(summaries?.[p.anaId], p.policy)} · ${studyDisplayLabel(summaries?.[p.anaId], p.anaId)} · ${xMetric}=${fmt(p.x, xTickDigits)} · ${yMetric}=${fmt(p.y, yTickDigits)}`}</title>
+                <title>{pointTitle}</title>
               </circle>
             );
           })}
@@ -309,9 +380,10 @@ export default function TradeoffScatterFigure({
           {labelPts.map((p, i) => {
             const x = sx(p.x);
             const y = sy(p.y);
+            const policyLabel = policyDisplayLabel(summaries?.[p.anaId], p.policy);
             return (
               <text key={`t${i}`} x={x + 6} y={y - 6} fontSize="11" fill="rgba(0,0,0,0.65)">
-                {policyDisplayLabel(summaries?.[p.anaId], p.policy)}
+                {policyLabel}
               </text>
             );
           })}
@@ -358,9 +430,15 @@ export default function TradeoffScatterFigure({
       </div>
 
       <div className="small" style={{ marginTop: 8, opacity: 0.75 }}>
-        Evidence: <b>summary.json.case_policy_stats_by_metric</b> → (case mean) → scatter.{" "}
-        Better region: <b>{betterCorner(xDir, yDir)}</b>.{" "}
-        (Overlays multiple studies; marker shape indicates study.)
+        Evidence: <b>summary.json.case_policy_stats_by_metric</b> → (case mean) → scatter.
+        {" "}Better region: <b>{betterCorner(xDir, yDir)}</b>.
+        {" "}Marker shape indicates study.
+      </div>
+      <div className="small" style={{ marginTop: 4, opacity: 0.72 }}>
+        Use this figure to compare cross-study policy placement under the same summary contract, not to replace within-study family reading.
+      </div>
+      <div className="small" style={{ marginTop: 4, opacity: 0.72 }}>
+        For bounded usefulness-family batch work, this scatter is most trustworthy when read together with the study semantics, sweep context, and per-study ablation or win-rate views.
       </div>
     </div>
   );
