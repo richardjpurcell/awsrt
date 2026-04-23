@@ -23,10 +23,10 @@ Items here are reminders and triage targets, not commitments.
 - **Next check:** Revisit when touching analysis batch UX.
 
 ### [Bug/Metrics] Investigate occasional TTFD = 0 when not actually true
-- **Status:** Open
+- **Status:** CLOSED
 - **Why it matters:** This may undermine confidence in a core timeliness metric.
 - **Question:** Is the issue caused by indexing, initialization, event timing semantics, or summary/reporting logic?
-- **Next check:** Revisit when doing metrics validation or summary auditing.
+- **Next check:** COMPLETED
 
 ### [UI] Summary and Trace boxes are present even if run doesn't use them
 - **Status:** Open
@@ -37,6 +37,11 @@ Items here are reminders and triage targets, not commitments.
 - **Status:** Open
 - **Why it matters:** Users are expecting a complete physical simulator.
 - **Question:** Can we substitute specific models for more abstract ones. i.e. wind is just a vector variable type
+
+### [Back/Frontend] Allow batch to treat multiple origins as cases
+- **Status:** Open
+- **Why it matters:** We need to test multiple random locations.
+- **Question:** Can we adjust the batch analysis UI/backend to allow for multiple origins, possibly each treated as a case?
 
 ---
 
