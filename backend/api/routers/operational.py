@@ -3960,9 +3960,11 @@ def run(req: RunRequest) -> dict:
         )
 
         auc = entropy_auc(mean_entropy)
-        ttf = time_to_first_detect(detections)
         ttf_true = int(np.argmax(true_detections_any > 0)) if int(np.any(true_detections_any > 0)) else None
         ttf_arrived = int(np.argmax(arrived_detections_any > 0)) if int(np.any(arrived_detections_any > 0)) else None
+        # Subgoal 05 truthfulness repair:
+        # headline ttfd should reflect true first detection, not delayed/impaired arrival timing.
+        ttf = ttf_true
         steps: list[dict] = []
 
         # ----------------------------
@@ -4164,7 +4166,7 @@ def run(req: RunRequest) -> dict:
             "mean_entropy_auc": float(auc),
             "ttfd": ttf,
             # Detection semantics:
-            #   - ttfd: legacy compatibility alias using arrived/impaired detections
+            #   - ttfd: headline truth-aligned first detection
             #   - ttfd_true: current-frame true footprint hit
             #   - ttfd_arrived: delayed / impaired arrived observation stream
             "ttfd_true": ttf_true,
