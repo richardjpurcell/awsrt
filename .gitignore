@@ -69,8 +69,8 @@ results/operational_studies/
 notes/presentations/
 notes/images/
 
-# Track these because they may define/represent the frozen thesis version:
-# - data/manifests/
+# Generated manifests are ignored by default.
+# Curated thesis/release manifests should be copied into docs or another tracked fixture path if needed.
 # - data/figures/
 # - results/figures/
 
