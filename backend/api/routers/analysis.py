@@ -1585,6 +1585,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
                         if "noise_level" in impairments: row["noise_level"] = impairments.get("noise_level")
                         if "max_moves_per_step" in net: row["max_moves_per_step"] = net.get("max_moves_per_step")
                         if "deployment_mode" in net: row["deployment_mode"] = net.get("deployment_mode")
+                        if "base_station_rc" in net: row["base_station_rc"] = net.get("base_station_rc")
                         if "n_sensors" in net: row["n_sensors"] = net.get("n_sensors")
                         if "c_info" in o1: row["c_info"] = o1.get("c_info")
                         if "c_cov" in o1: row["c_cov"] = o1.get("c_cov")
@@ -1729,6 +1730,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
     ensure_cols = [
         "case", "case_index", "seed", "policy", "phy_id", "opr_id",
         "loss_prob", "delay_steps", "noise_level",
+        "base_station_rc",
         "regime_enabled_cfg", "regime_mode_cfg", "regime_family_cfg", "impairment_level_cfg",
         "downshift_util_cfg", "switch_util_cfg", "recovery_util_cfg",
         "downshift_persistence_cfg", "switch_persistence_cfg", "recovery_persistence_cfg",
