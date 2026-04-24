@@ -1565,6 +1565,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
                         "case_index": int(ci),
                         "seed": int(seed),
                         "policy": pol,
+                        "phy_id": m2.phy_id,
                         "opr_id": opr_id,
                     }
 
@@ -1726,7 +1727,7 @@ def create_operational_study(req: CreateOperationalStudyRequest) -> dict[str, An
     summary_path = md / "summary.json"
 
     ensure_cols = [
-        "case", "case_index", "seed", "policy", "opr_id",
+        "case", "case_index", "seed", "policy", "phy_id", "opr_id",
         "loss_prob", "delay_steps", "noise_level",
         "regime_enabled_cfg", "regime_mode_cfg", "regime_family_cfg", "impairment_level_cfg",
         "downshift_util_cfg", "switch_util_cfg", "recovery_util_cfg",
