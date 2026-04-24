@@ -1,8 +1,8 @@
-# AWSRT v0.5 Subgoal 07: Deterministic Tie-Breaking and Bounded Origin Variation
+# AWSRT v0.5 Subgoal 07: Deterministic Tie-Breaking and Bounded Deployment-Origin Variation
 
 **Status:** Draft design note  
 **Applies to:** `v0.5-subgoal-07`  
-**Purpose:** Clarify what deterministic tie-breaking is currently doing in bounded usefulness-family transformed real-fire studies, assess whether it is introducing directional bias into deployment behavior, and add a bounded analysis-batch mechanism for varying fire origins within a single study so that usefulness-family interpretation is less coupled to one fixed origin geometry.
+**Purpose:** Clarify what deterministic tie-breaking is currently doing in bounded usefulness-family transformed real-fire studies, assess whether it is introducing directional bias into deployment behavior, and add a bounded Analysis Batch mechanism for varying **sensor deployment origins** within a single study so that usefulness-family interpretation is less coupled to one fixed deployment geometry.
 
 ---
 
@@ -17,14 +17,14 @@ However, that revalidation also sharpened an important remaining question.
 The current bounded studies still rely on a fixed study structure in which:
 
 - tie-breaking is typically deterministic,
-- fire origin is fixed within a study,
+- sensor deployment origin is fixed within a study,
 - and some observed behaviors may therefore reflect geometric or ordering artifacts rather than only the intended impairment/usefulness semantics.
 
 In particular, there was a concrete empirical suspicion that deterministic tie-breaking may be producing a directional preference that visually looks like deployment motion favoring **up and left** under tied candidate conditions.
 
 That possibility matters because it introduces a new interpretive question:
 
-> How much of the observed bounded usefulness-family behavior is genuinely about impairment and usefulness, and how much may be shaped by deterministic tie-resolution and fixed origin geometry?
+> How much of the observed bounded usefulness-family behavior is genuinely about impairment and usefulness, and how much may be shaped by deterministic tie-resolution and fixed deployment geometry?
 
 Subgoal 07 therefore does not broaden into a large campaign.  
 It does not redesign the usefulness controller.  
@@ -32,7 +32,7 @@ It does not invalidate the earlier usefulness-family work.
 
 Instead, it isolates a bounded follow-on question:
 
-> What is deterministic tie-breaking actually doing now, and how should AWSRT support bounded within-study origin variation so that usefulness-family readings are less hostage to one fixed geometry?
+> What is deterministic tie-breaking actually doing now, and how should AWSRT support bounded within-study deployment-origin variation so that usefulness-family readings are less hostage to one fixed sensor-origin geometry?
 
 ---
 
@@ -49,13 +49,13 @@ remains visible under more realistic conditions.
 
 For that probe to remain disciplined, the study structure itself must be legible.
 
-If deterministic tie-breaking introduces a hidden spatial preference, then some part of the observed deployment pattern may be due to implementation ordering rather than to the intended controller or impairment logic. Likewise, if every bounded study uses one fixed fire origin, then case readings may be over-coupled to that one geometry.
+If deterministic tie-breaking introduces a hidden spatial preference, then some part of the observed deployment pattern may be due to implementation ordering rather than to the intended controller or impairment logic. Likewise, if every bounded study uses one fixed sensor deployment origin, then case readings may be over-coupled to that one geometry.
 
 The purpose here is therefore:
 
 - to make tie-resolution behavior explicit and inspectable,
 - to determine whether deterministic tie-breaking is introducing directional bias,
-- and to add a bounded origin-variation capability that improves robustness without turning the study into a large stochastic campaign.
+- and to add a bounded deployment-origin variation capability that improves robustness without turning the study into a large stochastic campaign.
 
 This is not a general randomness project.  
 It is a bounded interpretability and robustness subgoal.
@@ -116,26 +116,28 @@ The confirmed statement is:
 
 Thus, the main effect is best described as an **upward or upper-fan deterministic tie artifact**, with a possible leftward component depending on candidate geometry and separation constraints.
 
-### 4.2 Fire-origin variation question
+### 4.2 Deployment-origin variation question
 
 The second question is:
 
-> How can AWSRT create bounded within-study fire-origin variation without abandoning the compact analysis-batch study pattern?
+> How can AWSRT create bounded within-study sensor deployment-origin variation without abandoning the compact Analysis Batch study pattern?
 
-At present, a study typically uses one fixed physical context and then varies usefulness-family cases and seeds. That is useful for auditability, but it may over-anchor interpretation to one ignition geometry.
+At present, a study typically uses one fixed sensor deployment origin and then varies usefulness-family cases and seeds. That is useful for auditability, but it may over-anchor interpretation to one deployment geometry.
 
-The initial framing of this subgoal described this as “fire-origin variation.” The implementation inspection clarifies the exact bounded path: Analysis Batch should not directly mutate the physical ignition list inside operational cases. Instead, it should support bounded cross-physical-artifact comparison by allowing cases to vary `phy_id`.
+The initial phrasing of this subgoal used the word “origin,” which could be confused with fire ignition origin or physical-manifest origin. The implementation inspection clarifies the exact meaning intended here:
+
+> In Subgoal 07, origin variation means **sensor deployment-origin variation**, implemented through case-level overrides of `network.base_station_rc`.
 
 That means the practical target is:
 
-- pre-create or select multiple `phy-*` artifacts, each representing a different fixed origin;
-- use Analysis Batch case overrides to vary the operational manifest’s `phy_id`;
-- ensure `phy_id` is visible in analysis output for auditability.
+- use Analysis Batch case overrides to vary the operational manifest’s `network.base_station_rc`;
+- keep the same selected `phy_id` unless the study intentionally changes physical context;
+- ensure both `phy_id` and `base_station_rc` are visible in analysis output for auditability.
 
 The study can then inspect:
 
 - the same usefulness-family logic,
-- under multiple physical-origin contexts,
+- under multiple deployment-origin contexts,
 - while still remaining compact, named, and screenshot-friendly.
 
 ---
@@ -163,16 +165,16 @@ rather than just usefulness-state logic.
 
 That does not invalidate earlier results, but it does need to be known and described.
 
-### 5.3 Fixed origin geometry is a real limitation for bounded transformed real-fire studies
+### 5.3 Fixed deployment geometry is a real limitation for bounded transformed real-fire studies
 
-A single fire origin can interact strongly with:
+A single sensor deployment origin can interact strongly with:
 
 - fire travel direction,
 - terrain or front geometry,
 - sensor starting positions,
 - and tie-resolution behavior.
 
-A bounded origin-variation capability would not solve all robustness questions, but it would be a meaningful step forward while preserving the compact study model.
+A bounded deployment-origin variation capability would not solve all robustness questions, but it is a meaningful step forward while preserving the compact study model.
 
 ---
 
@@ -183,14 +185,15 @@ To keep scope disciplined, Subgoal 07 is **not** the place to do the following:
 - redesign the usefulness controller;
 - replace deterministic tie-breaking globally with randomness everywhere;
 - launch a broad Monte Carlo study over many origins and many fires;
-- refactor the full physical-run generation pipeline;
+- refactor the physical-run generation pipeline;
+- mutate fire ignition origins inside operational batch cases;
 - merge this into a full stochastic-controller campaign;
 - or reopen the `TTFD` truthfulness repair unless new evidence forces it.
 
 This subgoal should remain narrowly focused on:
 
 1. understanding deterministic tie behavior, and  
-2. adding bounded origin-variation support in analysis batch through auditable `phy_id` variation.
+2. adding bounded deployment-origin variation support in Analysis Batch through auditable `network.base_station_rc` variation.
 
 ---
 
@@ -324,26 +327,26 @@ The current conclusion is:
 
 This should be documented as an implementation artifact, not an intended controller behavior.
 
-A later subgoal may decide whether stochastic tie-breaking or a neutral deterministic tie policy is scientifically necessary. Subgoal 07 only needs to make the current behavior explicit and reduce overdependence on one fixed physical geometry.
+A later subgoal may decide whether stochastic tie-breaking or a neutral deterministic tie policy is scientifically necessary. Subgoal 07 only needs to make the current behavior explicit and reduce overdependence on one fixed deployment geometry.
 
 ---
 
-## 8. Bounded origin variation: intended work and confirmed direction
+## 8. Bounded deployment-origin variation: intended work and confirmed direction
 
-The second implementation track should add a narrow but useful new study capability.
+The second implementation track adds a narrow but useful study capability.
 
 ### 8.1 Goal
 
-The goal is to let Analysis Batch represent multiple physical-origin contexts inside one study, using the existing case system rather than inventing a new large workflow.
+The goal is to let Analysis Batch represent multiple sensor deployment-origin contexts inside one study, using the existing case system rather than inventing a new large workflow.
 
 The intended effect is that one `ana-*` study can include a compact set of cases such as:
 
-- origin A × healthy
-- origin A × delay
-- origin A × noise
-- origin B × healthy
-- origin B × delay
-- origin B × noise
+- deployment origin A × healthy
+- deployment origin A × delay
+- deployment origin A × noise
+- deployment origin B × healthy
+- deployment origin B × delay
+- deployment origin B × noise
 
 or another similarly bounded structure.
 
@@ -352,7 +355,7 @@ or another similarly bounded structure.
 This should remain bounded.
 
 The target is **not** arbitrary large-scale origin randomization.  
-The target is a small, named, case-driven way to vary origin context while preserving:
+The target is a small, named, case-driven way to vary sensor deployment origin while preserving:
 
 - compact study semantics,
 - auditability,
@@ -361,76 +364,86 @@ The target is a small, named, case-driven way to vary origin context while prese
 
 ### 8.3 Confirmed implementation direction
 
-The physical ignition origin belongs to the physical manifest, not the operational manifest.
-
-The relevant physical field is:
+The relevant operational field is:
 
 ```python
-fire.ignitions: List[Ignition]
+network.base_station_rc
 ```
 
-where each ignition includes fields such as:
-
-```python
-row
-col
-t0
-radius_cells
-```
-
-Analysis Batch currently creates operational studies from an `OperationalManifest`. It does not directly create or mutate physical manifests.
-
-Therefore, the smallest bounded mechanism is not to override `fire.ignitions` inside operational study cases.
-
-Instead, the correct implementation path is:
-
-> pre-create or select multiple `phy-*` artifacts, each representing a different fixed origin, and then use Analysis Batch case overrides to vary `phy_id`.
-
-This works because `phy_id` is part of the operational manifest, and the batch endpoint applies case dotpath overrides after setting policy and seed:
-
-```python
-m_dict = base.model_dump()
-
-_set_in_dict_by_dotpath(m_dict, "network.policy", pol)
-_set_in_dict_by_dotpath(m_dict, "o1.seed", int(seed))
-
-m2_dict = _apply_overrides_to_manifest_dict(m_dict, overrides)
-m2 = OperationalManifest.model_validate(m2_dict)
-```
-
-So a case can override:
+Dynamic operational runs initialize all sensors at this base station before policy-driven movement begins. Therefore, bounded deployment-origin variation can be expressed directly through case-level overrides of:
 
 ```json
 {
-  "phy_id": "phy-..."
+  "network.base_station_rc": [300, 465]
 }
 ```
 
-This avoids a physical-generation refactor and keeps the analysis path small and auditable.
+A smoke test confirmed that Analysis Batch can create two deployment-origin cases using the same `phy_id` and different `network.base_station_rc` values:
+
+```text
+deploy_origin_current -> (300, 465)
+deploy_origin_alt     -> (100, 465)
+```
+
+The generated operational manifests confirmed the override:
+
+```text
+opr-0b062974b7 [300, 465]
+opr-04de01a0c7 [100, 465]
+```
+
+A later smoke test confirmed that `base_station_rc` is visible in `table.csv`, for example:
+
+```text
+deploy_origin_current -> "(300, 465)"
+deploy_origin_alt     -> "(100, 465)"
+```
+
+The `phy_id` column remains useful physical-context audit support, but varying `phy_id` is not the primary mechanism for Subgoal 07 deployment-origin variation.
 
 ### 8.4 Preserve semantics
 
-If origin variation is added, the resulting study semantics must remain interpretable.
+If deployment-origin variation is added, the resulting study semantics must remain interpretable.
 
 The system should still be able to tell the user:
 
 - which usefulness-family case each run belongs to,
-- which physical-origin variant it belongs to,
-- and whether the study is primarily varying impairment, origin context, or both.
+- which deployment-origin variant it belongs to,
+- which physical artifact (`phy_id`) it used,
+- and whether the study is primarily varying impairment, deployment origin, or both.
 
-The first practical requirement is that `phy_id` must appear per row in the analysis table. Without that, a multi-physical-context study would not be sufficiently auditable.
+The practical audit requirement is that both `phy_id` and `base_station_rc` appear per row in the analysis table. Without `base_station_rc`, a deployment-origin study would not be sufficiently auditable from `table.csv`.
 
-A minimal backend patch should therefore add `phy_id` to each Analysis Batch row and include it in the guaranteed table columns.
+This has now been implemented by exposing:
+
+```python
+phy_id
+base_station_rc
+```
+
+in Analysis Batch rows.
+
+### 8.5 Random deployment-origin sampling is a possible follow-on
+
+It would be possible to add bounded random sampling of deployment origins in a future subgoal. Such a mechanism would need to:
+
+- read grid bounds from the selected physical artifact;
+- optionally respect a margin from grid edges;
+- use an explicit origin-sampling seed;
+- record every sampled `base_station_rc` in `table.csv`;
+- and avoid conflating sampled deployment-origin variation with controller stochasticity.
+
+Subgoal 07 intentionally does **not** require this. Fixed named deployment origins are more thesis-safe, easier to audit, and sufficient for the current structural truthfulness goal.
 
 ---
 
 ## 9. Concrete implementation order
 
-The work should proceed in a disciplined sequence.
+The work proceeded in a disciplined sequence.
 
 ### 9.1 First: deterministic diagnosis
 
-This has now been done at the code-path level.
+This has been done at the code-path level.
 
 The confirmed diagnosis is:
 
@@ -439,52 +452,63 @@ The confirmed diagnosis is:
 - this favors lower row first and lower column second;
 - multi-sensor shared-origin deployments can therefore form stable upper or upper-left-looking patterns under tied conditions.
 
-### 9.2 Second: add the smallest audit support
+### 9.2 Second: add physical-context audit support
 
-The next implementation step should be the minimal backend patch that exposes `phy_id` per row in `table.csv`.
+A minimal backend patch exposed `phy_id` per row in `table.csv`.
 
 This is a small truthfulness patch. It does not change controller behavior and does not change physical generation.
 
-The intended row addition is:
+The row addition is:
 
 ```python
 "phy_id": m2.phy_id,
 ```
 
-near the existing row fields:
+and `phy_id` is included in the guaranteed CSV columns.
+
+### 9.3 Third: add deployment-origin audit support
+
+A second minimal backend patch exposed `base_station_rc` per row in `table.csv`.
+
+The row extraction uses the operational manifest’s network configuration:
 
 ```python
-"case"
-"case_index"
-"seed"
-"policy"
-"opr_id"
+if "base_station_rc" in net:
+    row["base_station_rc"] = net.get("base_station_rc")
 ```
 
-The guaranteed CSV columns should likewise include:
+and `base_station_rc` is included in the guaranteed CSV columns.
 
-```python
-"phy_id"
+### 9.4 Fourth: test case-level `network.base_station_rc` override
+
+A compact smoke study confirmed that case-level overrides of `network.base_station_rc` work.
+
+The tested cases were:
+
+```json
+[
+  {
+    "label": "deploy_origin_current",
+    "overrides": {
+      "network.base_station_rc": [300, 465]
+    }
+  },
+  {
+    "label": "deploy_origin_alt",
+    "overrides": {
+      "network.base_station_rc": [100, 465]
+    }
+  }
+]
 ```
 
-near `opr_id`.
+The resulting study produced separate cases, preserved the same physical artifact, and exposed the deployment origin in `table.csv`.
 
-### 9.3 Third: test case-level `phy_id` override
+### 9.5 Fifth: defer frontend preset unless needed
 
-After `phy_id` is visible in the table, run a compact study that uses case overrides to vary `phy_id`.
+A frontend preset may be useful later, but it is not required for Subgoal 07 completion.
 
-The smoke test should confirm that:
-
-- different cases can point to different `phy-*` artifacts;
-- `table.csv` records the correct `phy_id` per run;
-- the resulting `ana-*` artifact remains readable;
-- no synthetic unlabeled cases appear unexpectedly.
-
-### 9.4 Fourth: decide whether a frontend preset is necessary
-
-Only after the backend path works should the frontend be extended.
-
-If needed, the preferred frontend extension is a small preset or helper that makes bounded multi-origin cases easier to author. It should not introduce a broad new workflow.
+The backend and case-override path is already sufficient to support bounded deployment-origin variation.
 
 ---
 
@@ -494,22 +518,23 @@ By the end of this subgoal, the expected evidence should consist of:
 
 - a precise statement of how deterministic tie-breaking currently works;
 - a judgment about whether it produces meaningful directional bias;
-- a minimal Analysis Batch audit patch exposing per-row `phy_id`;
-- a bounded case-level demonstration of varying physical context through `phy_id`;
+- Analysis Batch audit support exposing per-row `phy_id`;
+- Analysis Batch audit support exposing per-row `base_station_rc`;
+- a bounded case-level demonstration of varying deployment origin through `network.base_station_rc`;
 - and a compact smoke study showing that the new structure works.
 
-The strongest outcome would be:
+The strongest outcome is:
 
 1. deterministic tie-breaking is traced cleanly;
 2. the suspected up-left bias is refined into a truthful row-major upward/upper-fan diagnosis;
-3. Analysis Batch can represent bounded multi-origin usefulness-family studies through case-level `phy_id` overrides;
+3. Analysis Batch can represent bounded multi-deployment-origin usefulness-family studies through case-level `network.base_station_rc` overrides;
 4. and the resulting study remains compact and scientifically legible.
 
-A weaker but still acceptable outcome would be:
+A weaker but still acceptable outcome would have been:
 
 - deterministic behavior is clarified;
-- `phy_id` audit support is added;
-- and the design path for origin variation is made concrete,
+- the audit columns are added;
+- and the design path for deployment-origin variation is made concrete,
 - even if fuller frontend preset support requires a follow-on patch.
 
 ---
@@ -520,10 +545,11 @@ Subgoal 07 should be considered complete if all of the following are true:
 
 1. The current deterministic tie-breaking behavior is identified precisely in code-path terms.
 2. A clear statement can be written that dynamic deterministic movement can introduce upward or upper-fan spatial bias under tied score conditions.
-3. Analysis Batch exposes per-row `phy_id` for auditability.
-4. A bounded mechanism is added, or at least minimally scaffolded, for varying physical-origin context within one Analysis Batch study through `phy_id` case overrides.
-5. The usefulness-family case semantics remain readable and truthful under the extended study shape.
-6. A compact smoke test confirms that the new study structure is usable without broad rework.
+3. Analysis Batch exposes per-row `phy_id` for physical-context auditability.
+4. Analysis Batch exposes per-row `base_station_rc` for deployment-origin auditability.
+5. A bounded mechanism exists for varying deployment-origin context within one Analysis Batch study through `network.base_station_rc` case overrides.
+6. The usefulness-family case semantics remain readable and truthful under the extended study shape.
+7. A compact smoke test confirms that the new study structure is usable without broad rework.
 
 ---
 
@@ -545,7 +571,7 @@ The remaining question for AWSRT is therefore not whether the effect exists, but
 
 > whether this deterministic spatial bias is acceptable as an implementation detail, or whether bounded mitigation or inspection support is required for scientific interpretability.
 
-For Subgoal 07, the appropriate first treatment is documentation plus audit support, not controller redesign.
+For Subgoal 07, the appropriate treatment is documentation plus audit support, not controller redesign.
 
 ---
 
@@ -553,11 +579,13 @@ For Subgoal 07, the appropriate first treatment is documentation plus audit supp
 
 If Subgoal 07 succeeds, the likely next step would be one of two things:
 
-- a bounded usefulness-family robustness note that incorporates multiple origin variants explicitly, or
+- a bounded usefulness-family robustness note that incorporates multiple fixed deployment-origin variants explicitly; or
 - a modest follow-on on stochastic tie-breaking, if deterministic bias turns out to be scientifically consequential enough that a bounded stochastic comparison becomes necessary.
 
+A later deployment-origin sampling feature could also be considered, but only if it remains seed-controlled, grid-aware, and fully auditable.
+
 That later step should still remain cautious.  
-The immediate purpose here is first to understand the current deterministic behavior and then to improve bounded origin robustness in a controlled way.
+The immediate purpose here is first to understand the current deterministic behavior and then to improve bounded deployment-origin robustness in a controlled way.
 
 ---
 
@@ -572,4 +600,4 @@ This subgoal should be carried out in the same disciplined style as the earlier 
 - and cautious interpretation.
 
 The main result sought here is not more experimental volume.  
-It is improved structural truthfulness: confidence that bounded usefulness-family readings are not being silently over-shaped by deterministic tie-resolution or one fixed ignition geometry.
+It is improved structural truthfulness: confidence that bounded usefulness-family readings are not being silently over-shaped by deterministic tie-resolution or one fixed sensor deployment geometry.
