@@ -91,7 +91,10 @@ dist/
 /.next/
 /out/
 /dist/
-/build/notes/
-/src/
+/build/
 /notes/
 /results/
+
+# Source utilities are tracked by default.
+# Scratch/ad hoc source scripts are kept here and ignored.
+src/do_not_track/
