@@ -1,16 +1,16 @@
 # AWSRT v0.6 Subgoal 04: General Analysis Extraction and Distance-Band Interpretation Hardening
 
-**Status:** Draft design note  
+**Status:** Closed design / completed subgoal  
 **Applies to:** `v0.6-subgoal-04`  
-**Proposed script:** `src/extract_analysis_study_summary.py`  
+**Implemented script:** `src/extract_analysis_study_summary.py`  
 **Primary validation target:** `data/metrics/ana-194fc0a69b` with repair input `data/metrics/ana-5c07ad299a`  
 **Purpose:** Replace one-off, subgoal-specific extraction scripts with a general, reusable analysis-study extraction utility for AWSRT analysis outputs under `data/metrics/ana-*/`.
 
----
+---i
 
 ## 1. Purpose of this note
 
-This note defines AWSRT v0.6 Subgoal 04.
+This note records AWSRT v0.6 Subgoal 04.
 
 Subgoal 03 produced a scientifically useful distance-band result, but the extraction process was still ad hoc. A temporary script inspected:
 
@@ -27,22 +27,24 @@ data/metrics/ana-5c07ad299a
 
 That process was useful, but it revealed a recurring problem in the AWSRT workflow:
 
-> Each subgoal has been producing its own small extraction script or inline Python audit.
+> Each subgoal had been producing its own small extraction script or inline Python audit.
 
-Subgoal 04 should harden this into a general extraction utility that can be reused across v0.6 and later studies.
+Subgoal 04 hardened this into a general extraction utility that can be reused across v0.6 and later studies.
 
-The goal is not to build a full reporting framework.
+The goal was not to build a full reporting framework.
 
-The goal is to create a disciplined, reusable script that can:
+The goal was to create a disciplined, reusable script that can:
 
 - read `summary.json`;
 - read `table.csv`;
 - report structural integrity;
 - summarize metrics by case;
 - optionally merge repair runs;
-- validate expected case overrides when a schema is supplied;
+- validate expected case overrides when a preset is supplied;
 - derive common grouping fields from case labels;
 - produce compact CSV and Markdown outputs suitable for design notes, thesis notes, and later plotting.
+
+This goal has been met for the first validation target.
 
 ---
 
@@ -63,7 +65,7 @@ table.csv
 
 These files can be long and difficult to inspect directly.
 
-In recent subgoals, the immediate workflow has often been:
+In recent subgoals, the immediate workflow had often been:
 
 1. run an analysis study;
 2. inspect `summary.json`;
@@ -74,15 +76,15 @@ In recent subgoals, the immediate workflow has often been:
 7. manually derive interpretation tables;
 8. write a design note.
 
-This has led to repeated inline Python snippets and subgoal-specific extraction scripts.
+This led to repeated inline Python snippets and subgoal-specific extraction scripts.
 
-Subgoal 04 should introduce one general script under `src/` so that future studies can be inspected using a common tool.
+Subgoal 04 introduced one general script under `src/` so that future studies can be inspected using a common tool.
 
 ---
 
 ## 3. Scope
 
-The script should target analysis output folders with the following structure:
+The script targets analysis output folders with the following structure:
 
 ```text
 data/metrics/ana-*/
@@ -90,15 +92,15 @@ data/metrics/ana-*/
   table.csv
 ```
 
-The script should live in:
+The script lives in:
 
 ```text
 src/extract_analysis_study_summary.py
 ```
 
-It should support the current distance-band use case, but it should not be hard-coded only for v0.6 Subgoal 03.
+It supports the current distance-band use case, but it is not hard-coded only for v0.6 Subgoal 03.
 
-The design should allow future use on:
+The design allows future use on:
 
 - usefulness-family studies;
 - distance-band studies;
@@ -113,7 +115,7 @@ The design should allow future use on:
 
 ## 4. Non-goals
 
-Subgoal 04 should not:
+Subgoal 04 did not:
 
 - redesign the analysis pipeline;
 - change the analysis contract;
@@ -125,13 +127,13 @@ Subgoal 04 should not:
 - infer scientific conclusions without user review;
 - require all future studies to use distance-band labels.
 
-The output should remain a lightweight extraction layer over existing analysis products.
+The output remains a lightweight extraction layer over existing analysis products.
 
 ---
 
-## 5. Proposed script
+## 5. Implemented script
 
-The proposed script is:
+The implemented script is:
 
 ```text
 src/extract_analysis_study_summary.py
@@ -139,34 +141,35 @@ src/extract_analysis_study_summary.py
 
 The name is intentionally general.
 
-Avoid naming it only for v0.6 or distance bands, because the goal is to stop creating ad hoc extraction scripts for every subgoal.
+It avoids being named only for v0.6 or distance bands because the goal is to stop creating ad hoc extraction scripts for every subgoal.
 
-Example usage:
+Basic usage:
 
 ```bash
 python src/extract_analysis_study_summary.py data/metrics/ana-194fc0a69b
 ```
 
-Example usage with a repair run:
+Usage with repair replacement:
 
 ```bash
 python src/extract_analysis_study_summary.py \
   data/metrics/ana-194fc0a69b \
   --repair data/metrics/ana-5c07ad299a \
   --replace-case dist_15_near__noise \
-  --replace-case dist_60_very_far__delay
+  --replace-case dist_60_very_far__delay \
+  --preset distance_band_v0_6_03 \
+  --expected-rows-per-case 5
 ```
 
-Example usage with a named preset:
+The first implementation supports:
 
-```bash
-python src/extract_analysis_study_summary.py \
-  data/metrics/ana-194fc0a69b \
-  --repair data/metrics/ana-5c07ad299a \
-  --preset distance_band_v0_6_03
-```
-
-The first implementation may support the explicit `--replace-case` form and optionally include the `distance_band_v0_6_03` preset as a convenience.
+- explicit `--replace-case`;
+- optional `--repair`;
+- safe failure when repair is supplied without replacement unless `--append-repair` is used;
+- built-in `distance_band_v0_6_03` preset;
+- optional expected row count per case;
+- custom output directory;
+- custom output prefix.
 
 ---
 
@@ -174,7 +177,7 @@ The first implementation may support the explicit `--replace-case` form and opti
 
 ### 6.1 Required input
 
-The script should require one main analysis directory:
+The script requires one main analysis directory:
 
 ```text
 main_ana_dir = data/metrics/ana-*
@@ -189,19 +192,17 @@ table.csv
 
 ### 6.2 Optional repair inputs
 
-The script should optionally accept one or more repair analysis directories:
+The script accepts repair analysis directories:
 
 ```text
 --repair data/metrics/ana-*
 ```
 
-For Subgoal 04, support for one repair folder is sufficient.
-
-If more than one repair folder is easy to support, the script can accept repeated `--repair` arguments, but that should not complicate the first implementation.
+The implementation supports repeated `--repair` arguments.
 
 ### 6.3 Optional replacement cases
 
-When a repair folder is supplied, the script should be able to replace named cases from the main table with rows from the repair table.
+When a repair folder is supplied, the script can replace named cases from the main table with rows from the repair table.
 
 Example:
 
@@ -210,7 +211,7 @@ Example:
 --replace-case dist_60_very_far__delay
 ```
 
-Expected behavior:
+Implemented behavior:
 
 1. Load main `table.csv`.
 2. Remove rows whose `case` is in `replace_case`.
@@ -225,7 +226,7 @@ This makes the corrected table auditable.
 
 ## 7. Outputs
 
-By default, output files should be written to the main analysis directory.
+By default, output files are written to the main analysis directory.
 
 For example:
 
@@ -233,7 +234,7 @@ For example:
 data/metrics/ana-194fc0a69b/
 ```
 
-Recommended output files:
+The implemented output files are:
 
 ```text
 analysis_extraction_columns.txt
@@ -244,15 +245,15 @@ analysis_extraction_group_summary.csv
 analysis_extraction_interpretation.md
 ```
 
-The exact names can include a prefix if useful, but they should be general rather than subgoal-specific.
+The output names are general rather than subgoal-specific.
 
-For example, prefer:
+For example:
 
 ```text
 analysis_extraction_case_summary.csv
 ```
 
-over:
+not:
 
 ```text
 v0_6_04_distance_band_summary.csv
@@ -262,11 +263,11 @@ Subgoal-specific naming can still be produced later by copying or renaming outpu
 
 ---
 
-## 8. Required behavior
+## 8. Implemented behavior
 
-### 8.1 Load and report top-level summary metadata
+### 8.1 Summary metadata loading
 
-The script should read `summary.json` and report important top-level keys, including when present:
+The script reads `summary.json` and extracts compact top-level metadata when present, including:
 
 ```text
 ana_id
@@ -279,18 +280,21 @@ seeds
 policies
 study_type
 study_semantics
-sweep
 sweep_context
-metric_semantics
-metrics_catalog
 created_at
 ```
 
-It should write a compact JSON integrity file rather than forcing the user to inspect the entire `summary.json`.
+This is written into:
 
-### 8.2 Load table and report columns
+```text
+analysis_extraction_integrity.json
+```
 
-The script should read `table.csv` and record:
+rather than forcing the user to inspect the entire `summary.json`.
+
+### 8.2 Table loading and column reporting
+
+The script reads `table.csv` and records:
 
 ```text
 row_count
@@ -300,11 +304,32 @@ key_columns_present
 key_columns_missing
 ```
 
-This should help identify whether expected columns such as `tie_breaking` or `case_kind` are present.
+This is written to:
 
-### 8.3 Preserve source metadata
+```text
+analysis_extraction_columns.txt
+```
 
-The corrected rows output should include source metadata:
+and summarized in:
+
+```text
+analysis_extraction_integrity.json
+```
+
+For the Subgoal 03 validation target, the expected missing row-level metadata columns were:
+
+```text
+tie_breaking
+network_tie_breaking
+case_family
+case_kind
+```
+
+These were not fatal because the sweep overrides and case labels preserve the intended semantics.
+
+### 8.3 Source metadata preservation
+
+The corrected rows output includes:
 
 ```text
 source_ana_id
@@ -328,52 +353,32 @@ This is important for transparent patched-matrix interpretation.
 
 ### 8.4 Group by case
 
-The script should always support grouping by:
+The script supports grouping by:
 
 ```text
 case
 ```
 
-If `case` is not present, it should fail clearly with a helpful error.
+If `case` is not present, it fails clearly.
 
-The case summary should include:
+The case summary includes identity, provenance, missingness, metric summaries, and dominant usefulness state where available.
+
+### 8.5 Derived grouping fields
+
+The script derives common grouping fields from case labels.
+
+For labels containing a double underscore:
 
 ```text
-case
-rows
-seeds_present
-seed_count
-policy_values
-phy_id_values
-base_station_rc_values
-delay_steps_values
-loss_prob_values
-noise_level_values
-ttfd_mean
-ttfd_n_finite
-ttfd_missing_count
-ttfd_missing_frac
-mean_entropy_auc_mean
-coverage_auc_mean
-delivered_info_proxy_mean
-mdc_residual_mean
-mdc_residual_pos_frac_mean
-mdc_violation_rate_mean
-usefulness_regime_state_exploit_frac_mean
-usefulness_regime_state_recover_frac_mean
-usefulness_regime_state_caution_frac_mean
-dominant_usefulness_state
-source_ana_ids
-repair_rows
+left__right
 ```
 
-Only include metric columns that exist in the table.
+it derives:
 
-Missing columns should not crash the script unless they are required structural columns.
-
-### 8.5 Derive common grouping fields
-
-The script should attempt to derive common grouping fields from case labels.
+```text
+case_group = left
+case_kind_derived = right
+```
 
 For v0.6 distance-band labels:
 
@@ -384,7 +389,7 @@ dist_50_far__noise
 dist_60_very_far__healthy
 ```
 
-derive:
+it also derives:
 
 ```text
 distance_band
@@ -398,26 +403,13 @@ distance_band = dist_15_near | dist_30_mid | dist_50_far | dist_60_very_far
 condition = healthy | delay | noise
 ```
 
-More generally, for case labels containing a double underscore:
+### 8.6 Distance metadata preset
+
+The script implements a built-in preset:
 
 ```text
-left__right
+distance_band_v0_6_03
 ```
-
-derive:
-
-```text
-case_group = left
-case_kind_derived = right
-```
-
-For v0.6 distance labels, `case_group` and `distance_band` can be the same.
-
-### 8.6 Support optional distance metadata
-
-For Subgoal 03 and future distance-band studies, the script should allow a built-in or user-supplied distance metadata map.
-
-For the first implementation, a built-in `distance_band_v0_6_03` preset is acceptable.
 
 Preset metadata:
 
@@ -429,7 +421,7 @@ dist_50_far         (1033, 1088)      905.10               0.500
 dist_60_very_far    (1080, 1320)      1110.11              0.614
 ```
 
-The script should add these columns when distance bands are recognized:
+The script adds these columns when the preset is used:
 
 ```text
 raw_distance_cells
@@ -437,9 +429,9 @@ normalized_distance
 distance_base_station_rc_expected
 ```
 
-The row-level `base_station_rc` from `table.csv` should remain preserved separately.
+The row-level `base_station_rc` from `table.csv` remains preserved separately.
 
-### 8.7 Compute dominant usefulness state
+### 8.7 Dominant usefulness state
 
 If the usefulness state-fraction columns exist:
 
@@ -449,7 +441,7 @@ usefulness_regime_state_recover_frac
 usefulness_regime_state_caution_frac
 ```
 
-the script should compute:
+the script computes:
 
 ```text
 dominant_usefulness_state
@@ -463,14 +455,14 @@ recover
 caution
 ```
 
-This should be a descriptive summary, not a statistical claim.
+This is a descriptive summary, not a statistical claim.
 
 ### 8.8 TTFD missingness
 
-If `ttfd` exists, report:
+If `ttfd` exists, the script reports:
 
 ```text
-ttfd_n_finite
+ttfd_count
 ttfd_missing_count
 ttfd_missing_frac
 ttfd_mean
@@ -479,15 +471,15 @@ ttfd_min
 ttfd_max
 ```
 
-Do not hide missing TTFD.
+Missing TTFD is not hidden.
 
 For AWSRT transformed real-fire studies, missing TTFD can be scientifically meaningful.
 
 ---
 
-## 9. Optional expected-case validation
+## 9. Expected-case validation
 
-The script should support optional expected-case validation.
+The script supports optional expected-case validation.
 
 For Subgoal 03, the expected cases are:
 
@@ -590,109 +582,95 @@ dist_60_very_far__noise:
 
 This validation is what would have immediately exposed the two invalid cells in the original Subgoal 03 run.
 
-The expected-case validation should be optional so the script remains general.
-
-Suggested CLI:
-
-```bash
-python src/extract_analysis_study_summary.py \
-  data/metrics/ana-194fc0a69b \
-  --repair data/metrics/ana-5c07ad299a \
-  --replace-case dist_15_near__noise \
-  --replace-case dist_60_very_far__delay \
-  --preset distance_band_v0_6_03 \
-  --expected-rows-per-case 5
-```
+The expected-case validation remains optional so the script is still general.
 
 ---
 
 ## 10. Integrity report
 
-The script should write:
+The script writes:
 
 ```text
 analysis_extraction_integrity.json
 ```
 
-Suggested contents:
-
-```json
-{
-  "main_ana_id": "ana-194fc0a69b",
-  "repair_ana_ids": ["ana-5c07ad299a"],
-  "main_rows_loaded": 60,
-  "repair_rows_loaded": 10,
-  "replace_cases": [
-    "dist_15_near__noise",
-    "dist_60_very_far__delay"
-  ],
-  "rows_after_correction": 60,
-  "cases_present": [],
-  "cases_missing": [],
-  "cases_extra": [],
-  "rows_per_case": {},
-  "column_count": 136,
-  "key_columns_present": [],
-  "key_columns_missing": [],
-  "override_validation": {
-    "ok": true,
-    "failures": []
-  },
-  "warnings": []
-}
-```
-
-If validation fails, the script should still write whatever outputs it safely can, but the integrity file should mark:
+For the Subgoal 03 validation run, the integrity report showed:
 
 ```text
-ok = false
+main_ana_id = ana-194fc0a69b
+repair_ana_ids = [ana-5c07ad299a]
+main_rows_loaded = 60
+repair_rows_loaded = 10
+replace_cases = [dist_15_near__noise, dist_60_very_far__delay]
+rows_after_correction = 60
+cases_missing = []
+cases_extra = []
+rows_per_case = 5 each
+override validation ok = true
+warnings = []
 ```
 
-or equivalent.
+The exact observed high-level integrity values were:
+
+```text
+ok = true
+rows_after_correction = 60
+case_count = 12
+expected_rows_per_case = 5
+failures = []
+warnings = []
+```
+
+The validation also confirmed that the two repaired cells were sourced from:
+
+```text
+ana-5c07ad299a
+```
+
+while the remaining valid cells were sourced from:
+
+```text
+ana-194fc0a69b
+```
 
 ---
 
 ## 11. Markdown interpretation output
 
-The script should write a compact Markdown file:
+The script writes:
 
 ```text
 analysis_extraction_interpretation.md
 ```
 
-This file should not attempt to replace human interpretation, but it should provide a clean starting point.
+This file does not attempt to replace human interpretation, but it provides a clean starting point.
 
-For a distance-band usefulness study, the Markdown should include:
+For the Subgoal 03 validation run, it included:
 
 - analysis IDs;
-- corrected-row status;
+- repair and replacement-case status;
 - row and case counts;
+- validation status;
 - TTFD missingness table;
 - dominant usefulness state table;
-- compact metric table;
-- caveats.
+- group summary table;
+- interpretation prompt.
 
-Example language:
-
-```text
-This extraction merges the main run with the specified repair run and replaces the named cases before summarization. The resulting corrected table contains 60 rows and 12 cases with 5 seeds per case.
-```
-
-For Subgoal 03, the interpretation should make it easy to restate:
+The generated interpretation stub correctly made it easy to restate:
 
 ```text
 Distance strongly affects finite TTFD availability, but the compact usefulness triad remains condition-readable.
 ```
 
-But the script should avoid overclaiming.
+The script itself avoids making the final scientific claim automatically.
 
 ---
 
 ## 12. Subgoal 03 validation target
 
-The first validation target for the script is the corrected Subgoal 03 matrix.
+The first validation target for the script was the corrected Subgoal 03 matrix.
 
-Command:
+Command used:
 
 ```bash
 python src/extract_analysis_study_summary.py \
@@ -704,16 +682,28 @@ python src/extract_analysis_study_summary.py \
   --expected-rows-per-case 5
 ```
 
-Expected high-level output:
+Observed high-level output:
 
 ```text
-rows_after_correction = 60
-case_count = 12
-rows_per_case = 5 each
-override_validation = ok
+Extraction complete.
+Main analysis: ana-194fc0a69b
+Rows after correction: 60
+Cases: 12
+Validation ok: True
 ```
 
-Expected corrected dominant states:
+Generated outputs:
+
+```text
+data/metrics/ana-194fc0a69b/analysis_extraction_columns.txt
+data/metrics/ana-194fc0a69b/analysis_extraction_integrity.json
+data/metrics/ana-194fc0a69b/analysis_extraction_corrected_rows.csv
+data/metrics/ana-194fc0a69b/analysis_extraction_case_summary.csv
+data/metrics/ana-194fc0a69b/analysis_extraction_group_summary.csv
+data/metrics/ana-194fc0a69b/analysis_extraction_interpretation.md
+```
+
+Expected corrected dominant states were reproduced:
 
 ```text
 healthy -> exploit
@@ -721,7 +711,7 @@ delay   -> recover
 noise   -> caution
 ```
 
-Expected corrected TTFD result:
+Expected corrected TTFD result was reproduced:
 
 ```text
 dist_15_near:
@@ -737,15 +727,15 @@ dist_60_very_far:
   missing TTFD for healthy, delay, noise
 ```
 
-This is the first proof that the general extraction script can reproduce the hand-built Subgoal 03 interpretation.
+This validates that the general extraction script can reproduce the hand-built Subgoal 03 interpretation.
 
 ---
 
-## 13. Recommended implementation structure
+## 13. Implementation structure
 
-The script should be simple and readable.
+The script is procedural and inspectable.
 
-Suggested functions:
+Implemented functional structure includes:
 
 ```python
 def load_summary(ana_dir: Path) -> dict:
@@ -760,7 +750,7 @@ def get_ana_id(summary: dict, ana_dir: Path) -> str:
 def add_source_columns(df: pd.DataFrame, ana_id: str, ana_dir: Path, repair_row: bool) -> pd.DataFrame:
     ...
 
-def apply_repairs(main_df: pd.DataFrame, repair_dfs: list[pd.DataFrame], replace_cases: list[str]) -> pd.DataFrame:
+def apply_repairs(...):
     ...
 
 def derive_case_fields(df: pd.DataFrame) -> pd.DataFrame:
@@ -775,7 +765,7 @@ def summarize_by_case(df: pd.DataFrame) -> pd.DataFrame:
 def summarize_by_group(df: pd.DataFrame) -> pd.DataFrame:
     ...
 
-def validate_expected_cases(df: pd.DataFrame, preset: str | None, expected_rows_per_case: int | None) -> dict:
+def validate_expected_cases(...):
     ...
 
 def write_integrity_report(...):
@@ -785,15 +775,13 @@ def write_markdown_interpretation(...):
     ...
 ```
 
-Keep the script procedural and inspectable.
-
-Avoid making a complex class hierarchy.
+The implementation avoids a complex class hierarchy.
 
 ---
 
 ## 14. Column handling
 
-The script should be tolerant of missing columns.
+The script is tolerant of missing columns.
 
 Required structural columns:
 
@@ -801,7 +789,7 @@ Required structural columns:
 case
 ```
 
-Strongly preferred columns:
+Strongly preferred columns include:
 
 ```text
 seed
@@ -824,7 +812,7 @@ usefulness_regime_state_recover_frac
 usefulness_regime_state_caution_frac
 ```
 
-If strongly preferred columns are missing, the script should record warnings rather than fail.
+If strongly preferred columns are missing, the script records them in the column report rather than failing.
 
 This matters because different AWSRT studies may emit different subsets of metrics.
 
@@ -832,7 +820,7 @@ This matters because different AWSRT studies may emit different subsets of metri
 
 ## 15. Numeric summary behavior
 
-For each metric column present, summarize with:
+For each metric column present, the script summarizes with:
 
 ```text
 count
@@ -845,11 +833,11 @@ missing_count
 missing_frac
 ```
 
-For the compact case summary, include the most important means directly as flat columns.
+For the case summary, the important means and missingness values are written directly as flat columns.
 
-Avoid writing only pandas multi-index headers, because those are harder to read in downstream notes.
+The output avoids pandas multi-index headers, because those are harder to read in downstream notes.
 
-For example, prefer:
+For example, the output uses fields like:
 
 ```text
 mean_entropy_auc_mean
@@ -857,7 +845,7 @@ mean_entropy_auc_median
 mean_entropy_auc_std
 ```
 
-over a multi-index CSV.
+rather than a multi-index CSV.
 
 ---
 
@@ -869,7 +857,7 @@ When case labels use the pattern:
 group__kind
 ```
 
-the script should derive:
+the script derives:
 
 ```text
 case_group
@@ -883,13 +871,7 @@ case_group = distance_band
 case_kind_derived = condition
 ```
 
-Then write a group summary by:
-
-```text
-case_group × case_kind_derived
-```
-
-If the preset identifies the labels as distance bands, also write:
+When the preset identifies the labels as distance bands, it also writes:
 
 ```text
 distance_band × condition
@@ -901,24 +883,15 @@ This keeps the script general while still supporting the distance-band matrix cl
 
 ## 17. Repair semantics
 
-Repair semantics should be explicit.
+Repair semantics are explicit.
 
-The script should not silently merge repair rows.
+The script does not silently merge repair rows.
 
-If `--repair` is supplied without `--replace-case`, it should either:
+If `--repair` is supplied without `--replace-case`, the script fails unless `--append-repair` is explicitly supplied.
 
-- fail with a clear message; or
-- append repair rows only if an explicit `--append-repair` flag is supplied.
+This prevents accidental outputs such as a 70-row table when a 60-row corrected matrix is intended.
 
-For Subgoal 04, prefer the safer behavior:
-
-```text
---repair requires at least one --replace-case
-```
-
-This prevents accidental 70-row outputs.
-
-The corrected rows CSV should preserve both:
+The corrected rows CSV preserves both:
 
 ```text
 source_ana_id
@@ -929,34 +902,61 @@ so the provenance is visible.
 
 ---
 
-## 18. Why this belongs in `src/`
+## 18. Source tracking and ignored scratch scripts
 
-The script should live under:
+The reusable extraction utility belongs in:
 
 ```text
 src/
 ```
 
-rather than under `docs/` or only as an inline notebook-style snippet.
+and should be tracked by git.
 
-Reasons:
+During Subgoal 04, the project also had a number of older ad hoc plotting and inspection scripts. These are useful local working artifacts but are not part of the frozen reusable source surface.
 
-- it is a reusable project utility;
-- it operates on standard AWSRT analysis outputs;
-- it will likely be used across multiple subgoals;
-- it should be versioned with the codebase;
-- it reduces repeated one-off extraction code;
-- it supports auditability.
+They were moved under:
 
-This does not mean the script becomes part of the runtime system.
+```text
+src/do_not_track/
+```
 
-It is an analysis-support utility.
+The intended `.gitignore` convention is:
+
+```gitignore
+# Source utilities are tracked by default.
+# Scratch/ad hoc source scripts are kept here and ignored.
+src/do_not_track/
+```
+
+The broad top-level ignore rule:
+
+```gitignore
+/src/
+```
+
+should not be used, because it prevents reusable source utilities such as:
+
+```text
+src/extract_analysis_study_summary.py
+```
+
+from being tracked.
+
+The generated analysis outputs under:
+
+```text
+data/metrics/
+```
+
+remain ignored.
+
+This is correct: the script is reusable code, while the generated extraction artifacts are reproducible outputs.
 
 ---
 
-## 19. Minimal success criteria
+## 19. Minimal success criteria review
 
-Subgoal 04 is complete if:
+Subgoal 04 is complete.
 
 1. `src/extract_analysis_study_summary.py` exists.
 2. It reads `summary.json` and `table.csv` from a supplied `data/metrics/ana-*` directory.
@@ -967,18 +967,19 @@ Subgoal 04 is complete if:
 7. It writes a group-level summary CSV when case labels can be parsed.
 8. It writes a compact Markdown interpretation stub.
 9. It supports repair replacement by named case.
-10. It successfully reproduces the corrected Subgoal 03 matrix using:
+10. It successfully reproduced the corrected Subgoal 03 matrix using:
     - main run `ana-194fc0a69b`;
     - repair run `ana-5c07ad299a`;
     - replacement cases `dist_15_near__noise` and `dist_60_very_far__delay`.
-11. It validates 12 cases with 5 rows per case for the Subgoal 03 preset.
-12. It does not change controller behavior or study execution.
+11. It validated 12 cases with 5 rows per case for the Subgoal 03 preset.
+12. It did not change controller behavior or study execution.
+13. The repository ignore strategy was adjusted so reusable `src/` utilities can be tracked while scratch scripts remain ignored under `src/do_not_track/`.
 
 ---
 
 ## 20. Suggested next step after Subgoal 04
 
-If Subgoal 04 succeeds, v0.6 can proceed in one of three directions.
+After Subgoal 04, v0.6 can proceed in one of three directions.
 
 ### Option A: Clean single-artifact rerun
 
@@ -1016,32 +1017,32 @@ The recommended immediate path is:
 
 ```text
 v0.6-subgoal-04:
-  build general extraction script and validate it on corrected Subgoal 03
+  freeze after committing the general extractor, .gitignore adjustment, and this completed note
 
 v0.6-subgoal-05:
   decide between clean rerun, longer-window probe, or second artifact
 ```
 
-This is preferable to immediately launching another broad matrix because Subgoal 03 has already produced a real result.
+A reasonable default for Subgoal 05 is the longer-window probe, because Subgoal 03 showed that distance strongly structures finite TTFD availability within `0:150`.
 
-The priority now is to turn that result into a clean, reusable, auditable evidence object.
+The clean single-artifact rerun remains optional unless thesis-ready artifact cleanliness is needed immediately.
 
 ---
 
 ## 22. Working conclusion
 
-Subgoal 04 is an infrastructure-for-interpretation step.
+Subgoal 04 was an infrastructure-for-interpretation step.
 
-It is not a detour from the science.
+It was not a detour from the science.
 
 The scientific value of AWSRT depends on being able to see when metric families separate. That requires extraction tools that are consistent, auditable, and not reinvented for every subgoal.
 
-The general script proposed here should make future AWSRT studies easier to trust.
+The general script added here makes future AWSRT studies easier to trust.
 
-It should also reduce the chance that case-label / override mismatches survive until interpretation.
+It also reduces the chance that case-label / override mismatches survive until interpretation.
 
 The core principle is:
 
 > Every completed analysis study should be easy to audit before it is easy to interpret.
 
-Subgoal 04 exists to make that true.
+Subgoal 04 makes that principle operational for AWSRT analysis outputs.
