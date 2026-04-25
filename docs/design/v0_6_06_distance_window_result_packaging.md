@@ -1,18 +1,20 @@
 # AWSRT v0.6 Subgoal 06: Distance-Window Result Packaging
 
-**Status:** Draft design note  
+**Status:** Closed design / completed packaging step  
 **Applies to:** `v0.6-subgoal-06`  
 **Recommended file:** `docs/design/v0_6_06_distance_window_result_packaging.md`  
 **Depends on:** `v0.6-subgoal-03`, `v0.6-subgoal-04`, `v0.6-subgoal-05`  
 **Primary short-window analysis:** corrected `data/metrics/ana-194fc0a69b` with repair input `data/metrics/ana-5c07ad299a`  
 **Primary long-window analysis:** `data/metrics/ana-efab12c047`  
+**Packaging script:** `src/package_v0_6_distance_window_results.py`  
+**Output directory:** `results/figures/v0_6_distance_window/`  
 **Purpose:** Package the v0.6 distance-window results into clean, auditable evidence tables and thesis-facing figures before starting another experiment.
 
 ---
 
 ## 1. Purpose of this note
 
-This note defines AWSRT v0.6 Subgoal 06.
+This note records AWSRT v0.6 Subgoal 06.
 
 Subgoals 03 and 05 produced a coherent two-window distance result on the same transformed real-fire artifact:
 
@@ -34,11 +36,11 @@ execution_window = 0:450
 
 Together, these subgoals showed that ignition-to-base-station distance affects timing access strongly, but does not collapse the compact usefulness-triad interpretation.
 
-Subgoal 06 is not a new matrix.
+Subgoal 06 was not a new matrix.
 
-It is a packaging and interpretation-hardening step.
+It was a packaging and interpretation-hardening step.
 
-The purpose is to turn the two-window result into:
+The purpose was to turn the two-window result into:
 
 - clean evidence tables;
 - compact thesis-facing figures;
@@ -78,7 +80,7 @@ This is aligned with the broader AWSRT thesis direction:
 
 > information delivery, timing, belief quality, and operational usefulness do not collapse into a single metric.
 
-Subgoal 06 should package this result in a way that can be reused in a thesis chapter, results appendix, or paper draft.
+Subgoal 06 packages this result in a way that can be reused in a thesis chapter, results appendix, or paper draft.
 
 ---
 
@@ -212,9 +214,9 @@ Subgoal 04 produced the general extraction utility:
 src/extract_analysis_study_summary.py
 ```
 
-Subgoal 06 should use the extracted outputs from this utility as its evidence base.
+Subgoal 06 used the extracted outputs from this utility as its evidence base.
 
-Expected short-window extraction files:
+Short-window extraction files:
 
 ```text
 data/metrics/ana-194fc0a69b/analysis_extraction_integrity.json
@@ -224,7 +226,7 @@ data/metrics/ana-194fc0a69b/analysis_extraction_group_summary.csv
 data/metrics/ana-194fc0a69b/analysis_extraction_interpretation.md
 ```
 
-Expected long-window extraction files:
+Long-window extraction files:
 
 ```text
 data/metrics/ana-efab12c047/analysis_extraction_integrity.json
@@ -234,29 +236,29 @@ data/metrics/ana-efab12c047/analysis_extraction_group_summary.csv
 data/metrics/ana-efab12c047/analysis_extraction_interpretation.md
 ```
 
-Subgoal 06 should not manually re-derive the results from raw `summary.json` unless the extracted files are missing or invalid.
+Subgoal 06 did not manually re-derive the results from raw `summary.json`.
 
 ---
 
 ## 6. Main packaging question
 
-Subgoal 06 centers on this question:
+Subgoal 06 centered on this question:
 
 > How can the `0:150` and `0:450` distance-window results be summarized so that the metric separation is visible without overclaiming?
 
-The package should make three things easy to see:
+The package makes three things easy to see:
 
 1. Distance strongly affects TTFD availability.
 2. Longer time horizon converts some far-distance missing TTFDs into late detections.
 3. The compact usefulness triad remains stable across both windows.
 
-A good package should also preserve the caution that AUC-style metrics are not automatically comparable across different window lengths unless normalization is confirmed.
+The package also preserves the caution that AUC-style metrics are not automatically comparable across different window lengths unless normalization is confirmed.
 
 ---
 
 ## 7. Inputs
 
-Use these extracted summaries as inputs.
+The packaging script uses these extracted summaries as inputs.
 
 Short-window corrected matrix:
 
@@ -286,61 +288,58 @@ The long-window extraction did not require repairs.
 
 ## 8. Output location
 
-Generated packaging outputs should be written under a git-ignored results path unless deliberately curated into `docs/`.
-
-Recommended working output directory:
+Generated packaging outputs were written under:
 
 ```text
 results/figures/v0_6_distance_window/
 ```
 
-or:
+This path is git-ignored.
 
-```text
-results/analysis_studies/v0_6_distance_window/
-```
+That is appropriate because these are generated working artifacts. Thesis-ready figures or curated tables can later be copied into a tracked documentation path if needed.
 
-Because `results/` is currently ignored, thesis-ready artifacts can later be copied into a tracked documentation path if needed.
-
-Possible tracked summary path, if a small curated table is desired:
-
-```text
-docs/results/v0_6_distance_window_summary.md
-```
-
-Do not commit large generated images or CSVs unless there is a clear reason.
+Do not commit large generated images or CSVs unless there is a deliberate reason.
 
 ---
 
-## 9. Proposed helper script
+## 9. Packaging script
 
-Subgoal 06 may create a small packaging script.
-
-Recommended script:
+Subgoal 06 created the packaging script:
 
 ```text
 src/package_v0_6_distance_window_results.py
 ```
 
-If this script is created, it should be tracked under `src/`.
+This script is intended to be tracked under `src/`.
 
-Do not place it under:
+It reads the extracted outputs from Subgoal 04 and writes a small set of packaging artifacts.
+
+It does not re-run analyses.
+
+Default inputs:
 
 ```text
-src/do_not_track/
+short window: data/metrics/ana-194fc0a69b
+long window:  data/metrics/ana-efab12c047
 ```
 
-unless it is intentionally temporary.
+Default output:
 
-The script should read the extracted outputs from Subgoal 04 and write a small set of packaging artifacts.
+```text
+results/figures/v0_6_distance_window/
+```
 
-It should not re-run analyses.
+Run command:
+
+```bash
+python src/package_v0_6_distance_window_results.py
+```
 
 ---
 
-## 10. Desired output artifacts
+## 10. Generated output artifacts
 
-Recommended generated artifacts:
+Subgoal 06 generated the following artifacts:
 
 ```text
 results/figures/v0_6_distance_window/
@@ -349,23 +348,24 @@ results/figures/v0_6_distance_window/
   v0_6_distance_window_metric_snapshot.csv
   v0_6_distance_window_interpretation.md
   figure_v0_6_distance_window_ttfd_missingness.png
+  figure_v0_6_distance_window_ttfd_missingness_by_condition.png
+  figure_v0_6_distance_window_ttfd_mean.png
   figure_v0_6_distance_window_dominant_state.png
 ```
 
-Optional:
+The preferred thesis-facing TTFD figure is:
 
 ```text
-  figure_v0_6_distance_window_ttfd_mean.png
-  figure_v0_6_distance_window_combined_summary.png
+figure_v0_6_distance_window_ttfd_missingness_by_condition.png
 ```
 
-If figure generation takes too much time, prioritize CSV and Markdown packaging first.
+The older categorical missingness figure and finite-TTFD-mean figure are retained as audit views.
 
 ---
 
 ## 11. Core evidence table 1: TTFD availability
 
-Create a table comparing TTFD availability across:
+The packaging script creates a table comparing TTFD availability across:
 
 ```text
 window
@@ -373,7 +373,13 @@ distance_band
 condition
 ```
 
-Suggested columns:
+Output:
+
+```text
+v0_6_distance_window_ttfd_availability.csv
+```
+
+Key columns:
 
 ```text
 window_label
@@ -390,7 +396,7 @@ ttfd_median
 dominant_usefulness_state
 ```
 
-Expected qualitative pattern:
+Observed qualitative pattern:
 
 ```text
 0:150:
@@ -419,7 +425,7 @@ This is the most important evidence table.
 
 ## 12. Core evidence table 2: Dominant usefulness state
 
-Create a table comparing dominant usefulness state across:
+The packaging script creates a table comparing dominant usefulness state across:
 
 ```text
 window
@@ -427,7 +433,13 @@ distance_band
 condition
 ```
 
-Suggested columns:
+Output:
+
+```text
+v0_6_distance_window_dominant_state.csv
+```
+
+Key columns:
 
 ```text
 window_label
@@ -436,12 +448,12 @@ distance_band
 normalized_distance
 condition
 dominant_usefulness_state
-exploit_frac_mean
-recover_frac_mean
-caution_frac_mean
+usefulness_regime_state_exploit_frac_mean
+usefulness_regime_state_recover_frac_mean
+usefulness_regime_state_caution_frac_mean
 ```
 
-Expected pattern:
+Observed pattern:
 
 ```text
 healthy -> exploit
@@ -457,15 +469,23 @@ This table supports the central claim that timing access changes but the compact
 
 ## 13. Core evidence table 3: Metric snapshot
 
-Create a compact metric table for thesis notes.
+The packaging script creates a compact metric snapshot table.
 
-Suggested columns:
+Output:
+
+```text
+v0_6_distance_window_metric_snapshot.csv
+```
+
+Key columns:
 
 ```text
 window_label
+window_steps
 distance_band
-condition
 normalized_distance
+condition
+ttfd_count
 ttfd_missing_frac
 ttfd_mean
 mean_entropy_auc_mean
@@ -476,15 +496,64 @@ mdc_violation_rate_mean
 dominant_usefulness_state
 ```
 
-Include a note that AUC values should be interpreted with window-length caution.
-
 This table is useful for appendix or design-note evidence, but it should not be overloaded in the main narrative.
+
+AUC values should be interpreted with window-length caution.
 
 ---
 
-## 14. Figure 1: TTFD missingness by distance and window
+## 14. Preferred Figure 1: TTFD missingness by condition and distance
 
-Recommended figure:
+Preferred thesis-facing figure:
+
+```text
+figure_v0_6_distance_window_ttfd_missingness_by_condition.png
+```
+
+Purpose:
+
+Show how TTFD missingness changes by normalized distance, condition, and window.
+
+Structure:
+
+```text
+panels: healthy, delay, noise
+x-axis: normalized ignition-to-base distance
+y-axis: TTFD missing fraction
+lines/markers: 0:150 and 0:450 windows
+```
+
+This version is preferred over a single categorical x-axis because it does not imply continuity across unlike conditions.
+
+The figure makes the core result visually clear:
+
+```text
+healthy:
+  short window: far and very-far missing
+  long window: far resolves, very-far partly resolves
+
+delay:
+  short window: far and very-far missing
+  long window: far resolves, very-far partly resolves
+
+noise:
+  short window: far and very-far missing
+  long window: far and very-far still missing
+```
+
+Caption note:
+
+```text
+Annotations indicate finite-detection count out of five seeds for partially resolved cases.
+```
+
+For example, the `3/5` and `2/5` annotations mark finite detections, while the y-axis reports missing fraction.
+
+---
+
+## 15. Audit Figure 2: Categorical TTFD missingness
+
+Audit figure:
 
 ```text
 figure_v0_6_distance_window_ttfd_missingness.png
@@ -492,29 +561,19 @@ figure_v0_6_distance_window_ttfd_missingness.png
 
 Purpose:
 
-Show how TTFD missingness changes by distance, condition, and window.
+Provide a quick categorical inspection of missingness across the full distance-band × condition sequence.
 
-Possible visual forms:
+Caution:
 
-- small multiples by condition;
-- x-axis = normalized distance;
-- y-axis = TTFD missing fraction;
-- separate lines or markers for `0:150` and `0:450`.
+This figure is less suitable as a main thesis figure because the x-axis combines distance and condition categories. A line across those categories can imply continuity between unlike cases.
 
-Important requirements:
-
-- make missingness visually explicit;
-- do not hide `NaN` TTFD means;
-- show that noise remains missing at far distances in the long window;
-- keep the figure simple enough for a thesis chapter.
-
-This is likely the main figure.
+Use this as an audit figure, not as the primary interpretive figure.
 
 ---
 
-## 15. Figure 2: Dominant usefulness state by condition and distance
+## 16. Figure 3: Dominant usefulness state by condition and distance
 
-Recommended figure:
+Generated figure:
 
 ```text
 figure_v0_6_distance_window_dominant_state.png
@@ -524,18 +583,15 @@ Purpose:
 
 Show that dominant usefulness state remains stable even when timing availability changes.
 
-Possible visual forms:
+The figure uses a compact table layout:
 
-- tile/grid table;
-- rows = distance bands;
-- columns = conditions;
-- separate panels for windows;
-- cell text = dominant state;
-- optional small numeric state fractions.
+```text
+rows = window × distance band
+columns = healthy, delay, noise
+cell text = dominant state
+```
 
-Avoid making this overly decorative.
-
-The point is readability:
+Observed pattern:
 
 ```text
 healthy -> exploit
@@ -545,11 +601,13 @@ noise   -> caution
 
 across both windows.
 
+This figure is useful as an audit/appendix figure because it directly shows triad stability.
+
 ---
 
-## 16. Optional Figure 3: TTFD mean for finite detections
+## 17. Optional Figure 4: TTFD mean for finite detections
 
-Optional figure:
+Generated audit figure:
 
 ```text
 figure_v0_6_distance_window_ttfd_mean.png
@@ -561,9 +619,9 @@ Show late detections under the long window.
 
 Caution:
 
-TTFD mean should only be plotted where `ttfd_count > 0`.
+TTFD mean is plotted only where `ttfd_count > 0`.
 
-The figure should distinguish:
+This figure should distinguish:
 
 ```text
 finite but late
@@ -575,11 +633,11 @@ from:
 missing
 ```
 
-Do not plot missing values as zero.
+Do not interpret missing TTFD as zero.
 
 For very-far long-window cases, report the finite count because only some seeds are finite.
 
-Example annotation:
+Example:
 
 ```text
 dist_60_very_far healthy: 3/5 finite
@@ -588,36 +646,35 @@ dist_60_very_far delay:   2/5 finite
 
 ---
 
-## 17. Interpretation Markdown
+## 18. Interpretation Markdown
 
-Create a Markdown interpretation note:
+The packaging script writes:
 
 ```text
 results/figures/v0_6_distance_window/v0_6_distance_window_interpretation.md
 ```
 
-It should include:
+It includes:
 
 - input analysis IDs;
-- extraction integrity summary;
-- short-window result;
-- long-window result;
-- TTFD availability comparison;
-- dominant usefulness-state comparison;
+- short-window and long-window inputs;
+- TTFD availability table;
+- dominant usefulness-state table;
 - AUC/window-length caution;
-- final thesis-facing interpretation.
+- generated file list;
+- figure guidance.
 
-Suggested thesis-facing language:
+Core thesis-facing language:
 
 ```text
-Extending the window from 150 to 450 steps converted some far-distance TTFD failures into late detections, showing that short-window missingness was partly horizon-limited. However, the compact usefulness triad remained stable, and noise-side cases continued to resist finite TTFD at far distances. This reinforces the AWSRT distinction between timing access, belief summaries, and usefulness-state behavior.
+Extending the window from 150 to 450 steps converted some far-distance TTFD failures into late detections, showing that short-window missingness was partly horizon-limited. However, the compact usefulness triad remained stable, and noise-side cases continued to resist finite TTFD at far distances.
 ```
 
 ---
 
-## 18. AUC and cross-window caution
+## 19. AUC and cross-window caution
 
-Subgoal 06 must preserve a clear caution about AUC-style metrics.
+Subgoal 06 preserves a clear caution about AUC-style metrics.
 
 Because the two windows have different lengths:
 
@@ -648,36 +705,37 @@ Across windows, use AUC-style metrics cautiously and avoid strong claims about a
 
 ---
 
-## 19. Expected packaging conclusion
+## 20. Packaged conclusion
 
-The packaging should support this conclusion:
+The packaging supports this conclusion:
 
 > The short-window matrix showed that base-station distance can eliminate finite TTFD within `0:150`, while leaving the usefulness triad readable. The long-window matrix showed that some of this missingness was horizon-limited: far healthy and delay cases became finite, and very-far healthy and delay cases became partially finite. However, far and very-far noise cases remained TTFD-missing even under `0:450`. Across both windows, the dominant usefulness mapping remained stable: healthy/exploit, delay/recover, noise/caution.
 
-This conclusion should be phrased as a result for one transformed real-fire artifact, not as a universal law.
+This conclusion is phrased as a result for one transformed real-fire artifact, not as a universal law.
 
 ---
 
-## 20. Minimal success criteria
+## 21. Minimal success criteria review
 
-Subgoal 06 is complete if:
+Subgoal 06 is complete.
 
-1. The short-window and long-window extracted outputs are both available.
-2. Integrity is checked for both analyses.
-3. A combined TTFD availability table is created.
-4. A combined dominant usefulness-state table is created.
-5. A compact metric snapshot table is created.
-6. At least one TTFD missingness figure is generated or a clear table equivalent is produced.
-7. The interpretation note clearly states the two-window result.
-8. AUC/window-length caution is included.
-9. No new matrix or controller change is introduced.
-10. The packaging is reproducible from extracted CSV outputs.
+1. The short-window and long-window extracted outputs were both available.
+2. Integrity was checked for both analyses before packaging.
+3. A combined TTFD availability table was created.
+4. A combined dominant usefulness-state table was created.
+5. A compact metric snapshot table was created.
+6. A preferred TTFD missingness figure was generated using normalized distance and condition panels.
+7. Additional audit figures were generated.
+8. The interpretation note clearly states the two-window result.
+9. AUC/window-length caution is included.
+10. No new matrix or controller change was introduced.
+11. The packaging is reproducible from extracted CSV outputs.
 
 ---
 
-## 21. What this subgoal is not
+## 22. What this subgoal was not
 
-Subgoal 06 should not:
+Subgoal 06 did not:
 
 - run another matrix;
 - add another physical artifact;
@@ -690,11 +748,11 @@ Subgoal 06 should not:
 - over-interpret AUC values across unequal windows;
 - commit large generated artifacts without a deliberate reason.
 
-It is a packaging and interpretation step.
+It was a packaging and interpretation step.
 
 ---
 
-## 22. Recommended next step after Subgoal 06
+## 23. Recommended next step after Subgoal 06
 
 After Subgoal 06, there are two reasonable directions.
 
@@ -714,9 +772,9 @@ Test whether the distance/usefulness separation survives outside `phy-b7edba9ac3
 
 This is the stronger scientific extension.
 
-### Option B: Clean thesis packaging
+### Option B: Clean thesis synthesis
 
-If the v0.6 narrative is already strong enough, create a thesis-facing package:
+If the v0.6 narrative is already strong enough, create a thesis-facing synthesis note:
 
 ```text
 docs/design/v0_6_07_thesis_distance_window_synthesis.md
@@ -728,18 +786,26 @@ Turn v0.6 into polished thesis prose and finalized figure captions.
 
 This is preferable if the immediate goal is writing rather than running another experiment.
 
+### Recommended immediate choice
+
+The recommended immediate choice is Option B if the goal is to preserve the v0.6 insight before widening to another artifact.
+
+The two-window result is now readable and packaged. A short synthesis note would lock in the interpretation and prevent the result from being diluted by immediately launching a broader matrix.
+
 ---
 
-## 23. Working conclusion
+## 24. Working conclusion
 
 Subgoal 06 exists because AWSRT results should not move directly from matrix output to narrative claims.
 
-The v0.6 distance-window result is scientifically meaningful, but it needs to be made auditable and readable.
+The v0.6 distance-window result is scientifically meaningful, but it needed to be made auditable and readable.
 
-The central packaged message should be:
+The central packaged message is:
 
 > Distance from the initial fire context to the base station is a real structural variable. It strongly affects whether first detection appears within a finite observation window. Extending the window reveals that some far-distance failures are late detections rather than absolute failures, but noise-side far-distance cases remain resistant. Across these timing changes, the compact usefulness triad remains stable.
 
 This supports the broader AWSRT thesis:
 
 > timing, information delivery, belief quality, and usefulness-state behavior are related, but they are not the same thing.
+
+The platform is useful precisely because it can show when these quantities do not collapse into one another.
