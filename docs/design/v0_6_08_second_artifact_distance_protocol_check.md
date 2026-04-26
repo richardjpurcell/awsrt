@@ -1,17 +1,20 @@
 # AWSRT v0.6 Subgoal 08: Second-Artifact Distance Protocol Check
 
-**Status:** Draft design note  
+**Status:** Completed / interpreted design note  
 **Applies to:** `v0.6-subgoal-08`  
 **Recommended file:** `docs/design/v0_6_08_second_artifact_distance_protocol_check.md`  
 **Depends on:** `v0.6-subgoal-03`, `v0.6-subgoal-04`, `v0.6-subgoal-05`, `v0.6-subgoal-06`, `v0.6-subgoal-07`  
 **Primary reference artifact:** `phy-b7edba9ac3`  
-**Purpose:** Test whether the v0.6 distance/window/usefulness separation observed on `phy-b7edba9ac3` survives contact with a second transformed real-fire artifact.
+**Second artifact:** `phy-79a8cea500` / CFSDS fire `2017_856`  
+**Primary second-artifact window:** `700:1200`  
+**Completed analysis:** `ana-70996f0076`  
+**Purpose:** Test whether the v0.6 distance/window/usefulness separation observed on `phy-b7edba9ac3` survives contact with a second transformed real-fire artifact, using an artifact-appropriate window anchiored by observed fire engagement around the usual base-station region.
 
 ---
 
 ## 1. Purpose of this note
 
-This note defines AWSRT v0.6 Subgoal 08.
+This note records AWSRT v0.6 Subgoal 08.
 
 Subgoals 03 through 07 established and packaged a coherent distance-window result on one transformed real-fire artifact:
 
@@ -19,17 +22,35 @@ Subgoals 03 through 07 established and packaged a coherent distance-window resul
 phy-b7edba9ac3
 ```
 
-The current v0.6 result is:
+The first-artifact v0.6 result was:
 
 > base-station distance strongly affects finite TTFD availability; extending the observation window resolves some far-distance missingness; far-distance noise remains resistant; and the compact usefulness triad remains condition-readable.
 
-That result is meaningful, but still bounded to one physical artifact.
+That result was meaningful, but bounded to one physical artifact.
 
-Subgoal 08 asks the next scientific question:
+Subgoal 08 asked the next scientific question:
 
 > Does the same distance/window/usefulness separation appear in a second transformed real-fire artifact?
 
-This is not a broad benchmark expansion.
+The selected second artifact was:
+
+```text
+fire_id = 2017_856
+phy_id  = phy-79a8cea500
+```
+
+The completed analysis was:
+
+```text
+ana_id = ana-70996f0076
+execution_window = 700:1200
+rows = 60
+cases = 12
+seeds = 0,1,2,3,4
+repairs = none
+```
+
+Subgoal 08 is not a broad benchmark expansion.
 
 It is a controlled second-artifact protocol check.
 
@@ -37,9 +58,9 @@ It is a controlled second-artifact protocol check.
 
 ## 2. Scientific motivation
 
-The v0.6 first-artifact result is strong enough to preserve, but not yet strong enough to generalize.
+The v0.6 first-artifact result was strong enough to preserve, but not strong enough to generalize on its own.
 
-The current result shows that, for `phy-b7edba9ac3`:
+For `phy-b7edba9ac3`, the earlier result showed:
 
 ```text
 distance affects timing access;
@@ -50,10 +71,29 @@ the usefulness triad remains stable.
 
 However, wildfire geometry, ignition location, domain shape, fire-growth morphology, and sensor/base-station geometry may differ substantially across physical artifacts.
 
+The second selected artifact, `phy-79a8cea500`, is especially useful because visual inspection suggests that the fire becomes spatially complex and engages or encircles the usual base-station region near:
+
+```text
+base_station_reference_rc ≈ (750, 600)
+```
+
+during approximately:
+
+```text
+time slots 800..1100
+```
+
+This motivated an artifact-appropriate primary analysis window:
+
+```text
+execution_window = 700:1200
+```
+
 A second artifact check is therefore scientifically valuable because it tests whether the first-artifact result is:
 
 - a local property of one replay;
 - a consequence of the specific ignition/base-station geometry;
+- a consequence of the short/long window framing used for that artifact;
 - or a more general pattern that may survive across transformed real-fire contexts.
 
 Subgoal 08 should be interpreted as a **bounded generalization check**, not as a final cross-fire validation campaign.
@@ -68,37 +108,41 @@ Its central interpretation was:
 
 > distance and time horizon strongly affect finite detection timing, but the usefulness-state mapping remains stable across the tested conditions.
 
-Subgoal 08 should use that synthesis as the reference interpretation.
+Subgoal 08 used that synthesis as the reference interpretation.
 
-The goal is not to replace the first-artifact result.
+The goal was not to replace the first-artifact result.
 
-The goal is to test whether a second artifact supports, weakens, or complicates it.
+The goal was to test whether a second artifact supports, weakens, or complicates it.
+
+The completed result supports a bounded continuation of the first-artifact finding, with artifact-specific timing structure.
 
 ---
 
 ## 4. Main scientific question
 
-Subgoal 08 centers on this question:
+Subgoal 08 centered on this question:
 
 > When the distance-band protocol is applied to a second transformed real-fire artifact, do detection timing, information delivery, belief quality, and usefulness-state behavior separate in a similar way?
+
+For `phy-79a8cea500`, the question had an artifact-specific refinement:
+
+> How does usefulness behavior respond when base-station distance is varied in a fire whose later geometry appears to engage or encircle the usual central base-station region?
 
 More specifically:
 
 1. Does increasing ignition-to-base-station distance affect finite TTFD availability?
-2. Does a longer window resolve some far-distance missingness?
-3. Does noise remain more TTFD-resistant than healthy or delay at far distance?
+2. Does the artifact-appropriate `700:1200` window expose timing/usefulness behavior that would be missed by a generic `0:150` window?
+3. Does noise remain more TTFD-resistant than healthy or delay at larger distances?
 4. Does the compact triad remain condition-readable?
 5. Do belief-quality and information-delivery summaries move together with TTFD, or separate?
 
-The most useful result would not necessarily be a perfect replication.
-
-A complication or partial failure may be scientifically valuable if it clarifies when the distance/usefulness story depends on artifact geometry.
+The completed result is best interpreted as a **partial replication with artifact-specific timing geometry**.
 
 ---
 
-## 5. What should stay fixed
+## 5. Fixed protocol settings
 
-To make the second-artifact check interpretable, the following should remain fixed relative to the first-artifact v0.6 protocol wherever possible:
+The following settings were kept fixed relative to the first-artifact v0.6 protocol wherever possible:
 
 ```text
 policy:              usefulness_proto
@@ -112,7 +156,7 @@ noise condition:     delay_steps = 0, loss_prob = 0, noise_level = 0.2
 healthy condition:   delay_steps = 0, loss_prob = 0, noise_level = 0
 ```
 
-The experiment should not add:
+The experiment did not add:
 
 - new policies;
 - deterministic tie-breaking;
@@ -120,15 +164,17 @@ The experiment should not add:
 - new impairment families;
 - new controller behavior;
 - stochastic base-station sampling;
-- additional windows beyond the chosen protocol.
+- additional artifacts.
+
+The window differed from the first artifact because this artifact has a different time structure and a visually meaningful engagement period.
 
 ---
 
-## 6. What must be re-derived
+## 6. What was re-derived
 
-The second artifact must not reuse the first artifact’s ignition reference or base-station locations.
+The second artifact did not reuse the first artifact’s ignition reference or base-station locations.
 
-For the second artifact, re-derive:
+For the second artifact, the following were re-derived:
 
 ```text
 native grid shape
@@ -138,6 +184,7 @@ distance-band candidate locations
 actual raw distances
 actual normalized distances
 distance-band labels
+artifact-appropriate window
 ```
 
 The first artifact’s reference values were:
@@ -149,83 +196,170 @@ ignition_reference_rc: (393, 448)
 domain_diagonal_cells: 1809.400176854197
 ```
 
-These are not transferable.
-
-The second artifact needs its own audit.
+These values were not transferred to the second artifact.
 
 ---
 
 ## 7. Second artifact selection
 
-Subgoal 08 begins by selecting a second transformed real-fire physical artifact from available AWSRT physical artifacts.
-
-Candidate selection criteria:
-
-1. It should have native Zarr fields available under:
+The selected second transformed real-fire artifact was:
 
 ```text
-data/fields/<phy_id>/fields.zarr
+fire_id = 2017_856
+phy_id  = phy-79a8cea500
 ```
 
-2. It should have enough spatial extent for multiple distance bands.
-3. It should have a meaningful early burned region from which an ignition reference can be derived.
-4. It should not be so boundary-constrained that only one or two viable base-station distances are possible.
-5. It should ideally represent a different fire geometry from `phy-b7edba9ac3`.
+Raw CFSDS source bundle:
 
-Suggested starting action:
-
-```bash
-find data/fields -maxdepth 2 -name "fields.zarr" -print
+```text
+data/cfsds/2017_856/
+  2017_856_krig.tif
+  bundle.json
+  Firegrowth_groups_v1_1_2017_856.csv
+  Firegrowth_pts_v1_1_2017_856.csv
 ```
 
-or inspect available manifests:
+Existing AWSRT manifest:
 
-```bash
-ls data/manifests | head
+```text
+data/manifests/phy-79a8cea500.json
 ```
 
-Because `data/fields/` and `data/manifests/` are not tracked in git, artifact selection is an environment-local step and should be documented in the design note after selection.
+The manifest identifies:
+
+```text
+fire_id: 2017_856
+label:   2017_856 (DEM)
+```
+
+Existing fields path:
+
+```text
+data/fields/phy-79a8cea500/fields.zarr
+```
+
+Available Zarr datasets:
+
+```text
+arrival_time
+belief
+day_of_burn
+dob_doy
+fire_state
+terrain
+terrain_dem_m
+```
+
+This artifact was suitable because:
+
+- it already exists as an AWSRT physical artifact;
+- it has native Zarr fields available;
+- it has a large enough domain for multiple distance bands;
+- it has a meaningful early burned region;
+- visual inspection suggests later fire engagement around a central/usual base-station region;
+- it differs substantially from the first artifact’s geometry.
 
 ---
 
-## 8. Ignition reference protocol
+## 8. Artifact-specific audit: `2017_856` / `phy-79a8cea500`
 
-For the selected second artifact, use the same native-field ignition reference protocol as Subgoal 02:
+Native-grid audit:
+
+```text
+phy_id: phy-79a8cea500
+fire_id: 2017_856
+grid: (1314, 1144)
+domain_diagonal_cells: 1742.2204223346712
+```
+
+Zarr datasets:
+
+```text
+arrival_time: shape=(1314, 1144), dtype=float32
+belief:       shape=(3485, 1314, 1144), dtype=float32
+day_of_burn:  shape=(1314, 1144), dtype=int16
+dob_doy:      shape=(1314, 1144), dtype=uint16
+fire_state:   shape=(3485, 1314, 1144), dtype=uint8
+terrain:      shape=(1314, 1144), dtype=float32
+terrain_dem_m: shape=(1314, 1144), dtype=float32
+```
+
+Native ignition reference:
 
 ```text
 ignition_reference_method = centroid(day_of_burn == min_positive_day_of_burn)
+min_positive_day_of_burn = 1
+earliest_burned_cell_count = 559
+earliest_burned_bbox_rows = 857..1144
+earliest_burned_bbox_cols = 236..944
+earliest_centroid_rc = (1079.21, 767.30)
+rounded_ignition_reference_rc = (1079, 767)
 ```
 
-Required audit values:
+Fire-state sanity check:
 
 ```text
-phy_id
-grid shape
-domain diagonal
-min positive day_of_burn
-earliest burned cell count
-earliest burned bbox rows
-earliest burned bbox cols
-earliest centroid rc
-rounded ignition_reference_rc
+first_nonempty_fire_state_t = 0
+fire_state[0] burning_count = 23
+fire_state[0] bbox_rows = 857..1116
+fire_state[0] bbox_cols = 236..933
+fire_state[0] centroid_rc = (1096.87, 839.35)
+fire_state[0] rounded_centroid_rc = (1097, 839)
+distance_to_day_of_burn_centroid = 74.18 cells
 ```
 
-Optional sanity check:
+Official Subgoal 08 ignition reference:
 
 ```text
-fire_state[0] burning count
-fire_state[0] burning bbox rows/cols
-fire_state[0] burning centroid rc
-distance from day_of_burn centroid to fire_state[0] centroid
+ignition_reference_rc = (1079, 767)
 ```
-
-If `fire_state[0]` has no burning cells, use the earliest available non-empty fire-state frame and record that choice.
 
 ---
 
-## 9. Distance-band selection protocol
+## 9. Visual/time-window observation
 
-The second artifact should use the same conceptual distance-band idea as the first artifact:
+Visual inspection of `2017_856` indicated that the fire becomes especially interesting around the central/usual base-station region.
+
+Two screenshots were inspected around:
+
+```text
+time slot 800
+time slot 1100
+```
+
+The fire appears to engage or encircle the region near:
+
+```text
+usual_base_reference_rc = (750, 600)
+```
+
+Distance from the official ignition reference:
+
+```text
+ignition_reference_rc = (1079, 767)
+usual_base_reference_rc = (750, 600)
+raw_distance_cells = 368.95799218881274
+normalized_distance = 0.21177457654548024
+```
+
+This point is not one of the clean distance bands, but it is useful context for selecting the study window.
+
+Therefore, for this artifact, the primary analysis window was:
+
+```text
+execution_window.start_step = 700
+execution_window.end_step_exclusive = 1200
+```
+
+This is an artifact-appropriate transformed-real-fire window, not arbitrary window stretching.
+
+The reason is that the goal is to study distance/usefulness behavior during a period of meaningful fire engagement around a central operational region.
+
+---
+
+## 10. Distance-band selection protocol
+
+The second artifact used the same conceptual distance-band idea as the first artifact:
 
 ```text
 near
@@ -234,122 +368,139 @@ far
 very far
 ```
 
-However, the achieved normalized distances may differ because the artifact geometry and boundaries differ.
+However, its geometry is different.
 
-Preferred target distances:
-
-```text
-near:      ~0.15 normalized distance
-mid:       ~0.30 normalized distance
-far:       ~0.50 normalized distance
-very far:  maximum feasible bounded candidate, ideally >0.60
-```
-
-If the fourth band cannot reach ~0.60, label it honestly.
-
-Do not use labels that imply an achieved distance that was not achieved.
-
-Example first-artifact precedent:
+The ignition reference is already far south in the grid:
 
 ```text
-dist_60_very_far
+ignition_reference_rc = (1079, 767)
 ```
 
-was used instead of:
+A southeast progression is not feasible beyond the near band.
+
+The cleanest feasible distance axis is the northwest ray from the ignition reference.
+
+This northwest ray supports approximately the same normalized distance bands used in the first artifact:
 
 ```text
-dist_70_very_far
+0.15
+0.30
+0.50
+0.60
 ```
 
-because the achieved normalized distance was approximately `0.614`.
-
-For the second artifact, labels should be based on achieved distances, not desired targets.
+This keeps the second-artifact check comparable while respecting the actual geometry.
 
 ---
 
-## 10. Distance-band audit table
+## 11. Selected second-artifact distance bands
 
-After selecting base stations, record a table:
-
-```text
-distance_band       base_station_rc   raw_distance_cells   normalized_distance
-<near_label>        (...)             ...                  ...
-<mid_label>         (...)             ...                  ...
-<far_label>         (...)             ...                  ...
-<very_far_label>    (...)             ...                  ...
-```
-
-Also record:
+Selected base-station locations for `phy-79a8cea500`:
 
 ```text
-ignition_reference_rc
-domain_diagonal_cells
-grid shape
-selection direction or rationale
-boundary limitations
+distance_band       base_station_rc   raw_distance_cells   normalized_distance   direction
+dist_15_near        (894, 582)        261.63               0.150                 NW
+dist_30_mid         (709, 397)        523.26               0.300                 NW
+dist_50_far         (463, 151)        871.16               0.500                 NW
+dist_60_very_far    (340, 28)         1045.10              0.600                 NW
 ```
 
-If only three distance bands are feasible, record that explicitly and explain why.
+Candidate-direction audit showed:
 
-Do not force a four-band matrix if the fourth band is geometrically misleading.
+```text
+direction NW:
+  pct=0.15 rc=(894, 582) inside=True dist=261.63 norm=0.150
+  pct=0.30 rc=(709, 397) inside=True dist=523.26 norm=0.300
+  pct=0.50 rc=(463, 151) inside=True dist=871.16 norm=0.500
+  pct=0.60 rc=(340, 28)  inside=True dist=1045.10 norm=0.600
+  pct=0.70 rc=(217, -95) inside=False
+```
+
+Corner audit:
+
+```text
+corner=(0, 0)       dist=1323.83 norm=0.760
+corner=(0, 1143)    dist=1142.64 norm=0.656
+corner=(1313, 0)    dist=801.90  norm=0.460
+corner=(1313, 1143) dist=442.87  norm=0.254
+```
+
+The selected `dist_60_very_far` label is truthful because the achieved normalized distance is approximately `0.600`.
+
+Do not label this case as `dist_70_very_far`.
 
 ---
 
-## 11. Window choice
+## 12. Window choice
 
-Subgoal 08 should use the two-window structure established in the first-artifact study:
+The first-artifact study used:
 
 ```text
 short window: 0:150
 long window:  0:450
 ```
 
-This supports direct interpretive comparison with Subgoals 03 and 05.
+For this second artifact, the primary window was:
 
-However, do not launch both windows until the second artifact’s distance bands are selected and audited.
+```text
+700:1200
+```
 
-Recommended sequence:
+This differs from the first artifact by design.
 
-1. Select artifact.
-2. Derive ignition reference.
-3. Select distance bands.
-4. Run a short-window matrix.
-5. Interpret integrity and TTFD missingness.
-6. Run the long-window matrix only if the short-window result is valid and interpretable.
+The reason is that `2017_856` has a later period of interest in which the fire appears to encircle or strongly engage the usual base-station region near `(750, 600)`.
 
-This avoids running a large second-artifact protocol before confirming geometry.
+The Subgoal 08 window should therefore be described as:
+
+```text
+artifact-appropriate engagement window
+```
+
+rather than:
+
+```text
+short-window replication
+```
+
+or:
+
+```text
+long-window replication
+```
+
+This reframing keeps the scientific intent honest.
+
+Subgoal 08 tested whether distance/usefulness separation survives in a second artifact under a meaningful transformed-real-fire window, not merely whether the exact first-artifact window pair repeats.
 
 ---
 
-## 12. Matrix shape
+## 13. Matrix shape
 
-If four distance bands are selected, each window uses:
+The completed matrix was:
 
 ```text
 4 distance bands × 3 usefulness-family conditions × 5 seeds = 60 runs
 ```
 
-Two windows would therefore be:
+Window:
 
 ```text
-120 runs total
+execution_window = 700:1200
 ```
 
-If only three distance bands are selected:
+Seeds:
 
 ```text
-3 distance bands × 3 conditions × 5 seeds = 45 runs per window
+0,1,2,3,4
 ```
 
-Do not increase seeds in Subgoal 08.
-
-Do not add additional impairment levels.
+No additional seeds, windows, policies, impairment levels, or artifacts were added.
 
 ---
 
-## 13. Usefulness-family conditions
+## 14. Usefulness-family conditions
 
-Use the same three usefulness-family conditions.
+The same three usefulness-family conditions were used.
 
 ```text
 healthy:
@@ -372,11 +523,11 @@ These conditions preserve continuity with v0.5 and first-artifact v0.6.
 
 ---
 
-## 14. Tie-breaking
+## 15. Tie-breaking
 
-Use stochastic tie-breaking in every case.
+Stochastic tie-breaking was used in every case.
 
-Each case override must explicitly include:
+Each case override included:
 
 ```json
 {
@@ -384,299 +535,382 @@ Each case override must explicitly include:
 }
 ```
 
-Do not vary tie-breaking in this subgoal.
+Tie-breaking was not varied.
 
 Justification:
 
 > deterministic tie-breaking has a known directional artifact; v0.5 showed that stochastic tie-breaking does not materially change the dominant usefulness-triad interpretation while avoiding the deterministic movement bias.
 
+Note that `tie_breaking` was not emitted as a row-level output column, but the sweep metadata preserved `network.tie_breaking` as an override key.
+
 ---
 
-## 15. Case labels
+## 16. Case labels
 
-Case labels should be constructed as:
-
-```text
-<distance_band>__healthy
-<distance_band>__delay
-<distance_band>__noise
-```
-
-Example if the second artifact uses the same approximate labels:
+The 12 case labels were:
 
 ```text
 dist_15_near__healthy
 dist_15_near__delay
 dist_15_near__noise
+
 dist_30_mid__healthy
 dist_30_mid__delay
 dist_30_mid__noise
+
 dist_50_far__healthy
 dist_50_far__delay
 dist_50_far__noise
+
 dist_60_very_far__healthy
 dist_60_very_far__delay
 dist_60_very_far__noise
 ```
 
-If achieved distances differ, use honest labels:
+Because the selected second-artifact bands closely match the first-artifact normalized labels, the same label family is acceptable.
 
-```text
-dist_12_near
-dist_28_mid
-dist_47_far
-dist_58_very_far
-```
-
-or similar.
-
-The label should reflect the achieved normalized distance well enough for audit readability.
+The base-station coordinates are different from the first artifact and were explicit in every override.
 
 ---
 
-## 16. Extraction requirements
+## 17. Sweep cases
 
-Use the general extraction script from Subgoal 04:
+The run used the planned second-artifact sweep cases with:
 
 ```text
-src/extract_analysis_study_summary.py
+study.case_family = usefulness_distance_second_artifact
+study.case_kind   = healthy | delay | noise
 ```
 
-For each completed analysis:
+Base-station mapping:
+
+```text
+dist_15_near        -> network.base_station_rc = [894, 582]
+dist_30_mid         -> network.base_station_rc = [709, 397]
+dist_50_far         -> network.base_station_rc = [463, 151]
+dist_60_very_far    -> network.base_station_rc = [340, 28]
+```
+
+The extracted table did not include `case_family` or `case_kind` as row-level columns, but the analysis integrity metadata recorded `study.case_family` and `study.case_kind` in the sweep override keys.
+
+---
+
+## 18. Analysis Batch settings used
+
+The intended analysis settings were:
+
+```text
+Physical run:        phy-79a8cea500
+Study preset:        Main · Usefulness family comparison
+Policy:              usefulness_proto only
+Sweep cases:         distance band × usefulness-family condition
+Mode:                dynamic
+Tie-breaking:        stochastic, explicit in every case
+Sensors:             20
+Sensor radius:       250 m
+Move/step:           500 m
+Max moves/step:      0
+Min separation:      250 m
+Seeds:               0,1,2,3,4
+Choose best by:      mean_entropy_auc
+Execution window:    700:1200
+Regime enabled:      no
+O1 enabled:          yes
+```
+
+The completed analysis ID was:
+
+```text
+ana-70996f0076
+```
+
+---
+
+## 19. Extraction and integrity result
+
+The completed analysis was extracted with the general Subgoal 04 utility:
 
 ```bash
 python src/extract_analysis_study_summary.py \
-  data/metrics/<ana-id> \
+  data/metrics/ana-70996f0076 \
   --expected-rows-per-case 5
 ```
 
-If the built-in `distance_band_v0_6_03` preset does not match the second artifact’s distance bands, do not misuse it.
+Generated extraction outputs include:
 
-Instead, either:
+```text
+data/metrics/ana-70996f0076/analysis_extraction_integrity.json
+data/metrics/ana-70996f0076/analysis_extraction_interpretation.md
+data/metrics/ana-70996f0076/analysis_extraction_case_summary.csv
+data/metrics/ana-70996f0076/analysis_extraction_group_summary.csv
+```
 
-1. run without a preset and rely on generic grouping; or
-2. extend the extractor with a new preset for the second artifact; or
-3. add a small metadata-file option in a later subgoal.
+Integrity summary:
 
-For Subgoal 08, do not over-engineer the extractor unless needed.
+```text
+main_ana_id = ana-70996f0076
+main_rows_loaded = 60
+rows_after_correction = 60
+repair_ana_ids = []
+repair_rows_loaded = 0
+append_repair = false
+cases_present = 12 expected cases
+rows_per_case = 5 each
+case_validation.ok = true
+case_validation.failures = []
+```
 
-The minimum requirement is that the second-artifact analysis is grouped by case and condition and that distance metadata is documented in the design note.
+Extraction caveat:
+
+```text
+integrity.ok = false
+```
+
+This top-level `ok=false` is due to the extractor warning:
+
+```text
+--expected-rows-per-case was supplied without a preset; only observed cases were row-count checked.
+```
+
+This is not a study failure.
+
+It means the extraction validated observed case counts, but did not apply a preset-based coordinate/override validation map.
+
+For this subgoal, that is acceptable because the second-artifact distance metadata differs from the first-artifact preset and has been documented directly in this note.
+
+The row/case validation itself passed.
 
 ---
 
-## 17. Packaging requirements
+## 20. TTFD result
 
-If both windows are completed, adapt or extend the packaging script:
-
-```text
-src/package_v0_6_distance_window_results.py
-```
-
-Possible options:
-
-1. Add CLI arguments so it can package arbitrary short/long analysis folders.
-2. Add a new output directory for the second artifact.
-3. Add a separate packaging script only if the existing one becomes confusing.
-
-Preferred output directory:
+TTFD missingness by case:
 
 ```text
-results/figures/v0_6_second_artifact_distance_window/
+case                         finite / rows   missing_frac   mean_TTFD
+dist_15_near__delay          5 / 5           0.000          77.2
+dist_15_near__healthy        5 / 5           0.000          82.2
+dist_15_near__noise          5 / 5           0.000          190.6
+
+dist_30_mid__delay           5 / 5           0.000          46.0
+dist_30_mid__healthy         5 / 5           0.000          42.8
+dist_30_mid__noise           5 / 5           0.000          226.8
+
+dist_50_far__delay           5 / 5           0.000          121.6
+dist_50_far__healthy         5 / 5           0.000          144.0
+dist_50_far__noise           0 / 5           1.000          NaN
+
+dist_60_very_far__delay      1 / 5           0.800          469.0
+dist_60_very_far__healthy    1 / 5           0.800          290.0
+dist_60_very_far__noise      0 / 5           1.000          NaN
 ```
 
-Do not overwrite the first-artifact packaging outputs.
+Interpretation:
+
+```text
+near and mid:
+  finite TTFD across healthy, delay, and noise
+
+far:
+  healthy and delay finite;
+  noise missing
+
+very far:
+  healthy and delay partially finite;
+  noise missing
+```
+
+The timing surface therefore shows distance-dependent stress, with noise becoming especially TTFD-resistant at larger distances.
 
 ---
 
-## 18. Metrics of interest
+## 21. Dominant usefulness-state result
 
-Primary metrics:
+Dominant usefulness state by case:
 
 ```text
-ttfd
-ttfd_true
-ttfd_arrived
-mean_entropy_auc
-coverage_auc
-usefulness_regime_state_exploit_frac
-usefulness_regime_state_recover_frac
-usefulness_regime_state_caution_frac
+case                         dominant state   exploit   recover   caution
+dist_15_near__delay          recover          0.010     0.761     0.229
+dist_15_near__healthy        exploit          0.650     0.335     0.015
+dist_15_near__noise          caution          0.003     0.020     0.978
+
+dist_30_mid__delay           recover          0.010     0.824     0.166
+dist_30_mid__healthy         exploit          0.696     0.279     0.025
+dist_30_mid__noise           caution          0.003     0.029     0.968
+
+dist_50_far__delay           recover          0.010     0.734     0.256
+dist_50_far__healthy         exploit          0.935     0.054     0.011
+dist_50_far__noise           caution          0.003     0.022     0.975
+
+dist_60_very_far__delay      recover          0.010     0.990     0.000
+dist_60_very_far__healthy    exploit          0.996     0.004     0.000
+dist_60_very_far__noise      caution          0.002     0.022     0.976
 ```
 
-Secondary metrics:
+The dominant usefulness mapping is stable across all distance bands:
 
 ```text
-usefulness_trigger_recover_hits
-usefulness_trigger_caution_hits
-usefulness_trigger_recover_from_caution_hits
-usefulness_trigger_exploit_hits
-delivered_info_proxy_mean
-mdc_residual_mean
-mdc_residual_pos_frac
-mdc_violation_rate
-movement_total_mean_l1
-moves_per_step_mean
-moved_frac_mean
-arrivals_frac_mean
-detections_arrived_frac_mean
-obs_age_mean_valid
-obs_age_max_valid
+healthy -> exploit
+delay   -> recover
+noise   -> caution
 ```
 
-Audit fields:
+This is the most important Subgoal 08 result.
+
+Even when finite TTFD becomes sparse or absent at larger distances, the compact triad remains condition-readable.
+
+---
+
+## 22. Group-level result
+
+Group-level summary:
 
 ```text
-case
-seed
-policy
-opr_id
-phy_id
-base_station_rc
-deployment_mode
-n_sensors
-delay_steps
-noise_level
-loss_prob
-tie_breaking, if available
+distance_band      condition   dominant_state   ttfd_mean   ttfd_missing_frac   mean_entropy_auc   coverage_auc
+dist_15_near       delay       recover          77.2        0.0                 70.347049          0.138167
+dist_15_near       healthy     exploit          82.2        0.0                 70.388451          0.137946
+dist_15_near       noise       caution          190.6       0.0                 70.868716          0.132842
+
+dist_30_mid        delay       recover          46.0        0.0                 70.393567          0.138070
+dist_30_mid        healthy     exploit          42.8        0.0                 70.361087          0.137773
+dist_30_mid        noise       caution          226.8       0.0                 70.872807          0.133146
+
+dist_50_far        delay       recover          121.6       0.0                 70.228938          0.138281
+dist_50_far        healthy     exploit          144.0       0.0                 70.189120          0.138410
+dist_50_far        noise       caution          NaN         1.0                 70.862146          0.132553
+
+dist_60_very_far   delay       recover          469.0       0.8                 70.210818          0.137576
+dist_60_very_far   healthy     exploit          290.0       0.8                 70.174292          0.138060
+dist_60_very_far   noise       caution          NaN         1.0                 70.865852          0.132587
 ```
 
-Distance metadata:
+Mean entropy AUC and coverage AUC should be interpreted within this artifact/window and not overextended as cross-artifact absolute measures.
+
+The more important observation is the separation between:
 
 ```text
-distance_band
-base_station_rc
-ignition_reference_rc
-raw_distance_cells
-normalized_distance
+TTFD availability
+usefulness-state occupancy
+condition semantics
 ```
 
 ---
 
-## 19. Interpretation criteria
+## 23. Interpretation
 
-### 19.1 Similar pattern to first artifact
+Subgoal 08 produced a readable second-artifact result.
 
-If the second artifact shows:
+It is not a perfect replication of the first artifact, but it supports the v0.6 story in a bounded way.
+
+The result can be summarized as:
 
 ```text
-short window:
-  far-distance TTFD missingness increases
+The second artifact supports the v0.6 distance/usefulness separation.
+Distance affects finite TTFD availability, especially at the far and very-far bands.
+Noise is the most timing-resistant condition at larger distances.
+At the same time, the compact usefulness triad remains condition-readable across the entire matrix.
+```
 
-long window:
-  some far-distance cases resolve
+The clearest scientific statement is:
 
-noise:
-  remains more TTFD-resistant
+> The second artifact gives a partial replication with artifact-specific timing structure: timing access changes with distance and condition, but the usefulness-state mapping remains stable.
+
+This is important because it shows that the AWSRT usefulness triad is not merely a byproduct of the first artifact’s geometry.
+
+It also shows that TTFD availability is more geometry/window-sensitive than the compact condition-state mapping.
+
+---
+
+## 24. Comparison to the first artifact
+
+The first artifact, `phy-b7edba9ac3`, showed:
+
+```text
+short window 0:150:
+  near/mid finite TTFD;
+  far/very-far missing TTFD;
+  triad stable
+
+long window 0:450:
+  some far/very-far healthy and delay cases become finite or partially finite;
+  far/very-far noise remains resistant;
+  triad stable
+```
+
+The second artifact, `phy-79a8cea500`, using the artifact-appropriate `700:1200` window, showed:
+
+```text
+near/mid:
+  finite TTFD across all conditions
+
+far:
+  healthy and delay finite;
+  noise missing
+
+very far:
+  healthy and delay partially finite;
+  noise missing
 
 usefulness:
   healthy -> exploit
-  delay -> recover
-  noise -> caution
+  delay   -> recover
+  noise   -> caution
 ```
 
-then the first-artifact result gains bounded support.
+The shared cross-artifact pattern is:
 
-Interpretation:
+```text
+1. distance affects finite timing access;
+2. noise becomes timing-resistant at larger distances;
+3. the compact triad remains condition-readable;
+4. timing and usefulness-state behavior separate rather than collapsing into one metric.
+```
 
-> the distance/window/usefulness separation survives a second transformed real-fire context.
+The artifact-specific difference is that the second artifact was not framed as a direct short/long window pair.
 
-### 19.2 TTFD behaves differently but triad remains stable
+Instead, it used a meaningful engagement window selected from visual fire behavior.
 
-If TTFD availability does not follow the same distance pattern but the usefulness triad remains stable, then the result is still useful.
-
-Interpretation:
-
-> the compact usefulness triad is more stable than the timing-access surface, while distance effects are artifact-dependent.
-
-### 19.3 Triad weakens or changes
-
-If the dominant mapping no longer holds, record this clearly.
-
-Possible interpretations:
-
-- the second artifact has geometry that changes information contact;
-- distance-band selection is not equivalent across artifacts;
-- the compact usefulness controller may be more artifact-sensitive than the first study suggested;
-- additional diagnostics are needed before claiming cross-artifact robustness.
-
-Do not treat this as a failure.
-
-It may be a scientifically important boundary condition.
-
-### 19.4 Noise no longer remains TTFD-resistant
-
-If far-distance noise becomes finite in the long window, then the first-artifact noise result should be treated as artifact-specific.
-
-Interpretation:
-
-> noise-side persistence depends on fire geometry, deployment geometry, or observation horizon.
-
-This would refine the thesis.
-
-### 19.5 All cases become finite even in the short window
-
-If all second-artifact cases are finite in `0:150`, the artifact may be geometrically easier.
-
-Interpretation:
-
-> distance may not be sufficiently stressful in this artifact, or the selected bands may not create comparable timing pressure.
-
-This may require selecting a different second artifact or a more extreme distance candidate.
+That distinction should be preserved in thesis prose.
 
 ---
 
-## 20. Expected possible outcomes
+## 25. Extraction caveat and audit note
 
-The most likely useful outcomes are:
+The extraction integrity file reports:
 
-### Outcome A: Partial replication
+```text
+case_validation.ok = true
+rows_after_correction = 60
+rows_per_case = 5 each
+warnings = ["--expected-rows-per-case was supplied without a preset; only observed cases were row-count checked."]
+ok = false
+```
 
-Distance affects TTFD, long window resolves some cases, noise remains harder, triad remains stable.
+This should be read carefully.
 
-This is the strongest result.
+The run itself does not appear invalid.
 
-### Outcome B: Timing differs, triad holds
+The top-level `ok=false` is an extraction-status warning, not a failed matrix or failed case-count validation.
 
-TTFD behavior changes across artifact, but usefulness-state interpretation remains healthy/exploit, delay/recover, noise/caution.
+Because no second-artifact preset was supplied, the extractor did not verify coordinate-level expected overrides.
 
-This still supports the usefulness-triad story.
+That is acceptable for this subgoal because:
 
-### Outcome C: Strong artifact dependence
+- the second-artifact base-station coordinates are documented in this note;
+- all 12 cases are present;
+- all cases have five rows;
+- no repair rows were needed;
+- the sweep metadata records `network.base_station_rc`, `network.tie_breaking`, and `study.case_kind` as override keys.
 
-The second artifact changes both TTFD and usefulness occupancy.
+If desired, a later subgoal can extend the extractor with a second-artifact distance preset.
 
-This becomes a boundary-condition result and may motivate more careful physical-context stratification.
-
-### Outcome D: Geometry selection problem
-
-Distance bands fail to induce meaningful variation.
-
-This would not invalidate the method, but would require selecting a better artifact or revising the base-station selection protocol.
-
----
-
-## 21. Minimal success criteria
-
-Subgoal 08 is complete if:
-
-1. A second physical artifact is selected and documented.
-2. Its native grid, domain diagonal, and ignition reference are audited.
-3. Distance-band base stations are selected and their achieved normalized distances are recorded.
-4. At least the short-window matrix is run and extracted.
-5. The long-window matrix is run if the short-window result is valid and interpretable.
-6. Extraction outputs are generated using `src/extract_analysis_study_summary.py`.
-7. Case labels and base-station overrides are validated or manually audited.
-8. TTFD missingness is reported by distance band and condition.
-9. Dominant usefulness state is reported by distance band and condition.
-10. The result is interpreted relative to the first artifact.
-11. No controller redesign is introduced.
-12. Claims remain bounded to the tested artifacts.
+This is not necessary before closing Subgoal 08.
 
 ---
 
-## 22. What this subgoal is not
+## 26. What this subgoal was not
 
-Subgoal 08 should not:
+Subgoal 08 did not:
 
 - become a broad multi-fire benchmark;
 - compare multiple policies;
@@ -684,98 +918,39 @@ Subgoal 08 should not:
 - vary tie-breaking;
 - add new impairment levels;
 - introduce regime management;
-- automate a general distance-band selector unless absolutely necessary;
+- automate a general distance-band selector;
 - over-generalize from two artifacts;
-- discard the first-artifact result if the second differs.
+- discard the first-artifact result;
+- pretend that `700:1200` is directly equivalent to the first artifact’s `0:150` or `0:450` windows.
 
-It is a bounded second-artifact check.
-
----
-
-## 23. Suggested workflow
-
-Recommended workflow:
-
-```text
-Step 1:
-  list available physical artifacts
-
-Step 2:
-  choose one candidate artifact
-
-Step 3:
-  inspect native fields and derive ignition reference
-
-Step 4:
-  select feasible distance-band base stations
-
-Step 5:
-  write/update the Subgoal 08 note with artifact-specific audit values
-
-Step 6:
-  run the short-window matrix (0:150)
-
-Step 7:
-  extract and inspect
-
-Step 8:
-  decide whether to run the long-window matrix (0:450)
-
-Step 9:
-  package and compare against the first artifact
-
-Step 10:
-  close out with a bounded cross-artifact interpretation
-```
-
-This subgoal should remain incremental.
-
-Do not launch the full two-window matrix before Steps 1–5 are documented.
+It remained a bounded second-artifact check with an artifact-appropriate engagement window.
 
 ---
 
-## 24. Likely helper scripts
+## 27. Minimal success criteria review
 
-Subgoal 08 may need one small helper script to inspect a candidate artifact.
+Subgoal 08 success criteria:
 
-Possible temporary script:
+1. **Second artifact documented:** done, `phy-79a8cea500` / `2017_856`.
+2. **Native grid, domain diagonal, ignition reference audited:** done.
+3. **Artifact-appropriate window justified:** done, `700:1200` from visual engagement around `(750, 600)`.
+4. **Distance-band base stations selected and recorded:** done.
+5. **60-run matrix executed:** done, `ana-70996f0076`.
+6. **Extraction outputs generated:** done.
+7. **Case labels and base-station overrides audited:** case labels/counts passed; coordinate audit documented in this note.
+8. **TTFD missingness reported:** done.
+9. **Dominant usefulness state reported:** done.
+10. **Result interpreted relative to first artifact:** done.
+11. **No controller redesign introduced:** done.
+12. **Claims bounded to tested artifacts:** done.
 
-```text
-src/do_not_track/inspect_second_artifact_ignition.py
-```
-
-or, if reusable:
-
-```text
-src/inspect_physical_artifact_geometry.py
-```
-
-If the script is general and useful for future artifacts, place it under `src/` and track it.
-
-If it is exploratory, place it under:
-
-```text
-src/do_not_track/
-```
-
-The helper should ideally output:
-
-```text
-phy_id
-grid shape
-domain diagonal
-min positive day_of_burn
-earliest burned bbox
-earliest burned centroid
-fire_state early-frame sanity check
-suggested candidate distances
-```
+Subgoal 08 can be closed.
 
 ---
 
-## 25. Recommended next step after Subgoal 08
+## 28. Recommended next step after Subgoal 08
 
-If Subgoal 08 produces a readable second-artifact result, the next step can be:
+The recommended next step is:
 
 ```text
 AWSRT v0.6 Subgoal 09: Cross-Artifact Distance-Window Synthesis
@@ -789,20 +964,37 @@ docs/design/v0_6_09_cross_artifact_distance_window_synthesis.md
 
 Purpose:
 
-Compare first-artifact and second-artifact distance-window behavior and decide whether v0.6 is ready for freeze or needs a third artifact.
+> Compare first-artifact and second-artifact distance/window behavior and decide whether v0.6 is ready to freeze or needs another artifact.
 
-If Subgoal 08 shows a geometry-selection problem, then Subgoal 09 should instead refine the artifact/distance selection protocol.
+Subgoal 09 should synthesize:
+
+```text
+ignition-to-base-station distance
+observation-window choice
+fire engagement around the operational base region
+TTFD availability
+noise-side resistance
+compact usefulness-state stability
+```
+
+It should not immediately launch another matrix unless the synthesis identifies a specific gap.
 
 ---
 
-## 26. Working conclusion
+## 29. Working conclusion
 
 Subgoal 08 is the first bounded generalization check for the v0.6 distance-window finding.
 
 The first artifact showed that distance and time horizon can strongly affect finite detection timing while leaving the usefulness triad readable.
 
-The second artifact will test whether that separation survives outside the original transformed real-fire context.
+The second artifact, `phy-79a8cea500`, shows that this separation survives outside the original transformed real-fire context under an artifact-appropriate engagement window.
 
-The goal is not to prove universality.
+The result is not universal proof.
 
-The goal is to determine whether the AWSRT distance/usefulness story is robust enough to carry beyond a single physical artifact, or whether it must be framed more narrowly as a first-artifact finding with artifact-dependent boundary conditions.
+It is a useful bounded replication:
+
+> Distance and condition shape finite timing access, especially under noise at larger distances, while the compact usefulness triad remains readable across the tested matrix.
+
+This supports the broader AWSRT thesis:
+
+> timing, information delivery, belief quality, and usefulness-state behavior are related, but they are not the same thing.
