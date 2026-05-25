@@ -22,12 +22,6 @@ Items here are reminders and triage targets, not commitments.
 - **Question:** Should the page show a spinner, completed/total counter, stage text, or fuller progress bar?
 - **Next check:** Revisit when touching analysis batch UX.
 
-### [Bug/Metrics] Investigate occasional TTFD = 0 when not actually true
-- **Status:** CLOSED
-- **Why it matters:** This may undermine confidence in a core timeliness metric.
-- **Question:** Is the issue caused by indexing, initialization, event timing semantics, or summary/reporting logic?
-- **Next check:** COMPLETED
-
 ### [UI] Summary and Trace boxes are present even if run doesn't use them
 - **Status:** Open
 - **Why it matters:** Too many boxes are appearing in the UI
@@ -43,11 +37,32 @@ Items here are reminders and triage targets, not commitments.
 - **Why it matters:** We need to test multiple random locations.
 - **Question:** Can we adjust the batch analysis UI/backend to allow for multiple origins, possibly each treated as a case?
 
+### [UI] Add spinning wheel in analysis-raw when studies are deleting
+- **Status:** Open
+- **Why it matters:** Currently no indication if deletion is complete.
+- **Question:** Can we provide some visual feedback to user that a study deletion is in progress or that they have entered and incorrect deletion key.
+
+### [Backend] Sensor trajectory recording
+- **Status:** Open
+- **Why it matters:** We need to be able analyze sensor movement at an individual level
+- **Question:** Can we add per time slot trajectory tracking of each sensor to an existing table or is a different approach needed?
+
+
 ---
 
 ## Parking lot
 
 _Add lower-priority ideas here._
+
+---
+
+## Complete
+
+### [Bug/Metrics] Investigate occasional TTFD = 0 when not actually true
+- **Status:** CLOSED
+- **Why it matters:** This may undermine confidence in a core timeliness metric.
+- **Question:** Is the issue caused by indexing, initialization, event timing semantics, or summary/reporting logic?
+- **Next check:** COMPLETED
 
 ---
 
