@@ -470,7 +470,7 @@ export default function BeliefLabDesignerPage() {
 
   return (
     <div className="card">
-      <h2>Belief Lab Designer</h2>
+      <h2>Epistemic · Surface</h2>
       <div aria-hidden className="section-stripe section-stripe--epistemic" />
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>
         Belief Lab is AWSRT&apos;s policy-free support / channel / belief-update laboratory.

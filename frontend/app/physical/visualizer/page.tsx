@@ -1088,7 +1088,7 @@ export default function PhysicalVisualizerPage() {
 
   return (
     <div className="card">
-      <h2 style={{ marginTop: 0 }}>Physical Visualizer</h2>
+      <h2 style={{ marginTop: 0 }}>Physical · Visualizer</h2>
       <div aria-hidden className="section-stripe section-stripe--physical" />
 
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>

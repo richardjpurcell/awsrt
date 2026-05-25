@@ -1,6 +1,24 @@
-import Image from "next/image";
 import Link from "next/link";
-import schematic from "../images/tool_schematic.png";
+
+function SurfaceCard({
+  title,
+  body,
+  detail,
+  className,
+}: {
+  title: string;
+  body: string;
+  detail: string;
+  className: string;
+}) {
+  return (
+    <div className={`surfaceCard ${className}`}>
+      <div className="surfaceTitle">{title}</div>
+      <div className="surfaceBody">{body}</div>
+      <div className="surfaceDetail">{detail}</div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
@@ -28,40 +46,65 @@ export default function HomePage() {
           Operational Surface
         </Link>
         <Link href="/analysis/batch" className="small">
-          Analysis Surface · Batch
+          Analysis Surface
         </Link>
         <Link href="/analysis/graphic" className="small">
-          Analysis Surface · Graphic
+          Analysis Visualizer
         </Link>
         <Link href="/analysis/raw" className="small">
-          Analysis Surface · Raw
+          Analysis Raw
         </Link>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 980,
-            maxHeight: "60vh",
-            borderRadius: 12,
-            border: "1px solid var(--border)",
-            background: "rgba(255,255,255,0.6)",
-            padding: 10,
-          }}
-        >
-          <Image
-            src={schematic}
-            alt="AWSRT research-tool schematic"
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-            sizes="(max-width: 1000px) 100vw, 980px"
-            priority
+      <div className="surfaceDiagram" aria-label="AWSRT four-surface orientation diagram">
+        <div className="surfaceLoop">
+          <SurfaceCard
+            title="Physical Surface"
+            body="Structured wildfire-like fields"
+            detail="ignition · spread · terrain-like structure · directional bias · transformed fire artifacts"
+            className="surfacePhysical"
+          />
+
+          <div className="surfaceArrow">observations ↓</div>
+
+          <SurfaceCard
+            title="Epistemic Surface"
+            body="Belief state and uncertainty"
+            detail="observations · entropy · belief updates · uncertainty-aware representation"
+            className="surfaceEpistemic"
+          />
+
+          <div className="surfaceArrow">belief / usefulness signals ↓</div>
+
+          <SurfaceCard
+            title="Operational Surface"
+            body="Adaptive sensing behavior"
+            detail="sensor placement · policy family · impairment response · usefulness states"
+            className="surfaceOperational"
+          />
+
+          <div className="surfaceFeedback">↺ actions and deployment geometry</div>
+        </div>
+
+        <div className="surfaceAnalysisWrap">
+          <div className="surfaceAnalysisArrows">
+            <span>field artifacts</span>
+            <span>belief traces</span>
+            <span>policy / state traces</span>
+          </div>
+
+          <SurfaceCard
+            title="Analysis Surface"
+            body="Metrics and interpretation"
+            detail="TTFD · delivery · belief quality · usefulness-state diagnostics"
+            className="surfaceAnalysis"
           />
         </div>
       </div>
 
       <div className="small" style={{ textAlign: "center", marginTop: 10, opacity: 0.75 }}>
-        Physical Surface → Epistemic Surface → Operational Surface → Analysis Surface
+        AWSRT separates environmental structure, belief maintenance, sensing behavior, and analysis so timing,
+        information delivery, belief quality, and usefulness can be inspected separately.
       </div>
     </div>
   );

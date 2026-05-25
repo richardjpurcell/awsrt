@@ -1246,7 +1246,7 @@ export default function AnalysisBatchPage() {
 
   return (
     <div className="card">
-      <h2>Analysis · Study Designer</h2>
+      <h2>Analysis · Surface</h2>
       <div aria-hidden className="section-stripe section-stripe--analysis" />
       <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
         Create a single <b>operational study</b> that produces one <b>ana-*</b> artifact with many <b>opr-*</b> runs.

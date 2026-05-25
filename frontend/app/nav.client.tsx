@@ -38,23 +38,20 @@ export default function NavClient() {
   const onAnalysisRaw = pathname.startsWith("/analysis/raw");
   const onAnalysisBatch = pathname.startsWith("/analysis/batch");
 
-  return (
-    <div className="nav">
-      <NavLink href="/physical/designer" label="Physical · Designer" section="physical" active={onPhysicalDesigner} />
-      <NavLink href="/physical/visualizer" label="Physical · Visualizer" section="physical" active={onPhysicalVisualizer} />
+    return (
+      <div className="nav">
+        <NavLink href="/physical/designer" label="Physical Surface" section="physical" active={onPhysicalDesigner} />
+        <NavLink href="/physical/visualizer" label="Physical Visualizer" section="physical" active={onPhysicalVisualizer} />
 
+        <NavLink href="/epistemic/designer" label="Epistemic Surface" section="epistemic" active={onEpistemicDesigner} />
+        <NavLink href="/epistemic/visualizer" label="Epistemic Visualizer" section="epistemic" active={onEpistemicVisualizer} />
 
-      <NavLink href="/epistemic/designer" label="Belief Lab · Designer" section="epistemic" active={onEpistemicDesigner} />
-      <NavLink href="/epistemic/visualizer" label="Belief Lab · Visualizer" section="epistemic" active={onEpistemicVisualizer} />
+        <NavLink href="/operational/designer" label="Operational Surface" section="operational" active={onOperationalDesigner} />
+        <NavLink href="/operational/visualizer" label="Operational Visualizer" section="operational" active={onOperationalVisualizer} />
 
-      <NavLink href="/operational/designer" label="Operational · Designer" section="operational" active={onOperationalDesigner} />
-      <NavLink href="/operational/visualizer" label="Operational · Visualizer" section="operational" active={onOperationalVisualizer} />
-
-      {/* Analysis nav order: Batch → Graphic → Raw */}
-      <NavLink href="/analysis/batch" label="Analysis · Study Designer" section="analysis" active={onAnalysisBatch} />
-      <NavLink href="/analysis/graphic" label="Analysis · Graphic" section="analysis" active={onAnalysisGraphic} />
-      <NavLink href="/analysis/raw" label="Analysis · Raw" section="analysis" active={onAnalysisRaw} />
-
-    </div>
-  );
+        <NavLink href="/analysis/batch" label="Analysis Surface" section="analysis" active={onAnalysisBatch} />
+        <NavLink href="/analysis/graphic" label="Analysis Visualizer" section="analysis" active={onAnalysisGraphic} />
+        <NavLink href="/analysis/raw" label="Analysis Raw" section="analysis" active={onAnalysisRaw} />
+      </div>
+    );
 }

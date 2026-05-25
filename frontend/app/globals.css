@@ -160,3 +160,118 @@ pre{ background:#0b1020; color:#e7e9ee; border-radius:12px; padding:10px; }
   color: var(--text);
   border: 1px solid var(--border);
 }
+
+/* --- AWSRT splash-page four-surface orientation diagram --- */
+
+.surfaceDiagram {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(260px, 0.9fr);
+  gap: 28px;
+  align-items: center;
+  width: 100%;
+  max-width: 980px;
+  margin: 18px auto 0;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.surfaceLoop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.surfaceCard {
+  width: min(100%, 420px);
+  border-radius: 14px;
+  border: 2px solid;
+  padding: 14px 16px;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.surfaceTitle {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 5px;
+}
+
+.surfaceBody {
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.surfaceDetail {
+  font-size: 0.84rem;
+  opacity: 0.78;
+  line-height: 1.35;
+}
+
+.surfacePhysical {
+  border-color: var(--awsrt-physical-border, #2f9e44);
+  background: var(--awsrt-physical, #d8f7dd);
+}
+
+.surfaceEpistemic {
+  border-color: var(--awsrt-epistemic-border, #2563eb);
+  background: var(--awsrt-epistemic, #dbeafe);
+}
+
+.surfaceOperational {
+  border-color: var(--awsrt-operational-border, #a08a1a);
+  background: var(--awsrt-operational, #fef9c3);
+}
+
+.surfaceAnalysis {
+  border-color: var(--awsrt-analysis-border, #666);
+  background: var(--awsrt-analysis, #f1f3f5);
+}
+
+.surfaceArrow,
+.surfaceFeedback {
+  font-size: 0.82rem;
+  opacity: 0.72;
+  text-align: center;
+}
+
+.surfaceFeedback {
+  margin-top: 2px;
+}
+
+.surfaceAnalysisWrap {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.surfaceAnalysisArrows {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  font-size: 0.78rem;
+  opacity: 0.72;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.surfaceAnalysisArrows span::after {
+  content: " →";
+}
+
+@media (max-width: 820px) {
+  .surfaceDiagram {
+    grid-template-columns: 1fr;
+  }
+
+  .surfaceAnalysisWrap {
+    grid-template-columns: 1fr;
+  }
+
+  .surfaceAnalysisArrows {
+    display: none;
+  }
+}

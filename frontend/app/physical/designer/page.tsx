@@ -1037,7 +1037,7 @@ export default function PhysicalDesignerPage() {
 
   return (
     <div className="card">
-      <h2 style={{ marginTop: 0 }}>Physical Designer</h2>
+      <h2 style={{ marginTop: 0 }}>Physical · Surface</h2>
       <div aria-hidden className="section-stripe section-stripe--physical" />
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>
         The Physical Surface defines the structured environmental fields used by AWSRT:

@@ -760,7 +760,7 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
 
   return (
     <div className="card">
-      <h2>Analysis · Graphic</h2>
+      <h2>Analysis · Visualizer</h2>
       <div aria-hidden className="section-stripe section-stripe--analysis" />
       <div className="small" style={{ lineHeight: 1.45 }}>
         Select one operational study (ana-*) and inspect its study semantics, primary metrics, and policy summary artifact.
