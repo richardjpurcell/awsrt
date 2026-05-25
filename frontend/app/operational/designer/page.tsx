@@ -1465,7 +1465,7 @@ export default function OperationalDesignerPage() {
 
   return (
     <div className="card">
-      <h2>Operational · Designer</h2>
+      <h2>Operational Surface</h2>
       <div aria-hidden className="section-stripe section-stripe--operational" />
 
       {err ? (

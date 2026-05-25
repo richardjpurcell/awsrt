@@ -760,7 +760,7 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
 
   return (
     <div className="card">
-      <h2>Analysis · Visualizer</h2>
+      <h2>Analysis Visualizer</h2>
       <div aria-hidden className="section-stripe section-stripe--analysis" />
       <div className="small" style={{ lineHeight: 1.45 }}>
         Select one operational study (ana-*) and inspect its study semantics, primary metrics, and policy summary artifact.
@@ -1443,7 +1443,7 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
             </div>
 
             <div className="small" style={{ marginTop: 8, opacity: 0.75 }}>
-              Raw row inspection is available in <b>Analysis · Raw</b>. This view prioritizes study semantics and summary artifacts.
+              Raw row inspection is available in <b>Analysis Raw</b>. This view prioritizes study semantics and summary artifacts.
             </div>
             </div>
           );
@@ -1454,7 +1454,7 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
         This page now treats the operational study summary as the primary analysis artifact.
       </div>
       <div className="small" style={{ opacity: 0.78, marginTop: 6 }}>
-        Use <b>Analysis · Raw</b> for row-level verification and protocol audit. Use this page for the canonical study-level reading
+        Use <b>Analysis Raw</b> for row-level verification and protocol audit. Use this page for the canonical study-level reading
         of one completed <b>ana-*</b> artifact.
       </div>
 

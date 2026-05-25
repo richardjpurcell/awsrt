@@ -1072,7 +1072,7 @@ export default function BeliefLabVisualizerPage() {
   return (
     <div className="card">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h2 style={{ marginTop: 0 }}>Epistemic · Visualizer</h2>
+        <h2 style={{ marginTop: 0 }}>Epistemic Visualizer</h2>
       </div>
       <div aria-hidden className="section-stripe section-stripe--epistemic" style={{ marginTop: 0 }} />
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>

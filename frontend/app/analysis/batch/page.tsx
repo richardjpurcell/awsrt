@@ -1246,7 +1246,7 @@ export default function AnalysisBatchPage() {
 
   return (
     <div className="card">
-      <h2>Analysis · Surface</h2>
+      <h2>Analysis Surface</h2>
       <div aria-hidden className="section-stripe section-stripe--analysis" />
       <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
         Create a single <b>operational study</b> that produces one <b>ana-*</b> artifact with many <b>opr-*</b> runs.
@@ -1268,7 +1268,7 @@ export default function AnalysisBatchPage() {
         <h2 style={{ marginTop: 0, fontSize: 16 }}>Role of this page</h2>
         <div className="small" style={{ lineHeight: 1.5 }}>
           Use this page for policy comparisons, regime-family comparisons, impairment sweeps, persistence/hysteresis sensitivity studies,
-          and other multi-run analysis artifacts intended for screenshot-ready summary reading in <b>Analysis · Graphic</b>.
+          and other multi-run analysis artifacts intended for screenshot-ready summary reading in <b>Analysis Visualizer</b>.
         </div>
         <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>Operational Designer now handles single-run authoring only.</div>
 
@@ -2061,10 +2061,10 @@ export default function AnalysisBatchPage() {
           <span className="small">
             Study: <b>{createdStudy}</b>{" "}
             <a className="small" href={`/analysis/graphic?id=${createdStudy}`} style={{ marginLeft: 10 }}>
-              Open Analysis · Graphic →
+              Open Analysis Visualizer →
             </a>
             <a className="small" href={`/analysis/raw?id=${createdStudy}`} style={{ marginLeft: 10 }}>
-              Open Analysis · Raw →
+              Open Analysis Raw →
             </a>
             <a className="small" href={apiUrl(`/analysis/${createdStudy}/table.csv`)} style={{ marginLeft: 10 }} target="_blank" rel="noreferrer">
               Download CSV →

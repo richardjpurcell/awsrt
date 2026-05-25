@@ -552,11 +552,11 @@ export default function AnalysisRawPage() {
 
   return (
     <div className="card">
-      <h2>Analysis · Raw</h2>
+      <h2>Analysis Raw</h2>
       <div aria-hidden className="section-stripe section-stripe--analysis" />
       <div className="small" style={{ opacity: 0.85 }}>
         Inspect the raw study artifacts behind an <b>ana-*</b> result. This page is for protocol audit, summary diagnostics,
-        and table-level inspection after the higher-level reading in <b>Analysis · Graphic</b>.
+        and table-level inspection after the higher-level reading in <b>Analysis Visualizer</b>.
       </div>
 
       {summary && id ? (
@@ -566,7 +566,7 @@ export default function AnalysisRawPage() {
             {studyRoleText}
           </div>
           <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
-            Use this page to audit summary artifacts and preview rows. Use <b>Analysis · Graphic</b> for the canonical polished interpretation.
+            Use this page to audit summary artifacts and preview rows. Use <b>Analysis Visualizer</b> for the canonical polished interpretation.
           </div>
       </div>
     ) : null}
@@ -630,7 +630,7 @@ export default function AnalysisRawPage() {
         <div className="small" style={{ marginTop: 6, opacity: 0.78 }}>
           {qid
             ? "Auto-loaded from URL; adjust the study selection then click Refresh."
-            : "Use Analysis · Graphic for the polished reading path; use this page for audit, verification, and row inspection."}
+            : "Use Analysis Visualizer for the polished reading path; use this page for audit, verification, and row inspection."}
         </div>
       </div>
 
@@ -1518,12 +1518,12 @@ export default function AnalysisRawPage() {
       ) : null}
 
       <div className="small" style={{ opacity: 0.72, marginTop: 10 }}>
-        Analysis · Raw is the audit-oriented companion to Analysis · Graphic: use Graphic for polished reading, and Raw for
+        Analysis Raw is the audit-oriented companion to Analysis Visualizer: use Visualizer for polished reading, and Raw for
         structured verification.
       </div>
       <div className="small" style={{ opacity: 0.72, marginTop: 6 }}>
-        Division of labor: <b>Analysis · Batch</b> creates the study, <b>Analysis · Graphic</b> presents the canonical reading,
-        and <b>Analysis · Raw</b> exposes the audit trail and row preview.
+        Division of labor: <b>Analysis Surface</b> creates the study, <b>Analysis Visualizer</b> presents the canonical reading,
+        and <b>Analysis Raw</b> exposes the audit trail and row preview.
       </div>
 
       <style jsx>{`

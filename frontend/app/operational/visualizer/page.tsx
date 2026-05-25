@@ -1023,7 +1023,7 @@ export default function OperationalVisualizerPage() {
   return (
     <div className="card">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h2 style={{ marginTop: 0 }}>Operational · Visualizer</h2>
+        <h2 style={{ marginTop: 0 }}>Operational Visualizer</h2>
       </div>
       <div aria-hidden className="section-stripe section-stripe--operational" style={{ marginTop: 0 }} />
 
