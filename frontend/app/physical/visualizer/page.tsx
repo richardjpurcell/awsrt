@@ -1093,7 +1093,7 @@ export default function PhysicalVisualizerPage() {
 
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>
         The Physical Visualizer is for inspecting generated wildfire worlds and comparing runs side by side.
-        Use it to compare reference worlds, layer-isolation diagnostics, or protected historical replays.
+        Use it to compare reference worlds, field-isolation diagnostics, or protected historical replays.
         The most useful workflow is usually to hold time fixed and compare backgrounds, or hold the background fixed and compare different runs. For example: compare a clean reference world against a terrain-only or wind-only diagnostic, or compare a simulated run against a replay-based run to see how structure differs.
       </div>
 

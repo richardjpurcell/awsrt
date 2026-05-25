@@ -159,14 +159,14 @@ export default function PhysicalDesignerPage() {
     {
       label: "Main comparison · Reference physical worlds",
       options: [
-        { id: "reference_center_ideal", label: "Reference · center · ideal", hint: "Clean centered ignition baseline with no extra layers enabled." },
-        { id: "reference_corner_ideal", label: "Reference · corner · ideal", hint: "Harder off-center ignition baseline with no extra layers enabled." },
+        { id: "reference_center_ideal", label: "Reference · center · ideal", hint: "Clean centered ignition baseline with no extra environmental fields enabled." },
+        { id: "reference_corner_ideal", label: "Reference · corner · ideal", hint: "Harder off-center ignition baseline with no extra environmental fields enabled." },
       ],
     },
     {
-      label: "Diagnostic · Layer isolation",
+      label: "Diagnostic · Field isolation",
       options: [
-        { id: "terrain_only", label: "Terrain only", hint: "Terrain and slope effects isolated from other layers." },
+        { id: "terrain_only", label: "Terrain only", hint: "Terrain-like and slope effects isolated from other environmental fields." },
         { id: "wind_static_only", label: "Wind only · static", hint: "Static wind bias isolated from terrain, fuels, and weather." },
         { id: "wind_dynamic_only", label: "Wind only · dynamic", hint: "Dynamic wind field test for backend time-varying wind logic." },
         { id: "fuels_only_patchy", label: "Fuels only · patchy", hint: "Categorical fuels map isolated for spread heterogeneity testing." },
@@ -792,7 +792,7 @@ export default function PhysicalDesignerPage() {
       case "smoke_small_grid":
         return "Expected signature: a fast regression run that exercises manifest creation, field generation, fire stepping, and visualization without requiring rich interpretation.";
       default:
-        return "Expected signature: interpret behavior from the active layers shown in the summary cards and configuration warnings.";
+        return "Expected signature: interpret behavior from the active environmental fields shown in the summary cards and configuration warnings.";
     }
   }, [presetId]);
 
@@ -821,7 +821,7 @@ export default function PhysicalDesignerPage() {
       case "smoke_small_grid":
         return "This is a fast regression world for backend smoke tests. Use it to check that basic manifest creation, field generation, fire stepping, and visualization still work after code changes. It is not intended for rich trend interpretation.";
       default:
-        return "This world combines the currently selected physical layers. Use the summary cards below to verify which mechanisms are active before generating a run.";
+        return "This world combines the currently selected environmental fields and modifiers. Use the summary cards below to verify which mechanisms are active before generating a run.";
     }
   }, [presetId]);
 
@@ -1040,18 +1040,20 @@ export default function PhysicalDesignerPage() {
       <h2 style={{ marginTop: 0 }}>Physical Designer</h2>
       <div aria-hidden className="section-stripe section-stripe--physical" />
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>
-        The Physical Designer builds the underlying wildfire world used by AWSRT:
-        grid, ignition, fire spread law, terrain, wind, fuels, weather, and optional fire-weather coupling.
-        It is the environment layer that Belief Lab and Operational later consume.
+        The Physical Surface defines the structured environmental fields used by AWSRT:
+        grid, ignition, fire-like spread law, terrain-like structure, directional-bias fields,
+        fuel-like heterogeneity, scalar environmental fields, and optional spread modifiers.
+        It produces the environmental substrate that the Epistemic and Operational Surfaces later consume.
       </div>
 
       <div className="card" style={{ marginTop: 10 }}>
         <h2 style={{ marginTop: 0 }}>Physical preset taxonomy</h2>
         <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
-          Presets populate the physical-world controls but do not auto-run.
+          Presets populate the Physical Surface controls but do not auto-run.
           Main comparison presets are intended as stable reference worlds.
-          Diagnostic presets isolate terrain, wind, fuels, weather, or fast regression cases
-          so backend generation logic can be tested one layer at a time.
+          Diagnostic presets isolate terrain-like structure, directional bias, fuel-like heterogeneity,
+          scalar environmental fields, or fast regression cases so backend generation logic can be tested
+          one field or modifier at a time.
         </div>
 
         <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
@@ -1147,7 +1149,7 @@ export default function PhysicalDesignerPage() {
               </div>
               <div style={{ marginTop: 6, opacity: 0.82 }}>
                 The goal is to make it obvious whether this is a clean reference world,
-                a layer-isolation test, or a fast regression world.
+                a field-isolation test, or a fast regression world.
               </div>
             </div>
           </div>
@@ -1157,8 +1159,8 @@ export default function PhysicalDesignerPage() {
         <div className="card" style={{ marginTop: 10 }}>
           <h2 style={{ marginTop: 0 }}>Configuration warnings</h2>
           <div className="small" style={{ opacity: 0.86, lineHeight: 1.45 }}>
-            These are not hard errors. They flag cases where a layer may be enabled or described in the summary,
-            but may not actually influence fire behavior in the way you intend.
+            These are not hard errors. They flag cases where an environmental field or modifier may be enabled
+            or described in the summary, but may not actually influence fire-like behavior in the way you intend.
           </div>
           <ul className="small" style={{ marginTop: 10, marginBottom: 0, paddingLeft: 18, lineHeight: 1.5 }}>
             {configWarnings.map((w, i) => (
@@ -1300,8 +1302,8 @@ export default function PhysicalDesignerPage() {
       <div className="card" style={{ marginTop: 10 }}>
       <h2 style={{ marginTop: 0 }}>Fire ↔ Weather coupling</h2>
       <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
-        This optional layer multiplies spread probability using the stored temperature and humidity fields.
-        It is useful for testing whether fire behavior responds plausibly to weather structure.
+        This optional field modifier adjusts spread probability using stored scalar environmental fields.
+        It is useful for testing whether fire-like behavior responds to structured environmental variation.
       </div>
       <div className="row" style={{ flexWrap: "wrap", marginTop: 10 }}>
         <label>Enabled</label>
@@ -1843,7 +1845,7 @@ export default function PhysicalDesignerPage() {
 
       <div className="small" style={{ marginTop: 10, opacity: 0.85, lineHeight: 1.35 }}>
         <b>How the pieces influence fire (mental model):</b>{" "}
-        Fire spread starts from <i>spread_prob_base</i> and then gets biased by the enabled layers:
+        Fire-like spread starts from <i>spread_prob_base</i> and then gets biased by the enabled fields and modifiers:
         <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
           <li>
             <b>Wind</b> (if enabled) skews spread direction and strength. Higher <i>wind_gain</i> makes spread more
@@ -1863,8 +1865,9 @@ export default function PhysicalDesignerPage() {
           </li>
         </ul>
         <div style={{ marginTop: 6 }}>
-          <i>Tip:</i> If you want to isolate effects, toggle one layer at a time (e.g., wind only, then add terrain,
-          then fuels, then weather coupling).
+          <i>Tip:</i> If you want to isolate effects, toggle one field or modifier at a time
+          (e.g., directional bias only, then add terrain-like structure, then fuel-like heterogeneity,
+          then scalar-field coupling).
         </div>
       </div>
 

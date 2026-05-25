@@ -5,30 +5,36 @@ import schematic from "../images/tool_schematic.png";
 export default function HomePage() {
   return (
     <div className="card">
-      <h2>AWSRT (v0)</h2>
+      <h2>AWSRT</h2>
 
-      <div className="small">
-        Use the nav bar to create runs and visualize them. Data are stored locally under <code>data/</code>.
+      <div className="small" style={{ marginTop: 4 }}>
+        <b>Adaptive Wildfire Sensing Research Tool</b>
       </div>
 
-      <div className="row" style={{ marginTop: 10, flexWrap: "wrap", gap: 10 }}>
+      <div className="small" style={{ marginTop: 8, maxWidth: 860 }}>
+        A research instrument for studying adaptive sensing, belief maintenance,
+        information impairment, and usefulness under wildfire-like dynamic fields.
+        Data are stored locally under <code>data/</code>.
+      </div>
+
+      <div className="row" style={{ marginTop: 14, flexWrap: "wrap", gap: 10 }}>
         <Link href="/physical/designer" className="small">
-          Start: Physical Designer
+          Physical Surface
         </Link>
         <Link href="/epistemic/designer" className="small">
-          Then: Epistemic Designer
+          Epistemic Surface
         </Link>
         <Link href="/operational/designer" className="small">
-          Then: Operational Designer
+          Operational Surface
         </Link>
         <Link href="/analysis/batch" className="small">
-          Finally: Analysis · Batch
+          Analysis Surface · Batch
         </Link>
         <Link href="/analysis/graphic" className="small">
-          Then: Analysis · Graphic
+          Analysis Surface · Graphic
         </Link>
         <Link href="/analysis/raw" className="small">
-          Then: Analysis · Raw
+          Analysis Surface · Raw
         </Link>
       </div>
 
@@ -46,7 +52,7 @@ export default function HomePage() {
         >
           <Image
             src={schematic}
-            alt="AWSRT tool schematic"
+            alt="AWSRT research-tool schematic"
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
             sizes="(max-width: 1000px) 100vw, 980px"
             priority
@@ -55,7 +61,7 @@ export default function HomePage() {
       </div>
 
       <div className="small" style={{ textAlign: "center", marginTop: 10, opacity: 0.75 }}>
-        Physical → Epistemic → Operational → Analysis
+        Physical Surface → Epistemic Surface → Operational Surface → Analysis Surface
       </div>
     </div>
   );

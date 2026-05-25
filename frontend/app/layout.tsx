@@ -4,10 +4,11 @@ import Link from "next/link";
 import NavClient from "./nav.client";
 
 export const metadata = {
-  title: "AWSRT",
-  description: "Adaptive Wildfire Sensing Research Tool (v0)",
+  title: "AWSRT — Adaptive Wildfire Sensing Research Tool",
+  description:
+    "A research tool for adaptive sensing, belief maintenance, information impairment, and usefulness under wildfire-like dynamic fields.",
   icons: {
-    icon: "/favicon-32x32.png",         // expects public/icon.png
+    icon: "/favicon-32x32.png",
     apple: "/apple-touch-icon.png",
   },
 };

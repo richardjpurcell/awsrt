@@ -7,7 +7,7 @@
   --shadow: 0 10px 30px rgba(0,0,0,0.08);
   --radius: 14px;
 
-  /* --- AWSRT conceptual layers --- */
+  /* --- AWSRT conceptual surfaces --- */
   --awsrt-physical: #bfead6;     /* mint green (tweak to match schematic if desired) */
   --awsrt-epistemic: #93c5fd;   /* light blue */
   --awsrt-operational: #facc15; /* yellow */
