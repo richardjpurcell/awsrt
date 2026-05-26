@@ -1428,7 +1428,7 @@ export default function AnalysisBatchPage() {
         <h2 style={{ marginTop: 0 }}>Study intent</h2>
         <div className="small" style={{ opacity: 0.8, marginBottom: 10 }}>
           Start by stating what kind of comparison this study is meant to support. These fields define the analysis semantics
-          that Graphic and later figures should trust.
+          that Visualizer and later figures should trust.
         </div>
 
         <div className="row">
@@ -2029,7 +2029,7 @@ export default function AnalysisBatchPage() {
             onChange={(e) => setAutoOpenGraphic(e.target.checked)}
             disabled={busy}
           />
-          Auto-open Graphic after run
+          Auto-open Visualizer after run
         </label>
 
         <label className="small" style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2055,7 +2055,9 @@ export default function AnalysisBatchPage() {
                 animation: "spin 0.9s linear infinite",
               }}
             />
-            <span className="small">{status || "Running…"}</span>
+            <span className="small">
+              {status || "Running…"} Larger study matrices can take several minutes. Cancellation is not currently supported from the UI.
+            </span>
           </div>
         ) : createdStudy ? (
           <span className="small">
@@ -2115,6 +2117,10 @@ export default function AnalysisBatchPage() {
         <div style={{ marginTop: 10 }}>
           <div style={{ height: 8, borderRadius: 999, background: "rgba(0,0,0,0.08)", overflow: "hidden" }}>
             <div style={{ height: "100%", width: "40%", borderRadius: 999, background: "rgba(0,0,0,0.35)", animation: "bar 1.1s ease-in-out infinite" }} />
+          </div>
+          <div className="small" style={{ marginTop: 8, opacity: 0.75, lineHeight: 1.45 }}>
+            Study generation is running. Please leave this page open until completion.
+            The current Analysis Surface runs study creation as a single request, so cancelling an in-progress study is not yet available.
           </div>
         </div>
       ) : null}

@@ -43,6 +43,21 @@ This subgoal does not fully redesign the Epistemic Surface.
 
 This subgoal does not attempt to make AWSRT a polished public product.
 
+## Deferred issue: cancellable analysis jobs
+
+During Subgoal 04, long-running Analysis Surface study generation was identified as a usability limitation. The current UI can show progress and prevent duplicate submissions, but true cancellation is not available because study generation runs as a single request rather than as a tracked background job.
+
+A later subgoal should consider converting long-running analysis generation into cancellable jobs with:
+
+- a `job_id`;
+- status polling;
+- partial progress messages;
+- cancel requests;
+- cleanup behavior for partially generated artifacts;
+- explicit final success/failure states.
+
+For Subgoal 04, this issue is documented and the UI should provide honest in-progress messaging rather than pretending cancellation exists.
+
 ## Main UI Maturity Questions
 
 ### 1. Should prototype pages be hidden or relabeled?
