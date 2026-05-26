@@ -1,161 +1,179 @@
-# AWSRT: Adaptive Wildfire Sensing Research Tool
+# AWSRT — Adaptive Wildfire Sensing Research Tool
 
-AWSRT is an **information-centric research software platform** for studying adaptive wildfire sensing in dynamic and uncertain environments.
+AWSRT is the **Adaptive Wildfire Sensing Research Tool**, a research instrument for studying adaptive sensing, belief maintenance, information impairment, and usefulness under wildfire-like dynamic fields.
 
-The platform supports four linked research layers:
+AWSRT is not an operational wildfire simulator and does not claim high-fidelity physical wildfire prediction. Its purpose is to make separations between timing, information delivery, belief quality, and usefulness-state behavior inspectable under controlled experimental conditions.
 
-- **Physical**: wildfire environment generation and replay, including grid, terrain, fuels, wind, weather, and fire spread
-- **Epistemic**: belief-state construction and uncertainty analysis, including Beta–Bernoulli belief updates and Shannon entropy summaries
-- **Operational**: sensing-network policies, impairment models, compact usefulness interpretation, and regime-managed control experiments
-- **Analysis**: study manifests, metrics, figures, and experiment comparison workflows
+## Current status
 
-AWSRT is designed to support research on questions such as:
+The current `main` branch includes the frozen AWSRT v0.6 result state and the beginning of v0.7 shareability updates.
 
-- how adaptive sensing policies differ under controlled conditions,
-- when information delivery and operational usefulness begin to separate,
-- how delay, noise, and loss affect belief quality differently,
-- how compact usefulness behavior can be read operationally under healthy, delay-heavy, and noise-heavy conditions,
-- and how higher-level advisory and active regime logic should be interpreted without conflating recommendation summaries with realized control behavior.
+- **v0.6** is the frozen distance-window and cross-artifact synthesis release used to support current thesis and journal-paper interpretation.
+- **v0.7** is focused on making the tool more coherent and shareable through updated terminology, documentation, installation notes, and usability improvements.
 
-This repository contains the frozen **AWSRT v0.2** research software release. AWSRT v0.2 is best understood as a **disciplined operational/control checkpoint**: it preserves the broader scientific context established in earlier work while improving controller-boundary clarity, structural cleanliness, validation/reporting truthfulness, and release-facing interpretability. It is **not** presented as a final unified controller or as a replacement for the full v0.1 scientific results chapter. Instead, it provides a stable frozen reference point for ongoing development, thesis-facing figure refresh work, and subsequent research releases.
+AWSRT remains research software under active development. It is intended to support thesis-facing and paper-facing experimental analysis, not operational wildfire deployment.
 
-## What v0.2 adds
+## What AWSRT is
 
-AWSRT v0.2 closes with a compact release-facing evidence bundle and a more disciplined interpretation of the operational layer.
+AWSRT is a controlled research environment for asking questions such as:
 
-The main v0.2 additions are:
+- when sensing activity and useful information diverge;
+- how delay, noise, and loss affect maintained belief quality;
+- how detection timing differs from belief maintenance;
+- how deployment geometry and observation windows affect timing access;
+- how adaptive sensing policies behave under impaired information flow;
+- how compact usefulness states such as exploit, recover, and caution remain interpretable under bounded conditions.
 
-- a clearer **compact usefulness** interpretation path through `usefulness_proto`,
-- a clearer **advisory versus active** regime-management reading boundary,
-- cleaner operational router structure without intended late-stage behavior drift,
-- more truthful validation and reporting semantics,
-- and a compact frozen results bundle suitable for release-facing and thesis-facing interpretation.
+The tool is designed to expose relationships among:
 
-The frozen v0.2 curated bundle centers on three figure families:
+- **timing**, such as time-to-first-detection;
+- **information delivery**, such as whether observations arrive;
+- **belief quality**, such as entropy-based summaries;
+- **usefulness-state behavior**, such as exploit, recover, and caution occupancy;
+- **structural variables**, such as deployment geometry, observation windows, transformed fire artifacts, and tie-breaking semantics.
 
-- **Bundle A — compact usefulness triad**  
-  healthy / exploit-dominated, delay-heavy / recover-dominated, and noise-heavy / caution-dominated representative runs
+## What AWSRT is not
 
-- **Bundle B — advisory vs active regime comparison**  
-  a study-level pair showing how advisory trigger-hit summaries differ from active realized-state and realized-transition summaries
+AWSRT should not be read as:
 
-- **Bundle C — opportunistic-family mechanism package**  
-  active mechanism-facing evidence including hysteresis sensitivity and verify-style interpretability support
+- a real-time operational wildfire management system;
+- a high-fidelity physical wildfire simulator;
+- a physical twin or digital twin of a specific fire;
+- a universally optimal adaptive-sensing controller;
+- a claim that one metric captures usefulness by itself;
+- a claim that the tested results generalize to all wildfire settings.
 
-This framing is intentionally modest. AWSRT v0.2 improves interpretability, auditability, and release discipline; it does not claim that controller design questions are complete.
+The Physical Surface uses structured wildfire-like fields and transformed fire artifacts as experimental substrates. These fields may represent or stand in for environmental structure, but they are used to test sensing, belief maintenance, and information-usefulness questions rather than to predict real wildfire behavior.
+
+## Four research surfaces
+
+AWSRT is organized around four research surfaces.
+
+### Physical Surface
+
+The Physical Surface defines structured environmental fields used by AWSRT experiments. These include grid structure, ignition, fire-like spread, terrain-like structure, directional-bias fields, fuel-like heterogeneity, scalar environmental fields, and transformed fire artifacts.
+
+The Physical Surface provides the environmental substrate consumed by later surfaces. It should be understood as an experimental field generator and artifact interface, not as a physical wildfire-prediction engine.
+
+### Epistemic Surface
+
+The Epistemic Surface maintains belief-state and uncertainty representations over the monitored field. It supports belief updates, uncertainty summaries, entropy calculations, and belief-quality analysis.
+
+This surface is central to the thesis framing because AWSRT is not only asking whether the system detects fire. It is asking whether observations help maintain an uncertainty-aware belief state under impaired information flow.
+
+### Operational Surface
+
+The Operational Surface runs adaptive sensing behavior. It includes sensing-network policies, deployment settings, impairment models, compact usefulness interpretation, and controller-facing diagnostics.
+
+The compact usefulness triad is interpreted as:
+
+- **exploit**: usable information flow;
+- **recover**: delayed or stale information flow;
+- **caution**: corrupted or suspect information flow.
+
+The Operational Surface also supports broader policy and regime-management experiments, but these should not be conflated with the compact usefulness triad.
+
+### Analysis Surface
+
+The Analysis Surface supports study manifests, metric extraction, figure generation, raw artifact inspection, and thesis-facing interpretation.
+
+It is used to compare timing, information delivery, belief quality, usefulness-state behavior, effort, and structural variables such as deployment geometry and observation-window selection.
+
+## Frozen v0.6 result summary
+
+AWSRT v0.6 tested deployment geometry and observation-window effects under transformed real-fire conditions.
+
+The frozen v0.6 result shows that normalized deployment geometry and observation-window structure strongly affect timing access, especially finite time-to-first-detection availability. Across the tested transformed real-fire artifacts, however, the compact usefulness triad remained condition-readable:
+
+- healthy cases mapped to exploit-dominant behavior;
+- delay cases mapped to recover-dominant behavior;
+- noise cases mapped to caution-dominant behavior.
+
+This supports the thesis-level separation between timing access, information delivery, belief quality, and usefulness-state interpretation.
+
+The v0.6 evidence base should be read as bounded transformed-real-fire evidence, not as universal wildfire generalization.
 
 ## Core capabilities
 
 AWSRT currently supports:
 
-- generation of synthetic physical wildfire environments,
-- import of historical replay physical runs from CFSDS-style artifacts,
-- epistemic belief evolution over physical runs,
-- operational sensing experiments with multiple policy families,
-- impairment studies with noise, delay, and loss,
-- compact usefulness-path experiments and summaries,
-- advisory and active regime-management experiments,
-- metric computation including timeliness, entropy, usefulness, and mechanism-facing summaries,
-- manifest-based experiment definition and recovery,
-- frontend visualization and study inspection workflows,
-- and figure generation for comparative analysis.
+- generation of structured wildfire-like physical fields;
+- import and use of transformed historical fire artifacts;
+- belief-state and entropy-oriented epistemic analysis;
+- operational sensing experiments with multiple policy families;
+- impairment studies with noise, delay, and loss;
+- compact usefulness-path experiments and summaries;
+- advisory and active regime-management experiments;
+- metric computation for timeliness, entropy, usefulness, and mechanism-facing summaries;
+- manifest-based experiment definition and recovery;
+- frontend design, visualization, analysis, and audit workflows;
+- figure and result packaging for comparative analysis.
 
 ## Repository structure
 
-- `backend/` — FastAPI backend and AWSRT core modules
-- `frontend/` — Next.js frontend for design, visualization, and analysis
-- `data/manifests/` — preserved manifests defining runs and studies
-- `data/metrics/` — preserved run and study metrics, including frozen v0.2 bundle artifacts
-- `results/figures/` — preserved figure exports associated with frozen results versions
-- `src/plots.py` — plotting support
-- `notes/` — selected supporting research notes retained with frozen software versions
-- `docs/design/` — design notes and release-freeze interpretation notes
+```text
+backend/                 FastAPI backend and AWSRT core modules
+frontend/                Next.js frontend for the four research surfaces
+data/                    Local manifests, fields, renders, metrics, and run artifacts
+docs/                    Documentation and design notes
+docs/design/             Versioned design notes and release-freeze interpretation notes
+notes/                   Supporting research notes retained with software versions
+paper/                   Paper-facing materials
+results/                 Result outputs and figure exports
+src/                     Utility and packaging scripts
+README.md                Project overview
+pyproject.toml           Python package configuration
+frontend/package.json    Frontend package configuration
+```
 
-## Run the backend
+Historical release notes and reproducibility files, such as `REPRODUCIBILITY_v0.1.md`, `RESULTS_MANIFEST_v0.1.md`, `VERSION_NOTES_v0.1.md`, and `VERSION_NOTES_v0.2.md`, are retained for auditability.
 
-Create an environment, install the package, and start the API server:
+## Quickstart
+
+These instructions describe the current local development workflow. They are not yet a polished public installation process.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/richardjpurcell/awsrt.git
+cd awsrt
+```
+
+### 2. Create and activate a Python environment
+
+A generic virtual-environment path is:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -U pip
 pip install -e .
+```
+
+The current development workflow has also used a conda environment named `PhD_general`:
+
+```bash
+conda activate PhD_general
+pip install -e .
+```
+
+Use the environment approach that matches your local setup.
+
+### 3. Start the backend
+
+```bash
 uvicorn backend.api.main:app --reload --port 8000
 ```
 
 Health check:
 
+```text
 http://127.0.0.1:8000/health
-
-## Environment variables
-
-### Data directory override
-
-By default AWSRT writes artifacts under `./data/`, including:
-
-- `data/manifests/`
-- `data/fields/`
-- `data/renders/`
-- `data/metrics/`
-
-To override the root data directory:
-
-- `AWSRT_DATA_DIR=/abs/path/to/data`
-
-Example:
-
-```bash
-export AWSRT_DATA_DIR=/tmp/awsrt_data
-uvicorn backend.api.main:app --reload --port 8000
 ```
 
-### Render resolution
+When the backend is running, FastAPI route documentation may also be available through the local API documentation endpoint.
 
-AWSRT renders overlay-aligned PNGs (for example base, fire, wind, and fuels layers) using a pixel canvas derived from grid dimensions. For large historical replays, higher render resolution is often useful.
-
-Available variables:
-
-- `AWSRT_RENDER_PX_PER_CELL`  
-  Pixels per grid cell. Higher values increase sharpness and file size.
-
-- `AWSRT_RENDER_MAX_SIDE_PX`  
-  Hard clamp on the longest rendered PNG side.
-
-- `AWSRT_RENDER_DPI`  
-  Matplotlib DPI used during rendering.
-
-Recommended starting points:
-
-- Small simulations (≤ 300×300):
-  - `AWSRT_RENDER_PX_PER_CELL=2.0`
-  - `AWSRT_RENDER_MAX_SIDE_PX=4096`
-  - `AWSRT_RENDER_DPI=160`
-
-- Large historical replays:
-  - `AWSRT_RENDER_PX_PER_CELL=3.0`
-  - `AWSRT_RENDER_MAX_SIDE_PX=8192`
-  - `AWSRT_RENDER_DPI=200`
-
-Example:
-
-```bash
-export AWSRT_RENDER_PX_PER_CELL=3.0
-export AWSRT_RENDER_MAX_SIDE_PX=8192
-export AWSRT_RENDER_DPI=200
-uvicorn backend.api.main:app --reload --port 8000
-```
-
-### Render cache note
-
-Render endpoints cache PNGs under `data/renders/{phy_id}/t/{t}/...`. If you change render environment variables, delete cached renders to regenerate them at the new resolution:
-
-```bash
-rm -rf data/renders/phy-XXXXX
-# or only cached timestep frames:
-rm -rf data/renders/phy-XXXXX/t
-```
-
-## Run the frontend
+### 4. Install and start the frontend
 
 ```bash
 cd frontend
@@ -166,167 +184,140 @@ npm run dev
 
 Open:
 
+```text
 http://127.0.0.1:3000
-
-## Quick smoke test
-
-### 1. Create and run a physical simulation
-
-```bash
-curl -s -X POST http://127.0.0.1:8000/physical/manifest   -H "Content-Type: application/json"   -d '{
-    "grid": {"H": 100, "W": 100, "cell_size_m": 250, "crs_code": "EPSG:3978"},
-    "dt_seconds": 3600,
-    "horizon_steps": 48,
-    "seed": 0,
-    "terrain": {"enabled": true, "seed": 42, "smooth_iters": 8},
-    "fire": {"ignitions": [{"row": 50, "col": 50, "t0": 0}], "spread_prob": 1.0}
-  }' | jq
-
-# suppose it returns {"phy_id": "phy-..."}
-curl -s -X POST http://127.0.0.1:8000/physical/run   -H "Content-Type: application/json"   -d '{"id": "phy-..."}' | jq
 ```
 
-### 2. Create and run an epistemic layer
+### 5. Data location
 
-```bash
-curl -s -X POST http://127.0.0.1:8000/epistemic/manifest   -H "Content-Type: application/json"   -d '{
-    "phy_id": "phy-...",
-    "belief": {"prior_p": 0.5, "decay": 1.0, "noise": {"false_pos": 0.01, "false_neg": 0.05}},
-    "entropy": {"units": "bits"},
-    "observe_all_cells": true
-  }' | jq
-
-# suppose it returns {"epi_id": "epi-..."}
-curl -s -X POST http://127.0.0.1:8000/epistemic/run   -H "Content-Type: application/json"   -d '{"id": "epi-..."}' | jq
-```
-
-### 3. Create and run an operational experiment
-
-```bash
-curl -s -X POST http://127.0.0.1:8000/operational/manifest   -H "Content-Type: application/json"   -d '{
-    "epi_id": "epi-...",
-    "mdc": {
-      "delta": 1.0,
-      "epsilon": 0.1,
-      "rho": 0.01,
-      "tau": 0.2,
-      "noise_level": 0.1,
-      "delay_steps": 1,
-      "loss_prob": 0.05
-    },
-    "network": {
-      "policy": "greedy",
-      "deployment_mode": "dynamic",
-      "tie_breaking": "deterministic",
-      "n_sensors": 20,
-      "sensor_radius_m": 250,
-      "sensor_move_max_m": 500,
-      "min_separation_m": 0,
-      "base_station_rc": [50, 50]
-    }
-  }' | jq
-
-# suppose it returns {"opr_id": "opr-..."}
-curl -s -X POST http://127.0.0.1:8000/operational/run   -H "Content-Type: application/json"   -d '{"id": "opr-..."}' | jq
-
-curl -s http://127.0.0.1:8000/metrics/opr-.../summary | jq
-```
-
-## Historical replays (CFSDS)
-
-AWSRT supports historical replay physical runs from on-disk CFSDS-style artifacts.
-
-### Expected data layout
-
-Place files under:
+By default, AWSRT writes artifacts under:
 
 ```text
-data/cfsds/{fire_id}/
-  {fire_id}_krig.tif
-  Firegrowth_groups_v1_1_{fire_id}.csv          (optional but recommended)
-  Firegrowth_pts_v1_1_{fire_id}.csv             (optional)
-  bundle.json                                   (optional)
+data/
 ```
 
-Example:
+including:
 
 ```text
-data/cfsds/2016_255/2016_255_krig.tif
+data/manifests/
+data/fields/
+data/renders/
+data/metrics/
 ```
 
-### Create a CFSDS replay run
-
-This creates a new `phy-...` run with historical fields such as `fire_state` and `arrival_time`. You do not run `/physical/run` afterward because the importer writes the fields directly.
+To override the root data directory:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/physical/historical/import   -H "Content-Type: application/json"   -d '{
-    "source": "cfsds",
-    "fire_id": "2016_255",
-    "dt_seconds": 3600,
-    "label": "CFSDS replay 2016_255"
-  }' | jq
+export AWSRT_DATA_DIR=/abs/path/to/data
 ```
 
-### Create a synthetic demo replay
+Then start the backend from the same shell:
 
 ```bash
-curl -s -X POST http://127.0.0.1:8000/physical/historical/import   -H "Content-Type: application/json"   -d '{
-    "source": "cfsds_demo",
-    "fire_id": "demo_001",
-    "H": 200,
-    "W": 200,
-    "days": 10,
-    "dt_seconds": 3600,
-    "burn_duration_hours": 12,
-    "label": "Synthetic replay demo"
-  }' | jq
+uvicorn backend.api.main:app --reload --port 8000
 ```
 
-### Viewing historical runs
+## Render configuration
 
-- Open the frontend physical visualizer
-- Select the returned `phy-...` id
-- The manifest includes `source: historical_cfsds` and a `historical` metadata block
+AWSRT renders overlay-aligned PNGs, including base, fire, wind, terrain, and categorical field layers. Large transformed fire artifacts may benefit from higher render resolution.
 
-## Testing
+Available environment variables:
 
-Backend tests are located under:
+- `AWSRT_RENDER_PX_PER_CELL`: pixels per grid cell;
+- `AWSRT_RENDER_MAX_SIDE_PX`: maximum longest rendered PNG side;
+- `AWSRT_RENDER_DPI`: Matplotlib DPI used during rendering.
+
+Suggested starting points:
+
+For small simulations:
+
+```bash
+export AWSRT_RENDER_PX_PER_CELL=2.0
+export AWSRT_RENDER_MAX_SIDE_PX=4096
+export AWSRT_RENDER_DPI=160
+```
+
+For large transformed fire artifacts:
+
+```bash
+export AWSRT_RENDER_PX_PER_CELL=3.0
+export AWSRT_RENDER_MAX_SIDE_PX=8192
+export AWSRT_RENDER_DPI=200
+```
+
+Render endpoints cache PNGs under paths such as:
 
 ```text
-backend/tests/
+data/renders/{phy_id}/t/{t}/...
 ```
 
-Typical test command:
+If render environment variables change, delete cached renders to regenerate them:
 
 ```bash
-pytest backend/tests
+rm -rf data/renders/phy-XXXXX
+# or only cached timestep frames:
+rm -rf data/renders/phy-XXXXX/t
 ```
 
-## Notes on scope
+## Smoke test
 
-AWSRT v0.2 is a meaningful research software release, but it is not the final form of the platform. The release is intended to preserve a stable, interpretable, and reproducible operational checkpoint while allowing future development to continue in later versions.
+A minimal first-run smoke test is:
 
-In particular:
+1. start the backend;
+2. verify `http://127.0.0.1:8000/health`;
+3. start the frontend;
+4. open `http://127.0.0.1:3000`;
+5. open the Physical Surface and create or inspect a small run;
+6. open the corresponding visualizer or analysis page.
 
-- policies remain intentionally simple enough to be swappable and extensible,
-- manifests are preserved so studies can be recovered and compared,
-- compact usefulness and regime-management surfaces should be read according to their distinct semantics,
-- and the platform is intended to support future refinement in simulation realism, sensing logic, control logic, analysis, and experiment design.
+More detailed reproduction and experiment-specific instructions should be added in `docs/install/` or `docs/reproducibility/` as v0.7 documentation work continues.
 
-## Citation and versioning
+## Documentation map
 
-If you use AWSRT in research, please cite the software repository and associated release metadata. Citation metadata is provided in `CITATION.cff`.
+Important documentation areas include:
 
-This repository contains the frozen research software state associated with AWSRT **v0.2**. If you are documenting or citing the operational/control checkpoint described by the late-stage v0.2 work, refer to the frozen `v0.2` tag rather than intermediate development branches.
+- `docs/design/`: versioned design notes and subgoal plans;
+- `docs/README.md`: documentation index, if maintained;
+- `REPRODUCIBILITY_v0.1.md`: historical v0.1 reproducibility notes;
+- `RESULTS_MANIFEST_v0.1.md`: historical v0.1 results manifest;
+- `VERSION_NOTES_v0.1.md`: historical v0.1 notes;
+- `VERSION_NOTES_v0.2.md`: historical v0.2 notes.
 
-## Contributing
+Planned v0.7 documentation additions include:
 
-Contributions are welcome, especially bug reports, documentation improvements, testing improvements, and research-workflow enhancements. Please open an issue before making substantial changes so proposed work can be discussed in advance. See `CONTRIBUTING.md` for guidance.
+- `docs/install/local_install.md`;
+- `docs/reproducibility/reproduce_v0_6.md` or equivalent;
+- API and workflow documentation for the backend and analysis surfaces.
+
+## Known limitations
+
+AWSRT is research software under active development.
+
+Current limitations include:
+
+- installation has not yet been tested broadly across machines;
+- Docker or containerized installation is not yet the primary supported path;
+- some frontend pages are research-instrument surfaces rather than polished product workflows;
+- historical design notes may preserve older terminology for auditability;
+- the Physical Surface is an experimental environmental substrate, not a high-fidelity physical simulator;
+- transformed real-fire results are bounded and should not be read as universal wildfire generalization;
+- the compact usefulness triad is an interpretive diagnostic, not a complete causal explanation of every metric movement;
+- v0.6 results are frozen, but v0.7 interface and documentation work is ongoing.
+
+## Citation and publications
+
+Citation information is maintained in:
+
+```text
+CITATION.cff
+```
+
+AWSRT supports thesis-facing and paper-facing work on adaptive sensing, belief maintenance, impaired information flow, and wildfire-like monitoring. Use the citation metadata in `CITATION.cff` when citing the software repository, and cite associated thesis or publication artifacts separately when appropriate.
 
 ## License
 
-AWSRT is released under the BSD 3-Clause License. See the `LICENSE` file for details.
+See:
 
-## Acknowledgements
-
-AWSRT was developed as part of ongoing research on adaptive wildfire sensing in dynamic and uncertain environments. Specific project, institutional, funding, and collaboration acknowledgements will be maintained here as the public repository record develops.
+```text
+LICENSE
+```
