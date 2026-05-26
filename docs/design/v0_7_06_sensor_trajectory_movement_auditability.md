@@ -204,6 +204,26 @@ A richer version could later include:
 The richer version should not be implemented until the current movement logic is inspected.
 
 ---
+## Implementation note — initial audit endpoint
+
+Initial implementation exposes the already-persisted `sensors_rc` Zarr array as a read-only CSV export:
+
+```text
+GET /operational/{opr_id}/trajectory.csv
+```
+
+The endpoint derives rows from the stored `(T, N, 2)` realized sensor-position trace. It does not create a second trajectory store, alter manifests, or modify historical runs.
+
+The Operational Visualizer exposes this endpoint through a small **Movement audit** card.
+
+Initial CSV columns:
+
+```text
+opr_id,t,sensor_index,r,c,prev_r,prev_c,dr,dc,l1_move,moved
+```
+
+This first implementation makes realized movement auditable without yet recording candidate-level decision traces, tie-breaking explanations, or feasibility-repair details.
+
 
 ## 8. Possible artifact names
 

@@ -1179,7 +1179,23 @@ export default function OperationalVisualizerPage() {
 
           {canPlot ? (
             <>
-
+              {id ? (
+                <div className="card" style={{ marginTop: 12 }}>
+                  <h2 style={{ marginTop: 0 }}>Movement audit</h2>
+                  <div className="small" style={{ lineHeight: 1.45 }}>
+                    Export the realized per-sensor movement trace stored for this operational run.
+                  </div>
+                  <div className="small" style={{ marginTop: 8 }}>
+                    <a
+                      href={imgSrc(`/operational/${id}/trajectory.csv`)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Download trajectory CSV
+                    </a>
+                  </div>
+                </div>
+              ) : null}
               {cursorSummary ? (
                 <div className="card" style={{ marginTop: 12 }}>
                   <h2 style={{ marginTop: 0 }}>Current frame snapshot</h2>

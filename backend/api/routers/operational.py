@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 import math
 
@@ -9,7 +11,7 @@ from collections import deque
 from pydantic import BaseModel, Field
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
 import numpy as np
 import zarr
@@ -4790,6 +4792,84 @@ def front_png(opr_id: str, t: int):
         raise HTTPException(status_code=404, detail="front.png not found (did you run it?)")
     return FileResponse(p)
 
+
+@router.get("/{opr_id}/trajectory.csv")
+def trajectory_csv(opr_id: str):
+    """
+    Export the realized sensor trajectory as CSV.
+
+    This is an audit view over the stored sensors_rc array. It does not create
+    a new movement artifact and does not alter historical runs. The stored
+    array is expected to have shape (T, N, 2), with row/column positions for
+    each sensor at each timestep.
+    """
+    try:
+        a = open_zarr_array(zarr_path(opr_id, "sensors_rc"), mode="r")
+        sensors = np.asarray(a[:], dtype=np.int32)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"sensors_rc not found or unreadable: {e}")
+
+    if sensors.ndim != 3 or sensors.shape[2] != 2:
+        raise HTTPException(
+            status_code=500,
+            detail=f"sensors_rc must have shape (T,N,2); got {tuple(int(x) for x in sensors.shape)}",
+        )
+
+    T, N, _ = sensors.shape
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "opr_id",
+        "t",
+        "sensor_index",
+        "r",
+        "c",
+        "prev_r",
+        "prev_c",
+        "dr",
+        "dc",
+        "l1_move",
+        "moved",
+    ])
+
+    for t in range(T):
+        for i in range(N):
+            r = int(sensors[t, i, 0])
+            c = int(sensors[t, i, 1])
+
+            if t == 0:
+                prev_r = r
+                prev_c = c
+            else:
+                prev_r = int(sensors[t - 1, i, 0])
+                prev_c = int(sensors[t - 1, i, 1])
+
+            dr = r - prev_r
+            dc = c - prev_c
+            l1_move = abs(dr) + abs(dc)
+            moved = 1 if l1_move > 0 else 0
+
+            writer.writerow([
+                opr_id,
+                t,
+                i,
+                r,
+                c,
+                prev_r,
+                prev_c,
+                dr,
+                dc,
+                l1_move,
+                moved,
+            ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{opr_id}_trajectory.csv"'},
+    )
 
 @router.delete("/{opr_id}")
 def delete_run(
