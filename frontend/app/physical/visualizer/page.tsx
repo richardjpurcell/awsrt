@@ -343,7 +343,7 @@ function Panel({
   const runIntentTags = useMemo(() => {
     const tags: string[] = [];
     if (isReplay) tags.push("historical replay");
-    else tags.push("simulated run");
+    else tags.push("generated-field run");
 
     if (hasTerrain) tags.push("terrain");
     if (hasWind) tags.push("wind");
@@ -1092,9 +1092,9 @@ export default function PhysicalVisualizerPage() {
       <div aria-hidden className="section-stripe section-stripe--physical" />
 
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>
-        The Physical Visualizer is for inspecting generated wildfire worlds and comparing runs side by side.
-        Use it to compare reference worlds, field-isolation diagnostics, or protected historical replays.
-        The most useful workflow is usually to hold time fixed and compare backgrounds, or hold the background fixed and compare different runs. For example: compare a clean reference world against a terrain-only or wind-only diagnostic, or compare a simulated run against a replay-based run to see how structure differs.
+        The Physical Visualizer is for inspecting generated environmental-field substrates and comparing runs side by side.
+        Use it to compare reference substrates, field-isolation diagnostics, or protected historical replays.
+        The most useful workflow is usually to hold time fixed and compare backgrounds, or hold the background fixed and compare different runs. For example: compare a clean reference substrate against a terrain-only or wind-only diagnostic, or compare a generated-field run against a replay-based run to see how structure differs.
       </div>
 
       {err ? (

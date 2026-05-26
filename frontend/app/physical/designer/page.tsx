@@ -157,7 +157,7 @@ export default function PhysicalDesignerPage() {
 
   const PRESET_GROUPS: { label: string; options: { id: PhysicalPresetId; label: string; hint: string }[] }[] = [
     {
-      label: "Main comparison · Reference physical worlds",
+      label: "Main comparison · Reference environmental-field substrates",
       options: [
         { id: "reference_center_ideal", label: "Reference · center · ideal", hint: "Clean centered ignition baseline with no extra environmental fields enabled." },
         { id: "reference_corner_ideal", label: "Reference · corner · ideal", hint: "Harder off-center ignition baseline with no extra environmental fields enabled." },
@@ -167,18 +167,18 @@ export default function PhysicalDesignerPage() {
       label: "Diagnostic · Field isolation",
       options: [
         { id: "terrain_only", label: "Terrain only", hint: "Terrain-like and slope effects isolated from other environmental fields." },
-        { id: "wind_static_only", label: "Wind only · static", hint: "Static wind bias isolated from terrain, fuels, and weather." },
-        { id: "wind_dynamic_only", label: "Wind only · dynamic", hint: "Dynamic wind field test for backend time-varying wind logic." },
-        { id: "fuels_only_patchy", label: "Fuels only · patchy", hint: "Categorical fuels map isolated for spread heterogeneity testing." },
-        { id: "weather_coupling_combined", label: "Weather coupling · combined", hint: "Temperature/humidity fields plus fire-weather spread multiplier." },
+        { id: "wind_static_only", label: "Wind only · static", hint: "Static directional-bias field isolated from terrain-like structure, fuel-like heterogeneity, and scalar environmental fields." },
+        { id: "wind_dynamic_only", label: "Wind only · dynamic", hint: "Dynamic directional-bias field test for backend time-varying wind logic." },
+        { id: "fuels_only_patchy", label: "Fuels only · patchy", hint: "Categorical fuel-like heterogeneity isolated for spread-structure testing." },
+        { id: "weather_coupling_combined", label: "Weather coupling · combined", hint: "Scalar environmental fields plus spread-modifier coupling." },
       ],
     },
     {
-      label: "Combined worlds · interaction tests",
+      label: "Combined substrates · interaction tests",
       options: [
-        { id: "combined_balanced", label: "Combined · balanced", hint: "Moderate terrain, dynamic wind, contrasting fuels, and weather coupling together in one readable synthetic world." },
-        { id: "wind_terrain_combined", label: "Combined · wind + terrain", hint: "Slope structure and dynamic wind together, without fuels or weather confounds." },
-        { id: "fuels_weather_combined", label: "Combined · fuels + weather", hint: "Contrasting fuels plus temperature/humidity coupling, without terrain or wind." },
+        { id: "combined_balanced", label: "Combined · balanced", hint: "Moderate terrain-like structure, dynamic directional bias, fuel-like heterogeneity, and scalar-field coupling in one readable substrate." },
+        { id: "wind_terrain_combined", label: "Combined · wind + terrain", hint: "Slope-like structure and dynamic directional bias together, without fuel-like or scalar-field confounds." },
+        { id: "fuels_weather_combined", label: "Combined · fuels + weather", hint: "Fuel-like heterogeneity plus scalar environmental field coupling, without terrain-like structure or directional bias." },
       ],
     },
     {
@@ -770,25 +770,25 @@ export default function PhysicalDesignerPage() {
   const expectedSignatureText = useMemo(() => {
     switch (presetId) {
       case "reference_center_ideal":
-        return "Expected signature: roughly symmetric growth around a centered ignition, with no directional bias from wind, terrain, fuels, or weather.";
+        return "Expected signature: roughly symmetric fire-like growth around a centered ignition, with no directional bias, terrain-like structure, fuel-like heterogeneity, or scalar-field spread modifier.";
       case "reference_corner_ideal":
         return "Expected signature: the same clean baseline spread law, but with boundary and geometry effects made more visible by off-center ignition.";
       case "terrain_only":
         return "Expected signature: spread asymmetry should follow the synthetic slope structure rather than a single imposed direction.";
       case "wind_static_only":
-        return "Expected signature: the fire front should tilt and extend in a stable imposed wind direction over time.";
+        return "Expected signature: the fire-like perimeter should tilt and extend in a stable imposed directional-bias direction over time.";
       case "wind_dynamic_only":
-        return "Expected signature: directional bias should vary over time because the wind field combines fixed spatial heterogeneity with temporal drift.";
+        return "Expected signature: directional bias should vary over time because the directional-bias field combines fixed spatial heterogeneity with temporal drift.";
       case "fuels_only_patchy":
-        return "Expected signature: spread should accelerate, slow, or fragment across strongly contrasting fuel patches without wind, terrain, or weather-driven directional bias.";
+        return "Expected signature: fire-like spread should accelerate, slow, or fragment across strongly contrasting fuel-like patches without directional-bias, terrain-like, or scalar-field confounds.";
       case "weather_coupling_combined":
         return "Expected signature: hotter and drier cells should become relatively more permissive to spread when the configured gains are positive, with spatial structure plus temporal drift in the stored fields.";
       case "combined_balanced":
-        return "Expected signature: no single mechanism should dominate. Fire shape and rate should reflect readable joint effects from terrain, dynamic wind, contrasting fuels, and coupled weather.";
+        return "Expected signature: no single modifier should dominate. Fire-like shape and rate should reflect readable joint effects from terrain-like structure, dynamic directional bias, fuel-like heterogeneity, and scalar-field coupling.";
       case "wind_terrain_combined":
-        return "Expected signature: perimeter shape should reflect the interaction of slope structure and time-varying wind, without patchy fuels or weather fields competing for interpretation.";
+        return "Expected signature: perimeter shape should reflect the interaction of slope-like structure and time-varying directional bias, without patchy fuel-like or scalar environmental fields competing for interpretation.";
       case "fuels_weather_combined":
-        return "Expected signature: local spread differences should reflect both strong categorical fuel contrasts and broad weather permissiveness patterns, without directional wind or terrain effects.";
+        return "Expected signature: local spread differences should reflect both strong categorical fuel-like contrasts and broad scalar-field spread modifiers, without directional-bias or terrain-like effects.";
       case "smoke_small_grid":
         return "Expected signature: a fast regression run that exercises manifest creation, field generation, fire stepping, and visualization without requiring rich interpretation.";
       default:
@@ -799,29 +799,29 @@ export default function PhysicalDesignerPage() {
   const worldIsolationText = useMemo(() => {
     switch (presetId) {
       case "reference_center_ideal":
-        return "A clean centered reference world with no extra physical modifiers enabled. Use this to verify baseline fire growth, rendering, and downstream Belief Lab / Operational behavior without wind, terrain, fuels, or weather confounds.";
+        return "A clean centered reference substrate with no extra field modifiers enabled. Use this to verify baseline fire-like growth, rendering, and downstream Belief Lab / Operational behavior without directional-bias, terrain-like, fuel-like, or scalar-field confounds.";
       case "reference_corner_ideal":
-        return "A clean off-center reference world intended to make search and geometry effects easier to see later in Operational runs. This is the harder baseline physical case.";
+        return "A clean off-center reference substrate intended to make search and geometry effects easier to see later in Operational runs. This is the harder baseline environmental-field case.";
       case "terrain_only":
-        return "This world is intended to isolate terrain-driven spread structure. With terrain enabled and nonzero slope gain, any directional or shape asymmetry should come primarily from elevation and slope rather than wind, fuels, or weather.";
+        return "This substrate is intended to isolate terrain-like spread structure. With terrain enabled and nonzero slope gain, any directional or shape asymmetry should come primarily from elevation-like structure and slope effects rather than directional bias, fuel-like heterogeneity, or scalar-field modifiers.";
       case "wind_static_only":
-        return "This world is intended to isolate a fixed wind field. It is the simplest directional spread test and is useful for checking whether static wind bias behaves as expected in the backend and visualizer.";
+        return "This substrate is intended to isolate a fixed directional-bias field. It is the simplest directional spread-structure test and is useful for checking whether static wind bias behaves as expected in the backend and visualizer.";
       case "wind_dynamic_only":
-        return "This world is intended to isolate time-varying wind. In the current backend this means fixed spatial heterogeneity plus temporal drift, without terrain, fuels, or weather coupling complicating the interpretation.";
+        return "This substrate is intended to isolate time-varying directional bias. In the current backend this means fixed spatial heterogeneity plus temporal drift, without terrain-like structure, fuel-like heterogeneity, or scalar-field coupling complicating the interpretation.";
       case "fuels_only_patchy":
-        return "This world is intended to isolate heterogeneous fuels using a deliberately high-contrast categorical mix. Spread differences should emerge from the categorical fuels landscape, making it useful for checking patch generation and fuel-sensitive fire behavior without wind, terrain, or weather modifiers.";
+        return "This substrate is intended to isolate fuel-like heterogeneity using a deliberately high-contrast categorical mix. Spread differences should emerge from the categorical field, making it useful for checking patch generation and fuel-sensitive fire-like behavior without directional-bias, terrain-like, or scalar-field modifiers.";
       case "weather_coupling_combined":
-        return "This world is intended to isolate temperature and humidity fields together with fire-weather coupling. In the current backend the fields use fixed spatial structure plus temporal drift, making this a useful diagnostic without wind, terrain, or fuels confounds.";
+        return "This substrate is intended to isolate scalar environmental fields together with spread-modifier coupling. In the current backend the fields use fixed spatial structure plus temporal drift, making this a useful diagnostic without directional-bias, terrain-like, or fuel-like confounds.";
       case "combined_balanced":
-        return "This world is intended as the main full-but-readable synthetic environment. Terrain, dynamic wind, contrasting fuels, and weather coupling are all active, but kept at moderate strengths so their interaction remains scientifically interpretable.";
+        return "This substrate is intended as the main full-but-readable synthetic environmental field. Terrain-like structure, dynamic directional bias, fuel-like heterogeneity, and scalar-field coupling are all active, but kept at moderate strengths so their interaction remains scientifically interpretable.";
       case "wind_terrain_combined":
-        return "This world is intended to show how terrain-driven structure and dynamic wind compete or reinforce one another. It is a cleaner structural interaction test than a full-stack world because fuels and weather are absent.";
+        return "This substrate is intended to show how terrain-like structure and dynamic directional bias compete or reinforce one another. It is a cleaner structural interaction test than a full-stack substrate because fuel-like and scalar-field modifiers are absent.";
       case "fuels_weather_combined":
-        return "This world is intended to show how broad coupled weather permissiveness interacts with a strongly contrasting categorical fuel landscape. It is a cleaner heterogeneity interaction test than a full-stack world because terrain and wind are absent.";
+        return "This substrate is intended to show how broad scalar-field spread modifiers interact with strongly contrasting categorical fuel-like heterogeneity. It is a cleaner heterogeneity interaction test than a full-stack substrate because terrain-like structure and directional bias are absent.";
       case "smoke_small_grid":
-        return "This is a fast regression world for backend smoke tests. Use it to check that basic manifest creation, field generation, fire stepping, and visualization still work after code changes. It is not intended for rich trend interpretation.";
+        return "This is a fast regression substrate for backend smoke tests. Use it to check that basic manifest creation, field generation, fire-like stepping, and visualization still work after code changes. It is not intended for rich trend interpretation.";
       default:
-        return "This world combines the currently selected environmental fields and modifiers. Use the summary cards below to verify which mechanisms are active before generating a run.";
+        return "This substrate combines the currently selected environmental fields and modifiers. Use the summary cards below to verify which mechanisms are active before generating a run.";
     }
   }, [presetId]);
 
@@ -1050,7 +1050,7 @@ export default function PhysicalDesignerPage() {
         <h2 style={{ marginTop: 0 }}>Physical preset taxonomy</h2>
         <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
           Presets populate the Physical Surface controls but do not auto-run.
-          Main comparison presets are intended as stable reference worlds.
+          Main comparison presets are intended as stable reference substrates.
           Diagnostic presets isolate terrain-like structure, directional bias, fuel-like heterogeneity,
           scalar environmental fields, or fast regression cases so backend generation logic can be tested
           one field or modifier at a time.
@@ -1063,7 +1063,7 @@ export default function PhysicalDesignerPage() {
             onChange={(e) => setPresetId(e.target.value as PhysicalPresetId)}
             disabled={busy}
             style={{ minWidth: 360 }}
-            title="Pick a standardized physical world, then Apply preset"
+            title="Pick a standardized environmental-field substrate, then Apply preset"
           >
             <option value="">(choose preset…)</option>
             {PRESET_GROUPS.map((group) => (
@@ -1086,7 +1086,7 @@ export default function PhysicalDesignerPage() {
           </button>
 
           <div className="small" style={{ opacity: 0.75 }}>
-            Applying a preset overwrites the relevant physical-world fields.
+            Applying a preset overwrites the relevant environmental-field settings.
           </div>
         </div>
       </div>
@@ -1094,13 +1094,13 @@ export default function PhysicalDesignerPage() {
       <div className="card" style={{ marginTop: 10 }}>
         <h2 style={{ marginTop: 0 }}>Physical experiment summary</h2>
         <div className="small" style={{ opacity: 0.86, lineHeight: 1.5 }}>
-          Use this summary to confirm what kind of physical world you are about to generate.
+          Use this summary to confirm what kind of environmental-field substrate you are about to generate.
           It is meant to play the same role as the summary panels in the Belief Lab and Operational designers:
           a compact statement of what is active, what is being isolated, and what this configuration is for.
         </div>
 
         <div className="small" style={{ opacity: 0.8, marginTop: 8 }}>
-          Current world intent: <b>{worldIntentTags}</b>
+          Current substrate intent: <b>{worldIntentTags}</b>
         </div>
 
         <div className="physGrid" style={{ marginTop: 10 }}>
@@ -1137,7 +1137,7 @@ export default function PhysicalDesignerPage() {
             <div className="small physBody">{couplingDetailSummary}</div>
           </div>
           <div className="physCard physCard--wide">
-            <div className="small physTitle">What this world isolates</div>
+            <div className="small physTitle">What this substrate isolates</div>
             <div className="small physBody">
               <b>{presetLabel}</b>
               <div style={{ marginTop: 6 }}>{worldIsolationText}</div>
@@ -1148,8 +1148,8 @@ export default function PhysicalDesignerPage() {
                 <b>Expected signature:</b> {expectedSignatureText}
               </div>
               <div style={{ marginTop: 6, opacity: 0.82 }}>
-                The goal is to make it obvious whether this is a clean reference world,
-                a field-isolation test, or a fast regression world.
+                The goal is to make it obvious whether this is a clean reference substrate,
+                a field-isolation test, or a fast regression substrate.
               </div>
             </div>
           </div>
@@ -1181,7 +1181,7 @@ export default function PhysicalDesignerPage() {
       <div className="card" style={{ marginTop: 10 }}>
         <h2 style={{ marginTop: 0 }}>Grid and time</h2>
         <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
-          These parameters define the size, scale, and duration of the simulated world.
+          These parameters define the size, scale, and duration of the generated environmental field.
           Larger grids and longer horizons are usually better for trend visibility, while small grids are useful for smoke tests.
         </div>
         <div className="row" style={{ marginTop: 10 }}>
@@ -1642,7 +1642,7 @@ export default function PhysicalDesignerPage() {
       <div className="card" style={{ marginTop: 10 }}>
       <h2 style={{ marginTop: 0 }}>Weather (temperature + humidity)</h2>
       <div className="small" style={{ opacity: 0.85, lineHeight: 1.45 }}>
-        Weather fields can be stored on their own or used together with fire-weather coupling. In the current backend they use fixed spatial structure plus optional temporal drift, which is useful both for physical validation and for later Belief Lab / Operational experiments.
+        Scalar environmental fields can be stored on their own or used together with spread-modifier coupling. In the current backend they use fixed spatial structure plus optional temporal drift, which is useful both for field-structure validation and for later Belief Lab / Operational experiments.
       </div>
       <div className="row" style={{ flexWrap: "wrap", marginTop: 10 }}>
         <label>Enabled</label>
