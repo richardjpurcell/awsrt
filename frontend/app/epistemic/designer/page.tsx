@@ -473,9 +473,10 @@ export default function BeliefLabDesignerPage() {
       <h2>Epistemic Surface</h2>
       <div aria-hidden className="section-stripe section-stripe--epistemic" />
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>
-        Belief Lab is AWSRT&apos;s policy-free support / channel / belief-update laboratory.
-        It uses fixed or randomized sensing support together with the same impairment and
-        belief-update semantics used by Operational, but without closed-loop deployment policy.
+        The Epistemic Surface includes Belief Lab, a policy-free support / channel /
+        belief-update workflow. It uses fixed or randomized sensing support together
+        with the same impairment and belief-update semantics used by the Operational Surface,
+        but without closed-loop deployment policy.
       </div>
 
       <RunPicker label="Physical Run" ids={phyIds} value={phyId} onChange={setPhyId} />
@@ -483,7 +484,8 @@ export default function BeliefLabDesignerPage() {
       <div className="card" style={{ marginTop: 10 }}>
         <h2 style={{ marginTop: 0 }}>Why use Belief Lab?</h2>
         <div className="small" style={{ opacity: 0.86, lineHeight: 1.5 }}>
-          Belief Lab is for support-and-channel experiments, not deployment optimization.
+          Belief Lab is for support-and-channel experiments within the Epistemic Surface,
+          not deployment optimization.
           It removes motion policy and closed-loop decision logic so you can isolate
           support geometry, channel impairment, and belief-memory effects on what
           information actually arrives and how entropy changes.

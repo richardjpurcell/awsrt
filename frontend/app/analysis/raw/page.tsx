@@ -287,6 +287,9 @@ export default function AnalysisRawPage() {
   const [err, setErr] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [cascadeDelete, setCascadeDelete] = useState<boolean>(true);
+  const [deleteBusy, setDeleteBusy] = useState<boolean>(false);
+  const [deleteMessage, setDeleteMessage] = useState<string>("");
+  const [deleteError, setDeleteError] = useState<string>("");
 
   useEffect(() => {
     getJSON<ListVerboseRes>("/analysis/list_verbose")
@@ -612,7 +615,7 @@ export default function AnalysisRawPage() {
 
           {id ? (
             <a className="button" href={`/analysis/graphic?id=${encodeURIComponent(id)}`}>
-              Open Graphic
+              Open Visualizer
             </a>
           ) : null}
           {id ? (
@@ -1479,7 +1482,7 @@ export default function AnalysisRawPage() {
                 type="checkbox"
                 checked={cascadeDelete}
                 onChange={(e) => setCascadeDelete(e.target.checked)}
-                disabled={loading}
+                disabled={loading || deleteBusy}
               />
               Also delete underlying runs (cascade)
             </label>
@@ -1489,31 +1492,61 @@ export default function AnalysisRawPage() {
                   ? `Delete study ${id} AND its underlying runs (opr/epi)? This cannot be undone.`
                   : `Delete study ${id}? This cannot be undone.`;
                 const typed = window.prompt(msg + `\n\nType ${id} to confirm:`, "");
-                if (String(typed ?? "").trim() !== String(id).trim()) return;
+
+                setDeleteMessage("");
+                setDeleteError("");
+
+                if (String(typed ?? "").trim() !== String(id).trim()) {
+                  setDeleteError("Deletion cancelled: confirmation text did not match the selected study ID.");
+                  return;
+                }
+
                 setErr("");
-                setLoading(true);
+                setDeleteBusy(true);
+                setDeleteMessage(`Deleting ${id}${cascadeDelete ? " and underlying runs" : ""}...`);
+
                 try {
                   await deleteJSON(`/analysis/${id}?cascade=${cascadeDelete ? "true" : "false"}`);
+
+                  const deletedId = id;
+
                   setId("");
                   setSummary(null);
                   setManifest(null);
                   setTableMeta(null);
                   setTableCols([]);
                   setTableRows([]);
+
                   await refreshList();
+
+                  setDeleteMessage(`Deleted ${deletedId}${cascadeDelete ? " and requested cascade artifacts" : ""}.`);
                 } catch (e: any) {
                   console.error(e);
-                  setErr(String(e?.message ?? e));
+                  const message = String(e?.message ?? e);
+                  setDeleteError(message || "Deletion failed.");
+                  setDeleteMessage("");
                 } finally {
-                  setLoading(false);
+                  setDeleteBusy(false);
                 }
               }}
-              disabled={loading}
+              disabled={loading || deleteBusy}
               style={{ marginLeft: "auto" }}
             >
-              Delete Study
+              {deleteBusy ? "Deleting..." : "Delete Study"}
             </button>
           </div>
+
+          {deleteMessage ? (
+            <div className="small" style={{ marginTop: 8, color: "#14532d" }}>
+              {deleteMessage}
+            </div>
+          ) : null}
+
+          {deleteError ? (
+            <div className="small" style={{ marginTop: 8, color: "#7f1d1d" }}>
+              {deleteError}
+            </div>
+          ) : null}
         </div>
       ) : null}
 

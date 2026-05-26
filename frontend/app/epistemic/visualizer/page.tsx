@@ -1076,9 +1076,10 @@ export default function BeliefLabVisualizerPage() {
       </div>
       <div aria-hidden className="section-stripe section-stripe--epistemic" style={{ marginTop: 0 }} />
       <div className="small" style={{ opacity: 0.86, lineHeight: 1.45, marginTop: 8 }}>
-        Belief Lab visualizes policy-free support, impairments, arrived observations,
-        belief evolution, entropy evolution, and MDC-style residual diagnostics using
-        the same belief/update semantics that Operational uses internally.
+        The Epistemic Surface visualizes Belief Lab runs: policy-free support,
+        impairments, arrived observations, belief evolution, entropy evolution,
+        and residual diagnostics using the same belief/update semantics that the
+        Operational Surface uses internally.
       </div>
       <div className="card" style={{ marginTop: 10 }}>
         <h2 style={{ marginTop: 0 }}>What this visualizer is for</h2>
