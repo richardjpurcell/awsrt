@@ -4871,6 +4871,37 @@ def trajectory_csv(opr_id: str):
         headers={"Content-Disposition": f'attachment; filename="{opr_id}_trajectory.csv"'},
     )
 
+
+@router.get("/{opr_id}/trajectory.json")
+def trajectory_json(opr_id: str) -> dict[str, Any]:
+    """
+    Return the realized sensor trajectory as compact JSON for UI overlays.
+
+    This is a read-only view over the stored sensors_rc array. It is intended
+    for lightweight visualization, while trajectory.csv remains the primary
+    export/audit artifact.
+    """
+    try:
+        a = open_zarr_array(zarr_path(opr_id, "sensors_rc"), mode="r")
+        sensors = np.asarray(a[:], dtype=np.int32)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"sensors_rc not found or unreadable: {e}")
+
+    if sensors.ndim != 3 or sensors.shape[2] != 2:
+        raise HTTPException(
+            status_code=500,
+            detail=f"sensors_rc must have shape (T,N,2); got {tuple(int(x) for x in sensors.shape)}",
+        )
+
+    T, N, _ = sensors.shape
+    return {
+        "opr_id": opr_id,
+        "T": int(T),
+        "N": int(N),
+        "sensors_rc": sensors.tolist(),
+    }
+
+
 @router.delete("/{opr_id}")
 def delete_run(
     opr_id: str,
