@@ -1379,7 +1379,7 @@ export default function OperationalVisualizerPage() {
 
               ) : null}
 
-              {usefulnessSummaryAvailable ? (
+              {usefulnessSummaryAvailable && series ? (
                 <div className="card" style={{ marginTop: 12 }}>
                   <h2 style={{ marginTop: 0 }}>Compact usefulness layer summary</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>

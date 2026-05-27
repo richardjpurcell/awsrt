@@ -1133,6 +1133,7 @@ export default function AnalysisBatchPage() {
     usefulness_family: "Use when the comparison centers on healthy / delay / noise usefulness-family members.",
     impairment: "Use when channel impairment or observation degradation is the main swept factor.",
     budget: "Use when sensor count or deployment budget is the main varying quantity.",
+    persistence: "Use when persistence is swept across regime-transition logic.",
     persistence_balanced: "Use when persistence is swept specifically within the balanced active family.",
     persistence_opportunistic: "Use when persistence is swept specifically within the opportunistic active family.",
     hysteresis: "Use when hysteresis-band sensitivity is the main varying quantity.",

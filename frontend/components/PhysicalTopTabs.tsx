@@ -9,7 +9,7 @@ function tabStyle(active: boolean): React.CSSProperties {
     borderRadius: 10,
     textDecoration: "none",
     display: "inline-block",
-    background: active ? "var(--awsrt-physical)" : "transparent"
+    background: active ? "var(--awsrt-physical)" : "transparent",
     color: active ? "#111827" : "inherit",
     transition: "background-color 120ms ease, color 120ms ease",
   };

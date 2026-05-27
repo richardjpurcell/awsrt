@@ -156,6 +156,7 @@ export default function WinRateFigure({
 
   const xTickLabels = data.cases.map((c) => (caseLabelMode === "level" ? String(c.level) : c.label));
   const yTicks = niceTicks(0, 1, 5);
+  const axisY = margin.t + innerH;
   const resolvedXLabel = defaultXAxisLabel(summary);
   const xLabelsNeedRotation = caseLabelMode === "label" && xTickLabels.some((s) => String(s).length > 10);
   const xTickY = axisY + (xLabelsNeedRotation ? 14 : 22);
@@ -171,7 +172,6 @@ export default function WinRateFigure({
     }
   );
 
-  const axisY = margin.t + innerH;
   const xLabelY = axisY + 48;
   const legendBaseY = H - 18;
   const legendRowDy = 22;
