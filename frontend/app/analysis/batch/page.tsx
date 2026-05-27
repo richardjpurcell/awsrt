@@ -10,6 +10,13 @@ type ListRes = { ids: string[] };
 type BatchRes = { ok: boolean; ana_id: string; protocol_id?: string; opr_ids?: string[]; table_csv?: string; summary?: string; row_count?: number };
 
 type SweepCase = { label: string; overrides: Record<string, any> };
+
+type OriginCase = {
+  id: string;
+  label: string;
+  baseStationRc: [number, number];
+};
+
 type StudyFamily =
   | "baseline_compare"
   | "mdc_compare"
@@ -126,6 +133,66 @@ function regimeOverridesForFamily(
 
 function mergeOverrides(...parts: Record<string, any>[]): Record<string, any> {
   return Object.assign({}, ...parts);
+}
+
+const V0_6_REFERENCE_ORIGIN_CASES: OriginCase[] = [
+  {
+    id: "origin_near_initial",
+    label: "Near initial activity",
+    baseStationRc: [300, 465],
+  },
+  {
+    id: "origin_south_central",
+    label: "South central",
+    baseStationRc: [650, 725],
+  },
+  {
+    id: "origin_east_corridor",
+    label: "East corridor",
+    baseStationRc: [350, 1000],
+  },
+];
+
+const SAMPLE_ORIGIN_CASES_EXAMPLE: OriginCase[] = [
+  {
+    id: "sampled_origin_000",
+    label: "Example sampled origin 000",
+    baseStationRc: [300, 465],
+  },
+  {
+    id: "sampled_origin_001",
+    label: "Example sampled origin 001",
+    baseStationRc: [650, 725],
+  },
+];
+
+function expandCasesByOriginCases(
+  baseCases: SweepCase[],
+  originCases: OriginCase[]
+): SweepCase[] {
+  const safeBaseCases =
+    baseCases.length > 0 ? baseCases : [{ label: "base", overrides: {} }];
+
+  return originCases.flatMap((originCase) =>
+    safeBaseCases.map((baseCase) => {
+      const baseLabel = String(baseCase.label || "base");
+      return {
+        label: `${originCase.id}__${baseLabel}`,
+        overrides: mergeOverrides(baseCase.overrides ?? {}, {
+          "network.base_station_rc": originCase.baseStationRc,
+          "study.geometry_case_id": originCase.id,
+          "study.geometry_case_label": originCase.label,
+          "study.geometry_case_kind": "deployment_origin",
+        }),
+      };
+    })
+  );
+}
+
+function caseTextMapFromCases(nextCases: SweepCase[]): Record<number, string> {
+  return Object.fromEntries(
+    nextCases.map((c, idx) => [idx, JSON.stringify(c.overrides ?? {}, null, 2)])
+  );
 }
 
 function familyActiveBaseOverrides(
@@ -1909,6 +1976,90 @@ export default function AnalysisBatchPage() {
               Good examples: <b>loss</b>, <b>delay</b>, <b>noise</b>, <b>regime_persistence_balanced</b>,
               {" "}<b>regime_persistence_opportunistic</b>, <b>regime_hysteresis_balanced</b>,
               {" "}<b>regime_hysteresis_opportunistic</b>
+            </div>
+          </div>
+        </div>
+        <div className="card" style={{ marginTop: 10, background: "rgba(79, 70, 229, 0.04)" }}>
+          <h2 style={{ marginTop: 0, fontSize: 16 }}>Geometry / deployment-origin cases</h2>
+          <div className="small" style={{ lineHeight: 1.5 }}>
+            Deployment origin is an auditable study condition. This helper expands the current sweep cases
+            into ordinary case overrides using <b>network.base_station_rc</b>. The generated cases remain
+            editable below before the study is created.
+          </div>
+
+          <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
+            Use this for bounded geometry studies, not as an operational deployment planner. The v0.6 reference
+            set is included as a repeatable example of named deployment-origin variation.
+          </div>
+
+          <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
+            Apply these helpers to a base case set such as healthy / delay / noise. Reapplying a helper will expand
+            the currently displayed cases again.
+          </div>
+
+          <div
+            className="card"
+            style={{
+              marginTop: 10,
+              background: "rgba(255,255,255,0.55)",
+              border: "1px solid rgba(79, 70, 229, 0.18)",
+            }}
+          >
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Preset example: v0.6 three-origin reference set</h3>
+            <div className="small" style={{ lineHeight: 1.5 }}>
+              Creates a cross-product between the current cases and:
+              <br />
+              <b>origin_near_initial</b> [300, 465],{" "}
+              <b>origin_south_central</b> [650, 725],{" "}
+              <b>origin_east_corridor</b> [350, 1000].
+            </div>
+            <div className="row" style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const nextCases = expandCasesByOriginCases(cases, V0_6_REFERENCE_ORIGIN_CASES);
+                  setCases(nextCases);
+                  setCaseOverridesText(caseTextMapFromCases(nextCases));
+                  setCaseJsonErr({});
+                }}
+              >
+                Apply v0.6 origin set to current cases
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="card"
+            style={{
+              marginTop: 10,
+              background: "rgba(255,255,255,0.55)",
+              border: "1px solid rgba(79, 70, 229, 0.18)",
+            }}
+          >
+            <h3 style={{ marginTop: 0, fontSize: 14 }}>Preset example: sampled-origin structure</h3>
+            <div className="small" style={{ lineHeight: 1.5 }}>
+              This demonstrates the safe pattern for sampled geometry cases: generate explicit row/column
+              values first, then run them as ordinary overrides. Sampling should remain seeded and materialized,
+              not evaluated dynamically during batch execution.
+            </div>
+            <div className="small" style={{ marginTop: 8, opacity: 0.8 }}>
+              Example cases: <b>sampled_origin_000</b> [300, 465],{" "}
+              <b>sampled_origin_001</b> [650, 725].
+            </div>
+            <div className="row" style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const nextCases = expandCasesByOriginCases(cases, SAMPLE_ORIGIN_CASES_EXAMPLE);
+                  setCases(nextCases);
+                  setCaseOverridesText(caseTextMapFromCases(nextCases));
+                  setCaseJsonErr({});
+                }}
+              >
+                Apply sampled-origin example to current cases
+              </button>
             </div>
           </div>
         </div>
