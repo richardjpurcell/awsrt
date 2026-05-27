@@ -12,6 +12,7 @@ AWSRT is a research instrument for studying adaptive sensing, belief maintenance
 - [`install/local_install.md`](install/local_install.md) — local setup instructions for backend and frontend development.
 - [`install/clean_machine_check.md`](install/clean_machine_check.md) — v0.8 clean-machine / reproducible-handoff verification note.
 - [`reproducibility/reproduce_v0_6.md`](reproducibility/reproduce_v0_6.md) — notes for reproducing or inspecting the frozen v0.6 result state.
+- [`reproducibility/minimal_first_run.md`](reproducibility/minimal_first_run.md) — minimal v0.8 first-run workflow for starting AWSRT, creating a small smoke artifact, and opening it in the Physical Visualizer.
 
 ---
 
@@ -39,6 +40,7 @@ Recent v0.8 design notes include:
 
 - `v0_8_01_roadmap_and_backlog_triage.md`
 - `v0_8_02_clean_machine_install_verification.md`
+- `v0_8_03_minimal_reproducible_first_run_workflow.md`
 
 The active v0.8 backlog is:
 
