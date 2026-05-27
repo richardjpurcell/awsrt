@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { deleteJSON, getJSON, imgSrc } from "@/lib/api";
 import { PlayBar } from "@/components/PlayBar";
 import { RunPicker } from "@/components/RunPicker";
@@ -212,6 +212,13 @@ type SeriesRes = {
   debug_active_corruption_led_downshift_hits?: number | null;
   debug_corruption_guard_counter_max?: number | null;
   regime_mechanism_audit_available?: boolean;
+};
+
+type TrajectoryRes = {
+  opr_id: string;
+  T: number;
+  N: number;
+  sensors_rc: number[][][];
 };
 
 const WARM_N = 10;
@@ -520,12 +527,15 @@ function extractDependentsFromDetail(detail: any): string[] | null {
   return null;
 }
 
-export default function OperationalVisualizerPage() {
+function OperationalVisualizerPageContent() {
   const [ids, setIds] = useState<string[]>([]);
   const [id, setId] = useState("");
   const [meta, setMeta] = useState<MetaRes | null>(null);
   const [manifest, setManifest] = useState<ManifestRes | null>(null);
   const [series, setSeries] = useState<SeriesRes | null>(null);
+  const [trajectory, setTrajectory] = useState<TrajectoryRes | null>(null);
+  const [showTrails, setShowTrails] = useState(false);
+  const [trailSteps, setTrailSteps] = useState(12);
   const [listLoaded, setListLoaded] = useState(false);
 
   const [t, setT] = useState(0);
@@ -591,6 +601,7 @@ export default function OperationalVisualizerPage() {
     // IMPORTANT: clears both state and URL param to prevent "(direct)" loops
     setMeta(null);
     setSeries(null);
+    setTrajectory(null);
     setT(0);
     setMsg("");
     onChangeId("");
@@ -631,10 +642,12 @@ export default function OperationalVisualizerPage() {
     setMsg("");
     setManifest(null);
     setSeries(null);
+    setTrajectory(null);
 
     if (!id) {
       setMeta(null);
       setManifest(null);
+      setTrajectory(null);
       setT(0);
       return;
     }
@@ -643,6 +656,7 @@ export default function OperationalVisualizerPage() {
       getJSON<MetaRes>(`/operational/${id}/meta`),
       getJSON<SeriesRes>(`/operational/${id}/series`),
       getJSON<ManifestRes>(`/operational/${id}/manifest`),
+      getJSON<TrajectoryRes>(`/operational/${id}/trajectory.json`),
     ])
       .then((res) => {
         if (!alive) return;
@@ -650,6 +664,7 @@ export default function OperationalVisualizerPage() {
         const m = res[0].status === "fulfilled" ? res[0].value : null;
         const s = res[1].status === "fulfilled" ? res[1].value : null;
         const mf = res[2].status === "fulfilled" ? res[2].value : null;
+        const tr = res[3].status === "fulfilled" ? res[3].value : null;
 
         if (m) {
           setMeta(m);
@@ -661,6 +676,7 @@ export default function OperationalVisualizerPage() {
         }
 
         setSeries(s);
+        setTrajectory(tr);
         setManifest(mf);
       })
       .catch((e: any) => {
@@ -669,6 +685,7 @@ export default function OperationalVisualizerPage() {
         setMeta(null);
         setManifest(null);
         setSeries(null);
+        setTrajectory(null);
         setT(0);
         setMsg(typeof e?.message === "string" ? e.message : "Failed to load run.");
       });
@@ -1134,6 +1151,32 @@ export default function OperationalVisualizerPage() {
                 <span style={{ width: 42, textAlign: "right" }}>{frontOpacity.toFixed(2)}</span>
               </label>
             ) : null}
+
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={showTrails}
+                onChange={(e) => setShowTrails(e.target.checked)}
+                disabled={!trajectory}
+              />
+              Show sensor trails
+            </label>
+
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ opacity: 0.8 }}>trail steps</span>
+              <input
+                type="number"
+                min={1}
+                max={200}
+                value={trailSteps}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setTrailSteps(Math.max(1, Math.min(200, Number.isFinite(v) ? v : 1)));
+                }}
+                disabled={!trajectory || !showTrails}
+                style={{ width: 72 }}
+              />
+            </label>
           </div>
 
           <div className="small" style={{ marginTop: 8, opacity: 0.72, lineHeight: 1.4 }}>
@@ -1149,7 +1192,7 @@ export default function OperationalVisualizerPage() {
           </div>
           <div className="imgbox">
             {shownDeployment ? (
-              <div style={{ display: "grid" }}>
+              <div style={{ display: "grid", position: "relative", maxWidth: "100%", width: "fit-content" }}>
                 <img
                   decoding="async"
                   src={shownDeployment}
@@ -1173,13 +1216,88 @@ export default function OperationalVisualizerPage() {
                     }}
                   />
                 ) : null}
+
+                {showTrails && trajectory && meta ? (
+                  <svg
+                    viewBox={`0 0 ${meta.W} ${meta.H}`}
+                    preserveAspectRatio="none"
+                    style={{
+                      gridArea: "1 / 1",
+                      width: "100%",
+                      height: "100%",
+                      pointerEvents: "none",
+                      zIndex: 3,
+                    }}
+                  >
+                    {trajectory.sensors_rc?.[tt]
+                      ? Array.from({ length: trajectory.N }).map((_, sensorIndex) => {
+                          const t0 = Math.max(0, tt - trailSteps);
+                          const pts: string[] = [];
+
+                          for (let k = t0; k <= tt; k += 1) {
+                            const rc = trajectory.sensors_rc?.[k]?.[sensorIndex];
+                            if (!rc || rc.length < 2) continue;
+
+                            const r = Number(rc[0]);
+                            const c = Number(rc[1]);
+                            if (!Number.isFinite(r) || !Number.isFinite(c)) continue;
+
+                            pts.push(`${c + 0.5},${r + 0.5}`);
+                          }
+
+                          if (pts.length < 2) return null;
+
+                          const cur = trajectory.sensors_rc?.[tt]?.[sensorIndex];
+                          const cr = cur ? Number(cur[0]) : NaN;
+                          const cc = cur ? Number(cur[1]) : NaN;
+
+                          return (
+                            <g key={`trail-${sensorIndex}`}>
+                              <polyline
+                                points={pts.join(" ")}
+                                fill="none"
+                                stroke="rgba(128,80,220,0.85)"
+                                strokeWidth={2}
+                                vectorEffect="non-scaling-stroke"
+                              />
+                              {Number.isFinite(cr) && Number.isFinite(cc) ? (
+                                <circle
+                                  cx={cc + 0.5}
+                                  cy={cr + 0.5}
+                                  r={2.2}
+                                  fill="rgba(128,80,220,0.95)"
+                                  vectorEffect="non-scaling-stroke"
+                                />
+                              ) : null}
+                            </g>
+                          );
+                        })
+                      : null}
+                  </svg>
+                ) : null}
               </div>
             ) : null}
           </div>
 
           {canPlot ? (
             <>
-
+              {id ? (
+                <div className="card" style={{ marginTop: 12 }}>
+                  <h2 style={{ marginTop: 0 }}>Movement audit</h2>
+                  <div className="small" style={{ lineHeight: 1.45 }}>
+                    Export the realized per-sensor movement trace stored for this operational run.
+                  </div>
+                  <div className="small" style={{ marginTop: 8 }}>
+                    <a
+                      href={imgSrc(`/operational/${id}/trajectory.csv`)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Download trajectory CSV
+                    </a>
+                  </div>
+                </div>
+              ) : null}
               {cursorSummary ? (
                 <div className="card" style={{ marginTop: 12 }}>
                   <h2 style={{ marginTop: 0 }}>Current frame snapshot</h2>
@@ -1261,7 +1379,7 @@ export default function OperationalVisualizerPage() {
 
               ) : null}
 
-              {usefulnessSummaryAvailable ? (
+              {usefulnessSummaryAvailable && series ? (
                 <div className="card" style={{ marginTop: 12 }}>
                   <h2 style={{ marginTop: 0 }}>Compact usefulness layer summary</h2>
                   <div className="small" style={{ lineHeight: 1.45 }}>
@@ -2586,5 +2704,13 @@ export default function OperationalVisualizerPage() {
         <div className="small">No run selected yet.</div>
       )}
     </div>
+  );
+}
+
+export default function OperationalVisualizerPage() {
+  return (
+    <Suspense fallback={<div className="card">Loading…</div>}>
+      <OperationalVisualizerPageContent />
+    </Suspense>
   );
 }

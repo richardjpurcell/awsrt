@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { apiUrl, getJSON } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 import FigureStudio from "@/components/analysis/figures/FigureStudio";
@@ -474,7 +474,7 @@ function PolicySummaryChart({
 }
 
 
-export default function AnalysisGraphicPage() {
+function AnalysisGraphicPageContent() {
   const searchParams = useSearchParams();
   const qid = searchParams.get("id") || "";
 
@@ -1475,5 +1475,13 @@ function operationalDirectionForMetric(summary: Summary, metric: string): "min" 
         }
       `}</style>
     </div>
+  );
+}
+
+export default function AnalysisGraphicPage() {
+  return (
+    <Suspense fallback={<div className="card">Loading…</div>}>
+      <AnalysisGraphicPageContent />
+    </Suspense>
   );
 }
