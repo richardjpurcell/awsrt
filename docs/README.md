@@ -10,6 +10,7 @@ AWSRT is a research instrument for studying adaptive sensing, belief maintenance
 
 - [`../README.md`](../README.md) — project overview, research framing, quickstart, and repository structure.
 - [`install/local_install.md`](install/local_install.md) — local setup instructions for backend and frontend development.
+- [`install/clean_machine_check.md`](install/clean_machine_check.md) — v0.8 clean-machine / reproducible-handoff verification note.
 - [`reproducibility/reproduce_v0_6.md`](reproducibility/reproduce_v0_6.md) — notes for reproducing or inspecting the frozen v0.6 result state.
 
 ---
@@ -34,6 +35,15 @@ before freeze/push.
 
 The design notes preserve the reasoning behind AWSRT development decisions. They are intentionally more detailed and historical than the root README.
 
+Recent v0.8 design notes include:
+
+- `v0_8_01_roadmap_and_backlog_triage.md`
+- `v0_8_02_clean_machine_install_verification.md`
+
+The active v0.8 backlog is:
+
+- [`backlog/v0_8_backlog.md`](backlog/v0_8_backlog.md)
+
 Recent v0.7 design notes include:
 
 - `v0_7_01_shareable_research_tool_roadmap.md`
@@ -51,7 +61,7 @@ Recent v0.7 design notes include:
 
 ## Other documentation areas
 
-- [`backlog/`](backlog/) — deferred platform follow-ups.
+- [`backlog/`](backlog/) — active v0.8 backlog and deferred platform follow-ups.
 - [`foundations/`](foundations/) — foundational notes and theoretical framing.
 - [`install/`](install/) — installation and local development setup.
 - [`reproducibility/`](reproducibility/) — reproduction notes for frozen result states.
