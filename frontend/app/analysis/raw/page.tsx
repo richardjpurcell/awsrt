@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { apiUrl, deleteJSON, getJSON } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 
@@ -270,7 +270,7 @@ function hasAnyColumn(rows: Record<string, string>[], cols: string[], keys: stri
   return keys.some((k) => cols.includes(k) || rows.some((r) => Object.prototype.hasOwnProperty.call(r, k)));
 } 
 
-export default function AnalysisRawPage() {
+function AnalysisRawPageContent() {
   const searchParams = useSearchParams();
   const qid = searchParams.get("id") || "";
 
@@ -1585,3 +1585,13 @@ export default function AnalysisRawPage() {
     </div>
   );
 }
+
+export default function AnalysisRawPage() {
+  return (
+    <Suspense fallback={<div className="card">Loading…</div>}>
+      <AnalysisRawPageContent />
+    </Suspense>
+  );
+}
+
+

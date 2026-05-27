@@ -1,7 +1,7 @@
 // frontend/app/epistemic/visualizer/page.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { deleteJSON, getJSON, imgSrc } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 import { PlayBar } from "@/components/PlayBar";
@@ -707,7 +707,7 @@ function ResidualDiagnostic({
   );
 }
 
-export default function BeliefLabVisualizerPage() {
+function BeliefLabVisualizerPageContent() {
   const searchParams = useSearchParams();
   const qid = searchParams.get("id") || "";
 
@@ -1378,5 +1378,13 @@ export default function BeliefLabVisualizerPage() {
         <div className="small">No run selected yet.</div>
       )}
     </div>
+  );
+}
+
+export default function BeliefLabVisualizerPage() {
+  return (
+    <Suspense fallback={<div className="card">Loading…</div>}>
+      <BeliefLabVisualizerPageContent />
+    </Suspense>
   );
 }

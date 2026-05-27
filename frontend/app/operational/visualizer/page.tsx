@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { deleteJSON, getJSON, imgSrc } from "@/lib/api";
 import { PlayBar } from "@/components/PlayBar";
 import { RunPicker } from "@/components/RunPicker";
@@ -527,7 +527,7 @@ function extractDependentsFromDetail(detail: any): string[] | null {
   return null;
 }
 
-export default function OperationalVisualizerPage() {
+function OperationalVisualizerPageContent() {
   const [ids, setIds] = useState<string[]>([]);
   const [id, setId] = useState("");
   const [meta, setMeta] = useState<MetaRes | null>(null);
@@ -2704,5 +2704,13 @@ export default function OperationalVisualizerPage() {
         <div className="small">No run selected yet.</div>
       )}
     </div>
+  );
+}
+
+export default function OperationalVisualizerPage() {
+  return (
+    <Suspense fallback={<div className="card">Loading…</div>}>
+      <OperationalVisualizerPageContent />
+    </Suspense>
   );
 }
