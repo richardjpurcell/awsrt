@@ -6,10 +6,11 @@ AWSRT is not an operational wildfire simulator and does not claim high-fidelity 
 
 ## Current status
 
-The current `main` branch includes the frozen AWSRT v0.6 result state and the beginning of v0.7 shareability updates.
+The current `main` branch includes the frozen AWSRT v0.6 result state, the completed v0.7 shareability/coherence pass, and the opening v0.8 reproducible-handoff planning work.
 
 - **v0.6** is the frozen distance-window and cross-artifact synthesis release used to support current thesis and journal-paper interpretation.
-- **v0.7** is focused on making the tool more coherent and shareable through updated terminology, documentation, installation notes, and usability improvements.
+- **v0.7** completed a shareability, coherence, documentation, build-hardening, and auditability pass.
+- **v0.8** is focused on moving AWSRT from a shareable repository toward reproducible handoff for thesis committee readability and JOSS/community inspection.
 
 AWSRT remains research software under active development. It is intended to support thesis-facing and paper-facing experimental analysis, not operational wildfire deployment.
 
@@ -166,7 +167,12 @@ Use the environment approach that matches your local setup.
 ### 3. Start the backend
 
 ```bash
-uvicorn backend.api.main:app --reload --port 8000
+make backend
+```
+
+This expands to:
+```bash
+PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
 ```
 
 Health check:
@@ -218,7 +224,7 @@ export AWSRT_DATA_DIR=/abs/path/to/data
 Then start the backend from the same shell:
 
 ```bash
-uvicorn backend.api.main:app --reload --port 8000
+make backend
 ```
 
 ## Render configuration
@@ -274,7 +280,7 @@ A minimal first-run smoke test is:
 5. open the Physical Surface and create or inspect a small run;
 6. open the corresponding visualizer or analysis page.
 
-More detailed reproduction and experiment-specific instructions should be added in `docs/install/` or `docs/reproducibility/` as v0.7 documentation work continues.
+More detailed reproduction and experiment-specific instructions belong in `docs/install/` or `docs/reproducibility/` as the v0.8 reproducible-handoff work continues.
 
 ## Documentation map
 
@@ -284,13 +290,14 @@ Important documentation areas include:
 - [`docs/install/local_install.md`](docs/install/local_install.md): local installation and setup notes;
 - [`docs/reproducibility/reproduce_v0_6.md`](docs/reproducibility/reproduce_v0_6.md): reproduction notes for the frozen v0.6 result state;
 - [`docs/development/subgoal_freeze_checklist.md`](docs/development/subgoal_freeze_checklist.md): lightweight developer checklist for freezing subgoals;
+- [`docs/backlog/v0_8_backlog.md`](docs/backlog/v0_8_backlog.md): active v0.8 backlog for reproducible handoff, committee readability, and JOSS/community readiness;
 - [`docs/design/`](docs/design/): versioned design notes, subgoal plans, and release-freeze interpretation notes;
 - `REPRODUCIBILITY_v0.1.md`: historical v0.1 reproducibility notes;
 - `RESULTS_MANIFEST_v0.1.md`: historical v0.1 results manifest;
 - `VERSION_NOTES_v0.1.md`: historical v0.1 notes;
 - `VERSION_NOTES_v0.2.md`: historical v0.2 notes.
 
-The v0.7 documentation work is intended to make AWSRT easier to inspect, run, and continue developing as a research instrument. It does not change the frozen v0.6 evidence base.
+The v0.8 documentation work is intended to move AWSRT from a shareable repository toward reproducible handoff. It does not change the frozen v0.6 evidence base.
 
 ## Known limitations
 
@@ -305,7 +312,7 @@ Current limitations include:
 - the Physical Surface is an experimental environmental substrate, not a high-fidelity physical simulator;
 - transformed real-fire results are bounded and should not be read as universal wildfire generalization;
 - the compact usefulness triad is an interpretive diagnostic, not a complete causal explanation of every metric movement;
-- v0.6 results are frozen, but v0.7 interface and documentation work is ongoing.
+- v0.6 results are frozen, while v0.8 installation, documentation, and handoff verification work is ongoing.
 
 ## Citation and publications
 

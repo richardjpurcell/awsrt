@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft local installation notes for AWSRT v0.7 documentation work.
+Draft local installation notes for AWSRT v0.8 reproducible-handoff work.
 
 These instructions describe the current local development workflow for AWSRT. They are intended for a motivated technical reader who wants to run the backend and frontend locally. They are not yet a polished public deployment guide.
 
@@ -97,10 +97,16 @@ pip install -U pip
 pip install -e .
 ```
 
-Start the backend:
+Start the backend from the repository root:
 
 ```bash
-uvicorn backend.api.main:app --reload --port 8000
+make backend
+```
+
+This expands to:
+
+```bash
+PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
 ```
 
 Health check:
@@ -118,10 +124,16 @@ conda activate PhD_general
 pip install -e .
 ```
 
-Start the backend:
+Start the backend from the repository root:
 
 ```bash
-uvicorn backend.api.main:app --reload --port 8000
+make backend
+```
+
+This expands to:
+
+```bash
+PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
 ```
 
 Health check:
@@ -129,6 +141,18 @@ Health check:
 ```text
 http://127.0.0.1:8000/health
 ```
+
+## Backend startup note
+
+Use `make backend` as the primary backend startup path from the repository root.
+
+This path is currently required because `backend/api/main.py` imports routers using the `api.*` package path. Starting the backend as `uvicorn backend.api.main:app --reload --port 8000` can fail in the current layout with:
+
+```text
+ModuleNotFoundError: No module named 'api'
+```
+
+If the backend import layout is changed in a future subgoal, this note should be revisited.
 
 ## Frontend setup
 
@@ -147,7 +171,7 @@ Open the frontend in a browser:
 http://127.0.0.1:3000
 ```
 
-If `.env.local.example` does not exist in your checkout, inspect the frontend configuration and create `.env.local` only if needed. The app may still run with the default local backend assumptions.
+The repository currently includes `frontend/.env.local.example`.
 
 ## Convenience Makefile targets
 
@@ -160,18 +184,17 @@ make frontend
 
 Current targets are equivalent to:
 
-```bash
+Backend:
+
+```text
 PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
+```
+
+Frontend:
+
+```text
 npm --prefix frontend run dev
 ```
-
-The direct backend command used elsewhere in the documentation is:
-
-```bash
-uvicorn backend.api.main:app --reload --port 8000
-```
-
-If one command path fails because of import-path assumptions, try the other and record the result. Future documentation should eventually standardize this.
 
 ## Data directory
 
@@ -194,7 +217,7 @@ To use a different data root:
 
 ```bash
 export AWSRT_DATA_DIR=/abs/path/to/data
-uvicorn backend.api.main:app --reload --port 8000
+make backend
 ```
 
 Use the same shell session for the environment variable and backend process.
@@ -237,14 +260,24 @@ rm -rf data/renders/phy-XXXXX/t
 
 A minimal smoke test is:
 
-1. Start the backend.
+1. Start the backend:
+
+   ```bash
+   make backend
+   ```
+
 2. Open the health endpoint:
 
    ```text
    http://127.0.0.1:8000/health
    ```
 
-3. Start the frontend.
+3. Start the frontend in a second terminal:
+
+   ```bash
+   make frontend
+   ```
+
 4. Open:
 
    ```text
@@ -262,44 +295,43 @@ This smoke test confirms that the backend, frontend, and local data paths are ba
 
 The frozen v0.6 results depend on preserved manifests, metrics, transformed fire artifacts, and analysis scripts. Reproducing those results requires more than simply launching the app.
 
-A separate v0.6 reproduction note should document:
-
-- the `v0.6` tag;
-- relevant v0.6 design notes;
-- expected data/artifact paths;
-- analysis IDs;
-- packaging scripts;
-- known limits of reproduction.
-
-Suggested future path:
+See:
 
 ```text
 docs/reproducibility/reproduce_v0_6.md
 ```
 
+That note should be used for inspecting or reproducing the frozen v0.6 evidence state. The local install path here only confirms that the application can be installed and started locally.
+
 ## Common troubleshooting
 
 ### Backend import errors
 
-If this command fails:
-
-```bash
-uvicorn backend.api.main:app --reload --port 8000
-```
-
-try the Makefile target:
+During v0.8 Subgoal 02 inspection, the Makefile backend path was verified to start successfully:
 
 ```bash
 make backend
 ```
 
-or explicitly set `PYTHONPATH`:
+This expands to:
 
 ```bash
 PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
 ```
 
-The project currently contains both direct package-style and Makefile-style backend run patterns. This should be standardized in a later documentation pass.
+Do not use the following command as the primary backend startup path in the current layout:
+
+```bash
+uvicorn backend.api.main:app --reload --port 8000
+```
+
+It can fail with:
+
+```text
+ModuleNotFoundError: No module named 'api'
+```
+
+If the backend import layout changes in a future subgoal, this note should be revisited.
 
 ### Frontend dependency errors
 
@@ -309,6 +341,13 @@ From inside `frontend/`, reinstall dependencies:
 rm -rf node_modules
 npm install
 npm run dev
+```
+
+Or, from the repository root:
+
+```bash
+npm --prefix frontend install
+npm --prefix frontend run dev
 ```
 
 ### Frontend cannot reach backend
@@ -339,13 +378,13 @@ Then reload or regenerate the visualizer output.
 
 ### Large artifact rendering is slow or blurry
 
-Increase render settings before starting the backend:
+Set render variables before starting the backend:
 
 ```bash
 export AWSRT_RENDER_PX_PER_CELL=3.0
 export AWSRT_RENDER_MAX_SIDE_PX=8192
 export AWSRT_RENDER_DPI=200
-uvicorn backend.api.main:app --reload --port 8000
+make backend
 ```
 
 ### Missing data artifacts
@@ -359,4 +398,4 @@ Some workflows require preserved manifests, metrics, fields, or transformed fire
 - Some pages are research-instrument surfaces rather than polished product workflows.
 - Historical design notes may preserve older terminology for auditability.
 - The Physical Surface is an experimental environmental substrate, not a high-fidelity physical wildfire simulator.
-- The v0.6 result state is frozen, but v0.7 documentation and usability work is ongoing.
+- The v0.6 result state is frozen, while v0.8 installation, documentation, and handoff verification work is ongoing.
