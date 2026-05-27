@@ -115,8 +115,11 @@ AWSRT currently supports:
 backend/                 FastAPI backend and AWSRT core modules
 frontend/                Next.js frontend for the four research surfaces
 data/                    Local manifests, fields, renders, metrics, and run artifacts
-docs/                    Documentation and design notes
+docs/                    Documentation, design notes, install notes, and workflow guidance
 docs/design/             Versioned design notes and release-freeze interpretation notes
+docs/install/            Local installation and setup notes
+docs/reproducibility/    Reproduction notes for frozen result states
+docs/development/        Developer workflow and subgoal freeze checklist
 notes/                   Supporting research notes retained with software versions
 paper/                   Paper-facing materials
 results/                 Result outputs and figure exports
@@ -131,6 +134,7 @@ Historical release notes and reproducibility files, such as `REPRODUCIBILITY_v0.
 ## Quickstart
 
 These instructions describe the current local development workflow. They are not yet a polished public installation process.
+For more detailed setup notes, see [`docs/install/local_install.md`](docs/install/local_install.md).
 
 ### 1. Clone the repository
 
@@ -276,18 +280,17 @@ More detailed reproduction and experiment-specific instructions should be added 
 
 Important documentation areas include:
 
-- `docs/design/`: versioned design notes and subgoal plans;
-- `docs/README.md`: documentation index, if maintained;
+- [`docs/README.md`](docs/README.md): documentation index;
+- [`docs/install/local_install.md`](docs/install/local_install.md): local installation and setup notes;
+- [`docs/reproducibility/reproduce_v0_6.md`](docs/reproducibility/reproduce_v0_6.md): reproduction notes for the frozen v0.6 result state;
+- [`docs/development/subgoal_freeze_checklist.md`](docs/development/subgoal_freeze_checklist.md): lightweight developer checklist for freezing subgoals;
+- [`docs/design/`](docs/design/): versioned design notes, subgoal plans, and release-freeze interpretation notes;
 - `REPRODUCIBILITY_v0.1.md`: historical v0.1 reproducibility notes;
 - `RESULTS_MANIFEST_v0.1.md`: historical v0.1 results manifest;
 - `VERSION_NOTES_v0.1.md`: historical v0.1 notes;
 - `VERSION_NOTES_v0.2.md`: historical v0.2 notes.
 
-Planned v0.7 documentation additions include:
-
-- `docs/install/local_install.md`;
-- `docs/reproducibility/reproduce_v0_6.md` or equivalent;
-- API and workflow documentation for the backend and analysis surfaces.
+The v0.7 documentation work is intended to make AWSRT easier to inspect, run, and continue developing as a research instrument. It does not change the frozen v0.6 evidence base.
 
 ## Known limitations
 
