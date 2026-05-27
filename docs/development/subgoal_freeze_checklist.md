@@ -63,6 +63,8 @@ General check:
 python -m pytest backend/tests
 ```
 
+For the backend smoke-test workflow, see backend_smoke_test.md.
+
 Targeted check:
 
 ```bash
