@@ -8,16 +8,18 @@ authors:
 repository-code: "https://github.com/richardjpurcell/awsrt"
 url: "https://github.com/richardjpurcell/awsrt"
 abstract: >
-  AWSRT is an information-centric research software platform for studying
-  adaptive wildfire sensing in dynamic and uncertain environments. It supports
-  wildfire simulation and replay, belief and uncertainty analysis, sensing-policy
+  AWSRT is a research instrument for studying adaptive sensing, belief
+  maintenance, information impairment, and usefulness under wildfire-like
+  dynamic fields. It supports structured dynamic-field generation, transformed
+  fire artifact replay, belief and uncertainty analysis, sensing-policy
   comparison, impairment studies, and regime-managed sensing experiments.
 keywords:
   - wildfire sensing
   - adaptive sensing
-  - simulation
+  - research software
   - uncertainty
-  - information theory
+  - belief maintenance
+  - information impairment
   - sensor networks
 license: "BSD-3-Clause"
 version: "v0.1"
