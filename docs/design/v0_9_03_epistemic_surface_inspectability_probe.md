@@ -234,3 +234,31 @@ A short diagnosis identifying:
 3. whether the main bottleneck is deployment-pattern choice, visual rendering, plot design, or a combination;
 4. which improvements belong in the Designer, the Visualizer, or both;
 5. the smallest sensible next implementation subgoal.
+
+## Inspection conclusion
+
+Initial inspection confirms that Belief Lab currently supports two support models:
+
+- `random_support`
+- `fixed_support_mask`
+
+The backend support choice is isolated in `backend/awsrt_core/epistemic/option_a.py` through `_choose_support_mask(...)`. The epistemic run loop calls this once per timestep, stores `support_mask[t]`, applies loss/delay, stores `arrived_mask[t]`, and then updates belief and entropy.
+
+This is a favorable architecture for adding built-in epistemic support geometries because new support schedules can be introduced without changing belief-update semantics, impairment semantics, entropy computation, MDC residual diagnostics, or existing render endpoints.
+
+The main inspectability bottleneck is therefore not the belief math. It is the lack of simple, named, built-in support geometries that produce readable epistemic stories. The current fixed-mask route is too advanced for near-term committee/demo use, and random support alone does not reliably produce interpretable belief/uncertainty structure.
+
+Recommended next implementation subgoal:
+
+`v0.9-subgoal-04 — Built-in Epistemic Support Geometry Presets`
+
+Candidate first support models:
+
+- `scanline_support`
+- `block_sweep_support`
+- `ring_support`
+- `center_out_support`
+
+The implementation should preserve Belief Lab's policy-free framing by referring to these as support geometries or support schedules, not operational movement policies.
+
+Rendering improvements such as blurred or impressionistic support/arrival clouds should remain a later step after support-story presets are available.
