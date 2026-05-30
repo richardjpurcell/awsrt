@@ -45,6 +45,109 @@ class EpistemicOptionAOutput:
     residual_c: float                 # if nonzero, used as c_*; otherwise autoscaled
 
 
+def _mask_from_flat_indices(H: int, W: int, idx: np.ndarray, m: int) -> np.ndarray:
+    """Build a budget-limited uint8 mask from flat cell indices."""
+    mask = np.zeros((int(H) * int(W),), dtype=np.uint8)
+    if m <= 0 or mask.size == 0:
+        return mask.reshape(int(H), int(W))
+
+    idx = np.asarray(idx, dtype=np.int64).reshape(-1)
+    if idx.size == 0:
+        return mask.reshape(int(H), int(W))
+
+    idx = idx[(idx >= 0) & (idx < mask.size)]
+    if idx.size == 0:
+        return mask.reshape(int(H), int(W))
+
+    # Preserve order while removing duplicates.
+    _, first = np.unique(idx, return_index=True)
+    idx = idx[np.sort(first)]
+
+    idx = idx[: min(int(m), idx.size)]
+    mask[idx] = 1
+    return mask.reshape(int(H), int(W))
+
+
+def _scanline_support_mask(H: int, W: int, m: int, t: int) -> np.ndarray:
+    """Budgeted row-major scanline window."""
+    N = int(H) * int(W)
+    if N <= 0:
+        return np.zeros((int(H), int(W)), dtype=np.uint8)
+    m_eff = min(max(0, int(m)), N)
+    start = (int(t) * m_eff) % N if m_eff > 0 else 0
+    idx = (start + np.arange(m_eff, dtype=np.int64)) % N
+    return _mask_from_flat_indices(H, W, idx, m_eff)
+
+
+def _block_sweep_support_mask(H: int, W: int, m: int, t: int, T: int) -> np.ndarray:
+    """Moving rectangular support block, clipped to the support budget."""
+    H = int(H)
+    W = int(W)
+    m_eff = min(max(0, int(m)), H * W)
+    if m_eff <= 0:
+        return np.zeros((H, W), dtype=np.uint8)
+
+    # Choose a compact rectangle near the requested area.
+    bh = max(1, int(round(np.sqrt(m_eff * max(1, H) / max(1, W)))))
+    bw = max(1, int(np.ceil(m_eff / bh)))
+    bh = min(H, bh)
+    bw = min(W, bw)
+
+    max_r = max(0, H - bh)
+    max_c = max(0, W - bw)
+    denom = max(1, int(T) - 1)
+    phase = (int(t) % max(1, int(T))) / denom
+    r0 = int(round(max_r * phase))
+    c0 = int(round(max_c * phase))
+
+    rr, cc = np.mgrid[r0 : r0 + bh, c0 : c0 + bw]
+    idx = (rr.reshape(-1) * W + cc.reshape(-1)).astype(np.int64)
+    return _mask_from_flat_indices(H, W, idx, m_eff)
+
+
+def _ring_support_mask(H: int, W: int, m: int, t: int, T: int) -> np.ndarray:
+    """Budgeted annulus/perimeter-style support around the grid center."""
+    H = int(H)
+    W = int(W)
+    m_eff = min(max(0, int(m)), H * W)
+    if m_eff <= 0:
+        return np.zeros((H, W), dtype=np.uint8)
+
+    rr, cc = np.mgrid[0:H, 0:W]
+    cy = (H - 1) / 2.0
+    cx = (W - 1) / 2.0
+    dist = np.sqrt((rr - cy) ** 2 + (cc - cx) ** 2)
+    max_radius = float(np.max(dist)) if dist.size else 1.0
+
+    denom = max(1, int(T) - 1)
+    phase = (int(t) % max(1, int(T))) / denom
+    radius = max_radius * (0.25 + 0.65 * phase)
+
+    order = np.argsort(np.abs(dist.reshape(-1) - radius), kind="stable")
+    return _mask_from_flat_indices(H, W, order, m_eff)
+
+
+def _center_out_support_mask(H: int, W: int, m: int, t: int, T: int) -> np.ndarray:
+    """Budgeted expanding center-out support."""
+    H = int(H)
+    W = int(W)
+    m_eff = min(max(0, int(m)), H * W)
+    if m_eff <= 0:
+        return np.zeros((H, W), dtype=np.uint8)
+
+    rr, cc = np.mgrid[0:H, 0:W]
+    cy = (H - 1) / 2.0
+    cx = (W - 1) / 2.0
+    dist = np.sqrt((rr - cy) ** 2 + (cc - cx) ** 2).reshape(-1)
+
+    # Rotate through increasingly distant cells while keeping a fixed per-step budget.
+    order = np.argsort(dist, kind="stable")
+    N = H * W
+    start = (int(t) * m_eff) % N
+    idx = order[(start + np.arange(m_eff, dtype=np.int64)) % N]
+    return _mask_from_flat_indices(H, W, idx, m_eff)
+
+
 def _choose_support_mask(
     H: int,
     W: int,
@@ -52,8 +155,11 @@ def _choose_support_mask(
     model: str,
     m: int,
     rng: np.random.Generator,
+    t: int = 0,
+    T: int = 1,
     fixed_mask: np.ndarray | None = None,
 ) -> np.ndarray:
+
     if m <= 0:
         return np.zeros((H, W), dtype=np.uint8)
 
@@ -63,7 +169,22 @@ def _choose_support_mask(
         mask = (fixed_mask.astype(bool)).astype(np.uint8)
         return mask
 
+    if model == "scanline_support":
+        return _scanline_support_mask(H, W, m, t)
+
+    if model == "block_sweep_support":
+        return _block_sweep_support_mask(H, W, m, t, T)
+
+    if model == "ring_support":
+        return _ring_support_mask(H, W, m, t, T)
+
+    if model == "center_out_support":
+        return _center_out_support_mask(H, W, m, t, T)
+
     # random_support: choose m distinct cells uniformly
+    if model != "random_support":
+        raise ValueError(f"unsupported support model: {model}")
+
     N = H * W
     m_eff = min(int(m), N)
     idx = rng.choice(N, size=m_eff, replace=False)
@@ -174,7 +295,16 @@ def run_epistemic_option_a(
 
     for t in range(T):
         # --- support ---
-        sm = _choose_support_mask(H, W, model=action_model, m=action_m, rng=rng, fixed_mask=fixed_mask)
+        sm = _choose_support_mask(
+            H,
+            W,
+            model=action_model,
+            m=action_m,
+            rng=rng,
+            t=t,
+            T=T,
+            fixed_mask=fixed_mask,
+        )
         support_mask[t] = sm
 
         # --- generate raw observations for supported cells only ---
