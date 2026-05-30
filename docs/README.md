@@ -9,6 +9,7 @@ AWSRT is a research instrument for studying adaptive sensing, belief maintenance
 ## Start here
 
 - [`../README.md`](../README.md) — project overview, research framing, quickstart, and repository structure.
+- [`overview/awsrt_committee_orientation.md`](overview/awsrt_committee_orientation.md) — committee-facing orientation to AWSRT’s thesis role, four research surfaces, and bounded interpretation.
 - [`install/local_install.md`](install/local_install.md) — local setup instructions for backend and frontend development.
 - [`install/clean_machine_check.md`](install/clean_machine_check.md) — v0.8 clean-machine / reproducible-handoff verification note.
 - [`reproducibility/reproduce_v0_6.md`](reproducibility/reproduce_v0_6.md) — notes for reproducing or inspecting the frozen v0.6 result state.
@@ -47,6 +48,7 @@ Recent v0.8 design notes include:
 - `v0_8_04_backend_smoke_test_workflow.md`
 - `v0_8_05_frontend_build_and_runtime_check_discipline.md`
 - `v0_8_06_joss_and_community_readiness_review.md`
+- `v0_8_08_committee_facing_orientation_guide.md`
 
 The active v0.8 backlog is:
 
@@ -76,6 +78,7 @@ Recent v0.7 design notes include:
 - [`development/backend_smoke_test.md`](development/backend_smoke_test.md) — backend import, health, and pytest smoke-test workflow.
 - [`development/frontend_build_check.md`](development/frontend_build_check.md) — frontend install, production-build, and dev-server validation workflow.
 - [`development/joss_community_readiness_review.md`](development/joss_community_readiness_review.md) — v0.8 JOSS/community readiness review and gap triage.
+- [`overview/`](overview/) — committee-facing and high-level orientation documents.
 
 ---
 
