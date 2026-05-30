@@ -18,8 +18,7 @@ AWSRT is a research instrument for studying adaptive sensing, belief maintenance
 
 ## Development workflow
 
-- [`development/subgoal_freeze_checklist.md`](development/subgoal_freeze_checklist.md) — lightweight checklist for freezing AWSRT development subgoals.
-- [`development/backend_smoke_test.md`](development/backend_smoke_test.md) — backend import, health, and pytest smoke-test workflow.
+- [`development/frontend_build_check.md`](development/frontend_build_check.md) — frontend install, production-build, and dev-server validation workflow.
 
 Use this checklist when finishing frontend, backend, documentation, or mixed changes. In particular, frontend-touching work should normally run:
 
@@ -43,6 +42,7 @@ Recent v0.8 design notes include:
 - `v0_8_02_clean_machine_install_verification.md`
 - `v0_8_03_minimal_reproducible_first_run_workflow.md`
 - `v0_8_04_backend_smoke_test_workflow.md`
+- `v0_8_05_frontend_build_and_runtime_check_discipline.md`
 
 The active v0.8 backlog is:
 
@@ -70,6 +70,7 @@ Recent v0.7 design notes include:
 - [`install/`](install/) — installation and local development setup.
 - [`reproducibility/`](reproducibility/) — reproduction notes for frozen result states.
 - [`development/backend_smoke_test.md`](development/backend_smoke_test.md) — backend import, health, and pytest smoke-test workflow.
+- [`development/frontend_build_check.md`](development/frontend_build_check.md) — frontend install, production-build, and dev-server validation workflow.
 
 ---
 
