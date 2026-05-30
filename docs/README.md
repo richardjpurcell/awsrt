@@ -48,7 +48,9 @@ Recent v0.8 design notes include:
 - `v0_8_04_backend_smoke_test_workflow.md`
 - `v0_8_05_frontend_build_and_runtime_check_discipline.md`
 - `v0_8_06_joss_and_community_readiness_review.md`
+- `v0_8_07_repository_metadata_and_hygiene_cleanup.md`
 - `v0_8_08_committee_facing_orientation_guide.md`
+- `v0_8_09_consolidation_and_handoff_freeze_planning.md`
 
 The active v0.8 backlog is:
 

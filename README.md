@@ -6,11 +6,11 @@ AWSRT is not an operational wildfire simulator and does not claim high-fidelity 
 
 ## Current status
 
-The current `main` branch includes the frozen AWSRT v0.6 result state, the completed v0.7 shareability/coherence pass, and the opening v0.8 reproducible-handoff planning work.
+The current `main` branch includes the frozen AWSRT v0.6 result state, the completed v0.7 shareability/coherence pass, and the active v0.8 reproducible-handoff work.
 
 - **v0.6** is the frozen distance-window and cross-artifact synthesis release used to support current thesis and journal-paper interpretation.
 - **v0.7** completed a shareability, coherence, documentation, build-hardening, and auditability pass.
-- **v0.8** is focused on moving AWSRT from a shareable repository toward reproducible handoff for thesis committee readability and JOSS/community inspection.
+- **v0.8** is moving AWSRT from a shareable repository toward reproducible handoff through installation checks, first-run workflow, backend/frontend validation, community-readiness review, metadata cleanup, and committee-facing orientation.
 
 AWSRT remains research software under active development. It is intended to support thesis-facing and paper-facing experimental analysis, not operational wildfire deployment.
 
