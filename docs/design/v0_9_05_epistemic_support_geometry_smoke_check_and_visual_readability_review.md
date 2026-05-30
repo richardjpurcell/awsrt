@@ -99,6 +99,9 @@ Use an existing physical run that is convenient and already known to work.
 
 Suggested baseline settings unless otherwise noted:
 
+- physical reference: `reference-center-ideal`
+- grid: `150 x 150`
+- sensed cells per step: `4096`
 - prior: `0.5`
 - decay: `1.0`
 - false positive: `0.0` or `0.01`
@@ -179,29 +182,178 @@ Main visual problem:
 Main design opportunity:
 ```
 
-## Likely outcomes
+## Smoke review findings
 
-Possible outcomes after review:
+The smoke review used the `reference-center-ideal` physical case on a `150 x 150` grid with `4096` cells sensed per step. The images were inspected at time slots selected to show the intersection between support geometry and the fire field. The specific `epi-*` IDs were not retained, because this subgoal is a visual/readability review rather than an artifact-freeze step.
+
+### Overall finding
+
+The new support geometries work and are visually meaningful. They create different epistemic stories rather than simply producing different versions of random sampling.
+
+The major conclusion is:
+
+```text
+The random-only bottleneck has been reduced.
+The next bottleneck is Epistemic Visualizer presentation.
+```
+
+The current visualizer already contains the relevant ingredients, but the important visual panels are too far down the page and are preceded by too many text-heavy interpretation cards and plot panels. The page currently feels more like a diagnostic dashboard than a simple thesis-style belief/uncertainty explanation.
+
+### Random support
+
+`random_support` remains useful as a baseline and functional sanity check.
+
+It shows that the pipeline works:
+
+- support mask renders;
+- arrivals render;
+- belief responds;
+- entropy and entropy-change render;
+- plots load.
+
+However, the visual story remains noisy. Support and arrival masks read as salt-and-pepper fields. The entropy and entropy-change panels are correspondingly hard to narrate.
+
+Judgment:
+
+```text
+Useful baseline, weak explanatory visual.
+```
+
+### Scanline support
+
+`scanline_support` is a strong readable support geometry.
+
+The horizontal band is immediately recognizable. It gives a clear story:
+
+```text
+A structured strip of sensing passes through the field;
+where it intersects the fire, belief changes and uncertainty collapses locally.
+```
+
+The support and arrival masks are easy to inspect, and the belief/entropy response is much clearer than random support.
+
+Judgment:
+
+```text
+Strong committee/demo candidate.
+```
+
+### Block sweep support
+
+`block_sweep_support` is one of the strongest current presets.
+
+The support mask is immediately legible as a compact square/rectangular block. The entropy panel clearly shows the inspected region, and the belief field shows how local support intersects the fire region. The entropy-change panel gives a readable edge/transition story.
+
+This case already approaches the desired explanatory visual style without requiring blurred or impressionistic rendering.
+
+Judgment:
+
+```text
+Probably the clearest support-geometry story in the current implementation.
+```
+
+### Ring support
+
+`ring_support` is visually distinctive and useful.
+
+The annular support structure is immediately readable. It supports a different epistemic story from scanline or block sweep:
+
+```text
+Support is concentrated along a boundary/perimeter-like region rather than filling an area.
+```
+
+The belief, entropy, and entropy-change panels show clear ring-shaped structure. This is useful for boundary/perimeter uncertainty stories.
+
+Judgment:
+
+```text
+Very strong visually; especially useful for perimeter/boundary support stories.
+```
+
+### Center-out support
+
+`center_out_support` is visually interesting but semantically less straightforward than its name suggests.
+
+The result is not simply a filled expanding disk. The implementation orders cells by distance from the center and takes budget-sized slices through that radial order. As a result, at later timesteps it can produce central structure plus outer-edge or corner effects.
+
+This behavior is not necessarily wrong. It is rich and potentially useful. But the name `center_out_support` may lead users to expect a continuously filled growing disk.
+
+Judgment:
+
+```text
+Interesting and useful, but current semantics are closer to a radial-order sweep than a filled expanding disk.
+```
+
+Potential future refinement:
+
+- rename or explain it more clearly; or
+- add a separate `expanding_disk_support` model later if a true filled-disk story is needed.
+
+## Plot and layout findings
+
+The new support geometries make the visual panels more meaningful, but the current page layout buries those panels.
+
+Current presentation issue:
+
+- There are too many text-related cards before the visual panels.
+- The visual panels appear too low on the page.
+- The diagnostic plots appear before the main support/belief/uncertainty story.
+- Most plots are not currently telling a coherent story for this use case.
+- The useful delivered information plot is the only plot that currently appears to provide interesting visual variation.
+- The mean entropy, arrival fraction, decrease diagnostic, and residual diagnostic plots are often flat or repetitive in these clean/no-delay/no-loss smoke cases.
+
+This does not mean the plots are wrong. It means they are not the right first-order visual story for this part of v0.9.
+
+## Design conclusion
+
+The next implementation should not be blurred/cloud rendering yet.
+
+The smoke results show that support geometries are now strong enough to justify a cleaner visual presentation. Therefore the next subgoal should focus on Epistemic Visualizer presentation simplification.
+
+Recommended next subgoal:
+
+```text
+v0.9-subgoal-06 — Epistemic Visualizer Thesis-Style Panel Simplification
+```
+
+Likely goals:
+
+- move the main visual panels higher on the page;
+- reduce or collapse text-heavy interpretation cards;
+- make the first visible story closer to:
+  1. belief field;
+  2. entropy / uncertainty field;
+  3. entropy-change field;
+  4. prescribed support mask;
+  5. arrivals over support;
+- demote diagnostic plots below the visual panels;
+- consider showing only the useful delivered information plot by default;
+- keep other plots available but lower-priority or collapsible;
+- preserve current backend and support geometry semantics.
+
+## Likely outcomes
 
 ### Outcome A — Support geometries are already useful
 
-If the new support masks are visually clear and belief/uncertainty panels respond coherently, the next subgoal can focus on visualizer layout or thesis-like panel simplification.
+Confirmed. The new support masks are visually clear and belief/uncertainty panels respond coherently.
 
 ### Outcome B — Support geometries work but rendering is too literal
 
-If support patterns are structurally correct but still too hard to see, the next subgoal should target softened / cloud-like support and arrival rendering.
+Partly true, but not the immediate bottleneck. Block, scanline, and ring are readable even with literal masks.
 
 ### Outcome C — Support geometries are too sparse or awkward
 
-If patterns are structurally hard to read at normal budgets, the next subgoal should refine support geometry generation or add designer presets with better budget defaults.
+Not generally true with the smoke setting used here. At `4096` cells on a `150 x 150` grid, the structured support patterns are readable.
+
+The possible exception is semantic rather than visual: `center_out_support` may need clearer naming or explanation later.
 
 ### Outcome D — Plots remain the bottleneck
 
-If the visual panels become readable but plots still do not help interpretation, the next subgoal should reorganize plot grouping and narrative labels.
+Partly true. The plots are not the first-order story for this page. The useful delivered-information plot is visually interesting, but the other plots are often flat in the clean smoke cases.
 
 ## Implementation expectations
 
-This subgoal should begin as review and documentation.
+This subgoal should end as review and documentation.
 
 Possible low-risk changes, only if clearly needed:
 
@@ -211,22 +363,26 @@ Possible low-risk changes, only if clearly needed:
 - add a small summary note to the Visualizer;
 - fix obvious support model display issues.
 
-Avoid larger changes until the smoke review is complete.
+However, based on the smoke review, the more appropriate next step is a separate visualizer simplification subgoal rather than patching within subgoal-05.
 
-## Likely files if a small polish patch is needed
+## Likely files for the next subgoal
 
-- `frontend/app/epistemic/designer/page.tsx`
+The likely implementation target for `v0.9-subgoal-06` is:
+
 - `frontend/app/epistemic/visualizer/page.tsx`
-- `docs/design/v0_9_05_epistemic_support_geometry_smoke_check_and_visual_readability_review.md`
 
-Do not touch backend logic in this subgoal unless the smoke check reveals a functional bug in the new support geometries.
+Potentially also:
+
+- `docs/design/v0_9_06_epistemic_visualizer_thesis_style_panel_simplification.md`
+
+Backend changes are not expected for that next subgoal.
 
 ## Strict non-goals
 
 Do not:
 
 - add blurred/cloud rendering yet;
-- redesign the Epistemic Visualizer layout yet;
+- redesign the entire Epistemic Surface;
 - add uploaded custom mask workflows;
 - change belief update semantics;
 - change impairment semantics;
@@ -286,9 +442,10 @@ git push origin HEAD:refs/heads/v0.9-subgoal-05
 
 This subgoal should end with a documented judgment about what the new support geometries reveal.
 
-The final note should identify:
+The final judgment from the smoke review is:
 
-1. which support geometries are visually useful;
-2. which ones need refinement;
-3. whether the next subgoal should focus on visualizer layout, blurred/cloud rendering, designer presets, or plot interpretation;
-4. any bugs or regressions found during smoke testing.
+1. `block_sweep_support`, `scanline_support`, and `ring_support` are visually useful.
+2. `center_out_support` is useful but may need clearer naming or a future filled-disk variant.
+3. `random_support` remains useful as a baseline but weak as an explanatory visual.
+4. The next subgoal should focus on Epistemic Visualizer presentation simplification, not backend support geometry or blurred rendering.
+5. No functional regressions were observed during the smoke review.
