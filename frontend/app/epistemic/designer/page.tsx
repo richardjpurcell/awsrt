@@ -8,6 +8,14 @@ import { RunPicker } from "@/components/RunPicker";
 type ListRes = { ids: string[] };
 type EpiCreateRes = { epi_id: string; belief_lab_id?: string };
 type OkRes = { ok: boolean; epi_id: string };
+type SupportModel =
+  | "random_support"
+  | "fixed_support_mask"
+  | "scanline_support"
+  | "block_sweep_support"
+  | "ring_support"
+  | "center_out_support";
+
 type RunSummaryRes = {
   entropy_auc?: number | null;
   mean_entropy_t0?: number | null;
@@ -47,7 +55,7 @@ type PresetConfig = {
   lossProb: number;
   delayGeomP: number;
   maxDelaySteps: number;
-  supportModel: "random_support" | "fixed_support_mask";
+  supportModel: SupportModel;
   supportSeed: number;
   fixedSupportMaskPath: string;
   prior: number;
@@ -91,7 +99,7 @@ export default function BeliefLabDesignerPage() {
   const [maxDelaySteps, setMaxDelaySteps] = useState(0);
 
   // Optional but recommended (Advanced)
-  const [supportModel, setSupportModel] = useState<"random_support" | "fixed_support_mask">("random_support");
+  const [supportModel, setSupportModel] = useState<SupportModel>("random_support");
   const [supportSeed, setSupportSeed] = useState(0);
   const [fixedSupportMaskPath, setFixedSupportMaskPath] = useState<string>("");
 
@@ -131,8 +139,22 @@ export default function BeliefLabDesignerPage() {
   const fixedSupportMaskPathOk = supportModel !== "fixed_support_mask" || (fixedSupportMaskPath?.trim()?.length ?? 0) > 0;
   const canSubmit = Boolean(phyId) && !busy && fixedSupportMaskPathOk;
 
-  function supportModelLabel(model: "random_support" | "fixed_support_mask") {
-    return model === "fixed_support_mask" ? "Fixed support mask" : "Random support";
+  function supportModelLabel(model: SupportModel) {
+    switch (model) {
+      case "fixed_support_mask":
+        return "Fixed support mask";
+      case "scanline_support":
+        return "Scanline support";
+      case "block_sweep_support":
+        return "Block sweep support";
+      case "ring_support":
+        return "Ring support";
+      case "center_out_support":
+        return "Center-out support";
+      case "random_support":
+      default:
+        return "Random support";
+    }
   }
 
   function residualDriverLabel(driver: "arrival_frac" | "arrived_info_proxy") {
@@ -352,8 +374,9 @@ export default function BeliefLabDesignerPage() {
     const parts: string[] = [];
 
     if (supportModel === "fixed_support_mask") parts.push("fixed support geometry");
-    else if (supportBudget <= 128) parts.push("budget-limited random support");
-    else parts.push("randomized support");
+    else if (supportModel === "random_support" && supportBudget <= 128) parts.push("budget-limited random support");
+    else if (supportModel === "random_support") parts.push("randomized support");
+    else parts.push(`${supportModelLabel(supportModel).toLowerCase()} geometry`);
 
     if (lossC > 0.25 || fnC > 0.15 || maxDelaySteps >= 6) parts.push("harsh channel stress");
     else if (lossC > 0 || fnC > 0.05 || maxDelaySteps > 0) parts.push("moderately impaired channel");
@@ -533,8 +556,8 @@ export default function BeliefLabDesignerPage() {
         <h2 style={{ marginTop: 0 }}>Support design</h2>
         <div className="small" style={{ opacity: 0.85, lineHeight: 1.4 }}>
           These settings define the prescribed sensing support before impairment or belief update.
-          Use them to control how many cells are sensed each step and whether support is randomized
-          or imposed through a fixed mask geometry.
+          Use them to control how many cells are sensed each step and which policy-free support
+          geometry is used. These are support schedules, not operational movement policies.
         </div>
 
         <div className="row" style={{ marginTop: 10 }}>
@@ -551,6 +574,10 @@ export default function BeliefLabDesignerPage() {
           <label>support pattern</label>
           <select value={supportModel} onChange={(e) => setSupportModel(e.target.value as any)} disabled={busy}>
             <option value="random_support">Random support</option>
+            <option value="scanline_support">Scanline support</option>
+            <option value="block_sweep_support">Block sweep support</option>
+            <option value="ring_support">Ring support</option>
+            <option value="center_out_support">Center-out support</option>
             <option value="fixed_support_mask">Fixed support mask</option>
           </select>
 

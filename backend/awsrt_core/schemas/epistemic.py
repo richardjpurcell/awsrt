@@ -26,7 +26,14 @@ class EntropySpec(BaseModel):
 
 class SupportSpec(BaseModel):
     # Belief Lab: support is the set of sensed cells each step
-    model: Literal["random_support", "fixed_support_mask"] = "random_support"
+    model: Literal[
+        "random_support",
+        "fixed_support_mask",
+        "scanline_support",
+        "block_sweep_support",
+        "ring_support",
+        "center_out_support",
+    ] = "random_support"
 
     # Budget: number of cells sensed per step
     # (If you truly want to allow "sense nothing", change ge=1 back to ge=0.)
