@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft reproduction pointer for AWSRT v0.7 documentation work.
+Draft reproduction pointer maintained during AWSRT v0.8 reproducible-handoff work.
 
 This document provides a high-level guide to the frozen AWSRT v0.6 result state. It is intended as an orientation and audit pointer, not as a complete one-command reproduction bundle.
 
