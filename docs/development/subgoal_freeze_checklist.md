@@ -47,6 +47,8 @@ If anything under `frontend/` changed, run:
 npm --prefix frontend run build
 ```
 
+For the frontend build and runtime check workflow, see frontend_build_check.md.
+
 This is stronger than the dev server. It catches TypeScript, syntax, routing, and Next.js production-build problems that may not appear during local interactive use.
 
 Frontend build must pass before freezing a frontend-touching subgoal unless the failure is explicitly documented as unrelated and deferred.
@@ -63,7 +65,7 @@ General check:
 python -m pytest backend/tests
 ```
 
-For the backend smoke-test workflow, see backend_smoke_test.md.
+For the backend smoke-test workflow, see [`backend_smoke_test.md`](backend_smoke_test.md).
 
 Targeted check:
 
@@ -195,7 +197,7 @@ For most subgoals:
 1. Manual smoke check
 2. Relevant validation command
    - frontend: npm --prefix frontend run build
-   - backend: python -m pytest backend/tests or targeted test
+   - backend: python -m pytest backend/tests or targeted test; see docs/development/backend_smoke_test.md
    - docs: git diff --check
 3. git diff --stat
 4. git status
