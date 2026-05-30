@@ -221,6 +221,11 @@ type TrajectoryRes = {
   sensors_rc: number[][][];
 };
 
+type ImgSize = { w: number; h: number };
+
+const VIEWPORT_W = 980;
+const VIEWPORT_H = 552;
+
 const WARM_N = 10;
 const PRELOAD_AHEAD = 2;
 
@@ -545,6 +550,13 @@ function OperationalVisualizerPageContent() {
   const [frontOpacity, setFrontOpacity] = useState(0.9);
   const [showMechanismAudit, setShowMechanismAudit] = useState(false);
 
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [vp, setVp] = useState({ w: VIEWPORT_W, h: VIEWPORT_H });
+  const [view, setView] = useState({ scale: 1, panX: 0, panY: 0 });
+  const [imgSize, setImgSize] = useState<ImgSize | null>(null);
+  const didInitViewRef = useRef(false);
+  const draggingRef = useRef<null | { startX: number; startY: number; panX: number; panY: number }>(null);
+
   const [busyDelete, setBusyDelete] = useState(false);
   const [msg, setMsg] = useState<string>("");
 
@@ -570,6 +582,53 @@ function OperationalVisualizerPageContent() {
 
 
   const warmedKeyRef = useRef<string>("");
+
+  // Track actual viewport size for fit/zoom calculations.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      const w = Math.max(1, Math.floor(r.width));
+      const h = Math.max(1, Math.floor(r.height));
+      setVp((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+
+    update();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => update());
+      ro.observe(el);
+    } else {
+      window.addEventListener("resize", update);
+    }
+
+    return () => {
+      if (ro) ro.disconnect();
+      else window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  useEffect(() => {
+    didInitViewRef.current = false;
+    setImgSize(null);
+    setView({ scale: 1, panX: 0, panY: 0 });
+  }, [id]);
+
+  // Initial fit once the rendered PNG size and viewport size are both known.
+  useEffect(() => {
+    if (!imgSize) return;
+    if (didInitViewRef.current) return;
+
+    const fitScale = Math.min(vp.w / imgSize.w, vp.h / imgSize.h);
+    const panX = (vp.w - imgSize.w * fitScale) / 2;
+    const panY = (vp.h - imgSize.h * fitScale) / 2;
+
+    setView({ scale: fitScale, panX, panY });
+    didInitViewRef.current = true;
+  }, [imgSize, vp.w, vp.h]);
 
   const refresh = useCallback(async () => {
     setMsg("");
@@ -738,6 +797,73 @@ function OperationalVisualizerPageContent() {
       preload(imgSrc(`/operational/${id}/t/${nextT}/front.png`));
     }
   }, [id, meta, tt, loop]);
+
+  function fitView() {
+    if (!imgSize) return;
+    const fitScale = Math.min(vp.w / imgSize.w, vp.h / imgSize.h);
+    const panX = (vp.w - imgSize.w * fitScale) / 2;
+    const panY = (vp.h - imgSize.h * fitScale) / 2;
+    setView({ scale: fitScale, panX, panY });
+  }
+
+  function resetView() {
+    if (!imgSize) {
+      setView({ scale: 1, panX: 0, panY: 0 });
+      return;
+    }
+    setView({
+      scale: 1,
+      panX: (vp.w - imgSize.w) / 2,
+      panY: (vp.h - imgSize.h) / 2,
+    });
+  }
+
+  function zoomAround(mx: number, my: number, factor: number) {
+    setView((prev) => {
+      const nextScale = clamp(prev.scale * factor, 0.25, 12);
+      const wx = (mx - prev.panX) / prev.scale;
+      const wy = (my - prev.panY) / prev.scale;
+      const panX = mx - wx * nextScale;
+      const panY = my - wy * nextScale;
+      return { scale: nextScale, panX, panY };
+    });
+  }
+
+  function zoomBy(factor: number) {
+    zoomAround(vp.w / 2, vp.h / 2, factor);
+  }
+
+  function onWheel(e: React.WheelEvent<HTMLDivElement>) {
+    if (!meta) return;
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    zoomAround(mx, my, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (!meta) return;
+    if (e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    draggingRef.current = { startX: e.clientX, startY: e.clientY, panX: view.panX, panY: view.panY };
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    const st = draggingRef.current;
+    if (!st) return;
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+    setView((prev) => ({ ...prev, panX: st.panX + dx, panY: st.panY + dy }));
+  }
+
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!draggingRef.current) return;
+    draggingRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+  }
 
   async function onDelete() {
     if (!id || busyDelete) return;
@@ -1190,15 +1316,71 @@ function OperationalVisualizerPageContent() {
             The compact usefulness layer, advisory regime, and active regime sections are controller-facing interpretations layered on top of that main path.
             Mechanism audit is a deeper diagnostic layer and is hidden by default.
           </div>
-          <div className="imgbox">
+          <div className="small" style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <button onClick={() => zoomBy(1.15)} disabled={!meta}>
+              +
+            </button>
+            <button onClick={() => zoomBy(1 / 1.15)} disabled={!meta}>
+              –
+            </button>
+            <button onClick={fitView} disabled={!meta}>
+              Fit
+            </button>
+            <button onClick={resetView} disabled={!meta}>
+              Reset
+            </button>
+            <span style={{ opacity: 0.72 }}>
+              Scroll to zoom, drag to pan.
+            </span>
+          </div>
+
+          <div
+            ref={viewportRef}
+            className="viewer-viewport"
+            style={{
+              width: "100%",
+              maxWidth: VIEWPORT_W,
+              aspectRatio: `${VIEWPORT_W} / ${VIEWPORT_H}`,
+              height: "auto",
+              marginTop: 10,
+              background: "#0f1115",
+              overflow: "hidden",
+              touchAction: "none",
+            }}
+            onWheel={onWheel}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+          >
             {shownDeployment ? (
-              <div style={{ display: "grid", position: "relative", maxWidth: "100%", width: "fit-content" }}>
+              <div
+                className="viewer-stage"
+                style={{
+                  display: "grid",
+                  position: "relative",
+                  width: imgSize?.w ?? VIEWPORT_W,
+                  height: imgSize?.h ?? VIEWPORT_H,
+                  transform: `translate(${view.panX}px, ${view.panY}px) scale(${view.scale})`,
+                  transformOrigin: "0 0",
+                }}
+              >
                 <img
                   decoding="async"
                   src={shownDeployment}
                   alt="deployment"
                   draggable={false}
-                  style={{ gridArea: "1 / 1", maxWidth: "100%", height: "auto" }}
+                  onLoad={(e) => {
+                    const w = e.currentTarget.naturalWidth || VIEWPORT_W;
+                    const h = e.currentTarget.naturalHeight || VIEWPORT_H;
+                    setImgSize((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
+                  }}
+                  style={{
+                    gridArea: "1 / 1",
+                    width: imgSize?.w ?? VIEWPORT_W,
+                    height: imgSize?.h ?? VIEWPORT_H,
+                    imageRendering: "auto",
+                  }}
                 />
 
                 {showFront && shownFront ? (
@@ -1209,10 +1391,11 @@ function OperationalVisualizerPageContent() {
                     draggable={false}
                     style={{
                       gridArea: "1 / 1",
-                      maxWidth: "100%",
-                      height: "auto",
+                      width: imgSize?.w ?? VIEWPORT_W,
+                      height: imgSize?.h ?? VIEWPORT_H,
                       opacity: frontOpacity,
                       pointerEvents: "none",
+                      imageRendering: "auto",
                     }}
                   />
                 ) : null}
@@ -1223,8 +1406,8 @@ function OperationalVisualizerPageContent() {
                     preserveAspectRatio="none"
                     style={{
                       gridArea: "1 / 1",
-                      width: "100%",
-                      height: "100%",
+                      width: imgSize?.w ?? VIEWPORT_W,
+                      height: imgSize?.h ?? VIEWPORT_H,
                       pointerEvents: "none",
                       zIndex: 3,
                     }}
