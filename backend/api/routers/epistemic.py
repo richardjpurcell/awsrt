@@ -48,6 +48,10 @@ from awsrt_core.schemas.epistemic import EpistemicManifest
 
 router = APIRouter()
 
+# Thesis-facing Epistemic Visualizer belief palette.
+# Keep this centralized so frame renders and legends stay aligned.
+BELIEF_CMAP = "YlGnBu_r"
+
 def _load_epi_summary_or_none(epi_id: str) -> dict[str, Any] | None:
     """
     Read metrics/{epi_id}/summary.json if present.
@@ -624,7 +628,7 @@ def run(req: RunRequest) -> dict:
         render_scalar_png(
             out.belief[t],
             td / "belief.png",
-            cmap="viridis",
+            cmap=BELIEF_CMAP,
             vmin=0.0,
             vmax=1.0,
             title=None,
@@ -690,7 +694,7 @@ def run(req: RunRequest) -> dict:
         )
 
     rd = renders_dir(epi_id)
-    render_legend_png(rd / "legend_belief.png", cmap="viridis", label="belief (p)", vmin=0.0, vmax=1.0)
+    render_legend_png(rd / "legend_belief.png", cmap=BELIEF_CMAP, label="belief (p)", vmin=0.0, vmax=1.0)
     render_legend_png(
         rd / "legend_entropy.png",
         cmap="gray",
