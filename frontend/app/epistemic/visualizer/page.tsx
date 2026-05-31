@@ -43,6 +43,24 @@ const PRELOAD_AHEAD = 2;
 const TILE_BG_DARK = "#0f1115";
 const TILE_BG_LIGHT = "#f5f5f5";
 
+type FrameRenderMode = "crisp" | "cloud";
+
+function epistemicImageStyle(renderMode: FrameRenderMode) {
+  if (renderMode === "cloud") {
+    return {
+      imageRendering: "auto" as const,
+      filter: "blur(3.6px) contrast(1.45) saturate(1.55)",
+      transform: "scale(1.018) translateZ(0)",
+    };
+  }
+
+  return {
+    imageRendering: "pixelated" as const,
+    filter: "none",
+    transform: "translateZ(0)",
+  };
+}
+
 function tileBackgroundForTitle(title: string) {
   const s = String(title || "").toLowerCase();
   if (s.includes("entropy change")) return TILE_BG_DARK;
@@ -120,13 +138,16 @@ function TrailTile({
   title,
   urls,
   opacityMode = "entropy",
+  renderMode = "crisp",
 }: {
   title: string;
   urls: string[];
   opacityMode?: "entropy" | "delta";
+  renderMode?: FrameRenderMode;
 }) {
 
   const frameStyle = tileFrameStyle(title);
+  const imageStyle = epistemicImageStyle(renderMode);
   const opacities =
     opacityMode === "delta"
       ? deltaTrailOpacities(urls.length)
@@ -181,8 +202,9 @@ function TrailTile({
                   height: "100%",
                   objectFit: "contain",
                   pointerEvents: "none",
-                  transform: "translateZ(0)",
-                  imageRendering: "pixelated",
+                  transform: imageStyle.transform,
+                  imageRendering: imageStyle.imageRendering,
+                  filter: imageStyle.filter,
                   opacity: opacities[idx] ?? 0.08,
                 }}
               />
@@ -275,8 +297,9 @@ function useAtomicImage(src: string, enabled: boolean = true) {
   return shown || lastGoodRef.current;
 }
 
-function Tile({ title, src }: { title: string; src: string }) {
+function Tile({ title, src, renderMode = "crisp" }: { title: string; src: string; renderMode?: FrameRenderMode }) {
   const frameStyle = tileFrameStyle(title);
+  const imageStyle = epistemicImageStyle(renderMode);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: TILE }}>
       <div
@@ -295,6 +318,7 @@ function Tile({ title, src }: { title: string; src: string }) {
       </div>
       <div
         style={{
+          position: "relative",
           width: "100%",
           maxWidth: TILE,
           aspectRatio: "1 / 1",
@@ -306,20 +330,62 @@ function Tile({ title, src }: { title: string; src: string }) {
         }}
       >
         {src ? (
-          <img
-            decoding="async"
-            src={src}
-            alt={title}
-            draggable={false}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              pointerEvents: "none",
-              transform: "translateZ(0)",
-              imageRendering: "pixelated",
-            }}
-          />
+          renderMode === "cloud" ? (
+            <>
+              <img
+                decoding="async"
+                src={src}
+                alt={title}
+                draggable={false}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  pointerEvents: "none",
+                  transform: imageStyle.transform,
+                  imageRendering: imageStyle.imageRendering,
+                  filter: imageStyle.filter,
+                }}
+              />
+              <img
+                decoding="async"
+                src={src}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  pointerEvents: "none",
+                  transform: "translateZ(0)",
+                  imageRendering: "pixelated",
+                  opacity: 0.3,
+                }}
+              />
+            </>
+          ) : (
+            <img
+              decoding="async"
+              src={src}
+              alt={title}
+              draggable={false}
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                pointerEvents: "none",
+                transform: "translateZ(0)",
+                imageRendering: "pixelated",
+              }}
+            />
+          )
         ) : null}
       </div>
     </div>
@@ -727,6 +793,7 @@ function BeliefLabVisualizerPageContent() {
 
   const [showTemporalTrail, setShowTemporalTrail] = useState(true);
   const [trailLength, setTrailLength] = useState(6);
+  const [frameRenderMode, setFrameRenderMode] = useState<FrameRenderMode>("crisp");
 
   // MDC residual driver choice
   const [residualDriver, setResidualDriver] = useState<"support" | "arrived_info">("support");
@@ -1177,6 +1244,17 @@ function BeliefLabVisualizerPageContent() {
                   <span>{trailLength}</span>
                 </label>
               ) : null}
+              <label className="small" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span>frame rendering</span>
+                <select
+                  value={frameRenderMode}
+                  onChange={(e) => setFrameRenderMode(e.target.value as FrameRenderMode)}
+                  style={{ padding: "6px 8px", borderRadius: 8, border: "1px solid rgba(0,0,0,0.18)" }}
+                >
+                  <option value="crisp">Crisp</option>
+                  <option value="cloud">Cloud</option>
+                </select>
+              </label>
             </div>
             {canPlot ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "0 0 auto" }}>
@@ -1239,25 +1317,27 @@ function BeliefLabVisualizerPageContent() {
                     alignItems: "flex-start",
                   }}
                 >
-                  <Tile title="Belief field — what does the posterior currently lean toward? (blue = lower fire belief, green = higher fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} />
+                  <Tile title="Belief field — what does the posterior currently lean toward? (blue = lower fire belief, green = higher fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} renderMode={frameRenderMode} />
 
                   {showTemporalTrail ? (
                     <TrailTile
                       title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)"
                       urls={entropyTrailUrls}
                       opacityMode="entropy"
+                      renderMode={frameRenderMode}
                     />
                   ) : (
-                    <Tile title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)" src={shownEntropy} />
+                    <Tile title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)" src={shownEntropy} renderMode={frameRenderMode} />
                   )}
                   {showTemporalTrail ? (
                     <TrailTile
                       title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)"
                       urls={deltaEntropyTrailUrls}
                       opacityMode="delta"
+                      renderMode={frameRenderMode}
                     />
                   ) : (
-                    <Tile title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)" src={shownDH} />
+                    <Tile title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)" src={shownDH} renderMode={frameRenderMode} />
                   )}
                 </div>
               </div>
@@ -1272,8 +1352,8 @@ function BeliefLabVisualizerPageContent() {
                     alignItems: "flex-start",
                   }}
                 >
-                  <Tile title="Prescribed support mask — where sensing was requested" src={shownSupport} />
-                  <Tile title="Arrivals over prescribed support — what actually arrived after impairment (white on gray)" src={shownArrived} />
+                  <Tile title="Prescribed support mask — where sensing was requested" src={shownSupport} renderMode={frameRenderMode} />
+                  <Tile title="Arrivals over prescribed support — what actually arrived after impairment (white on gray)" src={shownArrived} renderMode={frameRenderMode} />
                 </div>
               </div>
             </div>
