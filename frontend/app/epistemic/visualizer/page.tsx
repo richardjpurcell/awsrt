@@ -1317,7 +1317,7 @@ function BeliefLabVisualizerPageContent() {
                     alignItems: "flex-start",
                   }}
                 >
-                  <Tile title="Belief field — what does the posterior currently lean toward? (blue = lower fire belief, green = higher fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} renderMode={frameRenderMode} />
+                  <Tile title="Belief field — what does the posterior currently lean toward? (stronger color = higher fire belief; weaker color = lower fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} renderMode={frameRenderMode} />
 
                   {showTemporalTrail ? (
                     <TrailTile
