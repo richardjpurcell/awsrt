@@ -1217,40 +1217,65 @@ function BeliefLabVisualizerPageContent() {
           <div className="card" style={{ marginTop: 12 }}>
             <h2 style={{ marginTop: 0 }}>Epistemic frame panels</h2>
             <div className="small" style={{ opacity: 0.82, lineHeight: 1.45 }}>
-              Read left-to-right as support and arrivals shaping belief, uncertainty, and entropy change.
+              Read as two linked stories: belief and uncertainty state, then prescribed support and realized arrivals.
             </div>
 
             <div
               style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 14,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: 16,
                 marginTop: 12,
                 alignItems: "flex-start",
               }}
             >
-              <Tile title="Belief field — what does the posterior currently lean toward? (blue = lower fire belief, green = higher fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} />
+              <div>
+                <h3 style={{ margin: "0 0 8px 0" }}>Belief and uncertainty state</h3>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 14,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Tile title="Belief field — what does the posterior currently lean toward? (blue = lower fire belief, green = higher fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} />
 
-              {showTemporalTrail ? (
-                <TrailTile
-                  title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)"
-                  urls={entropyTrailUrls}
-                  opacityMode="entropy"
-                />
-              ) : (
-                <Tile title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)" src={shownEntropy} />
-              )}
-              {showTemporalTrail ? (
-                <TrailTile
-                  title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)"
-                  urls={deltaEntropyTrailUrls}
-                  opacityMode="delta"
-                />
-              ) : (
-                <Tile title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)" src={shownDH} />
-              )}
-              <Tile title="Prescribed support mask" src={shownSupport} />
-              <Tile title="Arrivals over prescribed support (white on gray)" src={shownArrived} />
+                  {showTemporalTrail ? (
+                    <TrailTile
+                      title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)"
+                      urls={entropyTrailUrls}
+                      opacityMode="entropy"
+                    />
+                  ) : (
+                    <Tile title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)" src={shownEntropy} />
+                  )}
+                  {showTemporalTrail ? (
+                    <TrailTile
+                      title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)"
+                      urls={deltaEntropyTrailUrls}
+                      opacityMode="delta"
+                    />
+                  ) : (
+                    <Tile title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)" src={shownDH} />
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 style={{ margin: "0 0 8px 0" }}>Support and arrival realization</h3>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 14,
+                    alignItems: "flex-start",
+                  }}
+                >
+                  <Tile title="Prescribed support mask — where sensing was requested" src={shownSupport} />
+                  <Tile title="Arrivals over prescribed support — what actually arrived after impairment (white on gray)" src={shownArrived} />
+                </div>
+              </div>
             </div>
           </div>
 
