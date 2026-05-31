@@ -1060,6 +1060,7 @@ function BeliefLabVisualizerPageContent() {
 
   // Keep all line-plot SVGs the same height for a clean grid
   const PLOT_H = 150;
+  const COMPACT_PLOT_H = 96;
 
   // Match Operational Visualizer behavior: show delete failures in red.
   const deleteIsError =
@@ -1256,23 +1257,25 @@ function BeliefLabVisualizerPageContent() {
           {canPlot ? (
             <>
               <div className="card" style={{ marginTop: 12 }}>
-                <h2 style={{ marginTop: 0 }}>Useful delivered information</h2>
+                <h2 style={{ marginTop: 0 }}>Compact delivered-information diagnostic</h2>
                 <SparkLine
                   title="Useful delivered information: arrived information proxy"
                   values={series!.arrived_info_proxy}
                   cursorT={Math.min(tt, series!.arrived_info_proxy.length - 1)}
-                  height={PLOT_H}
+                  height={COMPACT_PLOT_H}
                   precision={3}
                   subtitle="Sum of positive entropy drops on cells whose observations actually arrive at time t."
                 />
               </div>
 
-              <div className="card" style={{ marginTop: 12 }}>
-                <h2 style={{ marginTop: 0 }}>Secondary diagnostics</h2>
+              <details className="card" style={{ marginTop: 12 }}>
+                <summary style={{ cursor: "pointer" }}>
+                  <b>Secondary diagnostics</b>
+                </summary>
 
                 {/* summary line (small, publication-friendly) */}
                 {violationSummary ? (
-                  <div className="small" style={{ marginTop: 0, opacity: 0.85 }}>
+                  <div className="small" style={{ marginTop: 10, opacity: 0.85 }}>
                     MDC violation rate:{" "}
                     <b>{(violationSummary.violRate * 100).toFixed(1)}%</b> ({violationSummary.viol}/
                     {violationSummary.count}) where ΔH̄(t) &gt; −ε. &nbsp;|&nbsp; Satisfied:{" "}
@@ -1345,7 +1348,7 @@ function BeliefLabVisualizerPageContent() {
                   />
                 ) : null}
 
-                {/* empty slot to balance layout (we have 5 plots in a 3-col grid) */}
+                {/* empty slot to balance layout when the residual plot is present */}
                 <div />
 
               </div>
@@ -1374,7 +1377,7 @@ function BeliefLabVisualizerPageContent() {
                   </div>
                 </details>
               ) : null}
-              </div>
+              </details>
             </>
           ) : (
             <div className="small" style={{ marginTop: 10 }}>
