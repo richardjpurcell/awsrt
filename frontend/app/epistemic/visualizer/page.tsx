@@ -1210,63 +1210,88 @@ function BeliefLabVisualizerPageContent() {
                   support-proxy residual=<b>{fmtNum(cursorSummary.residualSupport, 6)}</b>
                   {" "}· information residual=<b>{fmtNum(cursorSummary.residualArrivedInfo, 6)}</b>
                 </div>
-                <div style={{ marginTop: 6, opacity: 0.8 }}>
-                  Read the image row together with this summary:
-                  prescribed support shows where sensing was requested,
-                  arrived mask shows what actually arrived after impairment,
-                  and the plots show how realized arrivals propagate into information delivery, entropy outcome, and residual diagnostics.
-                </div>
               </div>
             </div>
           ) : null}
+          <div className="card" style={{ marginTop: 12 }}>
+            <h2 style={{ marginTop: 0 }}>Epistemic frame panels</h2>
+            <div className="small" style={{ opacity: 0.82, lineHeight: 1.45 }}>
+              Read left-to-right as support and arrivals shaping belief, uncertainty, and entropy change.
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 14,
+                marginTop: 12,
+                alignItems: "flex-start",
+              }}
+            >
+              <Tile title="Belief field — what does the posterior currently lean toward? (blue = lower fire belief, green = higher fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} />
+
+              {showTemporalTrail ? (
+                <TrailTile
+                  title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)"
+                  urls={entropyTrailUrls}
+                  opacityMode="entropy"
+                />
+              ) : (
+                <Tile title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)" src={shownEntropy} />
+              )}
+              {showTemporalTrail ? (
+                <TrailTile
+                  title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)"
+                  urls={deltaEntropyTrailUrls}
+                  opacityMode="delta"
+                />
+              ) : (
+                <Tile title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)" src={shownDH} />
+              )}
+              <Tile title="Prescribed support mask" src={shownSupport} />
+              <Tile title="Arrivals over prescribed support (white on gray)" src={shownArrived} />
+            </div>
+          </div>
 
           {canPlot ? (
             <>
-              {/* summary line (small, publication-friendly) */}
-              {violationSummary ? (
-                <div className="small" style={{ marginTop: 8, opacity: 0.85 }}>
-                  MDC violation rate:{" "}
-                  <b>{(violationSummary.violRate * 100).toFixed(1)}%</b> ({violationSummary.viol}/
-                  {violationSummary.count}) where ΔH̄(t) &gt; −ε. &nbsp;|&nbsp; Satisfied:{" "}
-                  <b>{(violationSummary.okRate * 100).toFixed(1)}%</b>. (ε={violationSummary.eps})
-                </div>
-              ) : null}
+              <div className="card" style={{ marginTop: 12 }}>
+                <h2 style={{ marginTop: 0 }}>Useful delivered information</h2>
+                <SparkLine
+                  title="Useful delivered information: arrived information proxy"
+                  values={series!.arrived_info_proxy}
+                  cursorT={Math.min(tt, series!.arrived_info_proxy.length - 1)}
+                  height={PLOT_H}
+                  precision={3}
+                  subtitle="Sum of positive entropy drops on cells whose observations actually arrive at time t."
+                />
+              </div>
 
-              {interpretationBlock ? (
-                <div className="card" style={{ marginTop: 10 }}>
-                  <h2 style={{ marginTop: 0 }}>How to read this run</h2>
-                  <div className="small" style={{ lineHeight: 1.5 }}>
-                    <div>
-                      <b>Realized channel rate:</b>{" "}
-                      {interpretationBlock.arrivalText}
-                      {" "}Mean arrived fraction = <b>{fmtNum(interpretationBlock.meanArrival, 4)}</b>.
-                    </div>
-                    <div style={{ marginTop: 6 }}>
-                      <b>Useful delivered information:</b>{" "}
-                      Mean arrived information proxy = <b>{fmtNum(interpretationBlock.meanInfo, 3)}</b>.
-                    </div>
-                    <div style={{ marginTop: 6 }}>
-                      <b>Decrease interpretation:</b> {interpretationBlock.decreaseText}
-                    </div>
-                    <div style={{ marginTop: 6 }}>
-                      <b>Residual interpretation:</b> {interpretationBlock.residualText}
-                    </div>
+              <div className="card" style={{ marginTop: 12 }}>
+                <h2 style={{ marginTop: 0 }}>Secondary diagnostics</h2>
+
+                {/* summary line (small, publication-friendly) */}
+                {violationSummary ? (
+                  <div className="small" style={{ marginTop: 0, opacity: 0.85 }}>
+                    MDC violation rate:{" "}
+                    <b>{(violationSummary.violRate * 100).toFixed(1)}%</b> ({violationSummary.viol}/
+                    {violationSummary.count}) where ΔH̄(t) &gt; −ε. &nbsp;|&nbsp; Satisfied:{" "}
+                    <b>{(violationSummary.okRate * 100).toFixed(1)}%</b>. (ε={violationSummary.eps})
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {/* Residual quick summary (kept, but now compact and no longer needs its own control row) */}
-              {residualViolationSummary ? (
-                <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
-                  Residual violation rate:{" "}
-                  <b>{(residualViolationSummary.rate * 100).toFixed(1)}%</b> ({residualViolationSummary.viol}/
-                  {residualViolationSummary.count}) where r(t) &gt; 0.
-                </div>
-              ) : (
-                <div className="small" style={{ marginTop: 6, opacity: 0.7 }}>
-                  {residual ? null : "(Residual not available for this run yet.)"}
-                </div>
-              )}
+                {/* Residual quick summary (kept, but now compact and no longer needs its own control row) */}
+                {residualViolationSummary ? (
+                  <div className="small" style={{ marginTop: 6, opacity: 0.85 }}>
+                    Residual violation rate:{" "}
+                    <b>{(residualViolationSummary.rate * 100).toFixed(1)}%</b> ({residualViolationSummary.viol}/
+                    {residualViolationSummary.count}) where r(t) &gt; 0.
+                  </div>
+                ) : (
+                  <div className="small" style={{ marginTop: 6, opacity: 0.7 }}>
+                    {residual ? null : "(Residual not available for this run yet.)"}
+                  </div>
+                )}
 
               <div
                 style={{
@@ -1299,15 +1324,6 @@ function BeliefLabVisualizerPageContent() {
                   }
                 />
 
-                <SparkLine
-                  title="Useful delivered information: arrived information proxy"
-                  values={series!.arrived_info_proxy}
-                  cursorT={Math.min(tt, series!.arrived_info_proxy.length - 1)}
-                  height={PLOT_H}
-                  precision={3}
-                  subtitle="Sum of positive entropy drops on cells whose observations actually arrive at time t."
-                />
-
                 <DeltaEntropyDiagnostic
                   units={series?.units ?? null}
                   eps={series!.eps}
@@ -1333,6 +1349,32 @@ function BeliefLabVisualizerPageContent() {
                 <div />
 
               </div>
+
+              {interpretationBlock ? (
+                <details style={{ marginTop: 12 }}>
+                  <summary className="small" style={{ cursor: "pointer", opacity: 0.86 }}>
+                    How to read this run
+                  </summary>
+                  <div className="small" style={{ lineHeight: 1.5, marginTop: 8 }}>
+                    <div>
+                      <b>Realized channel rate:</b>{" "}
+                      {interpretationBlock.arrivalText}
+                      {" "}Mean arrived fraction = <b>{fmtNum(interpretationBlock.meanArrival, 4)}</b>.
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <b>Useful delivered information:</b>{" "}
+                      Mean arrived information proxy = <b>{fmtNum(interpretationBlock.meanInfo, 3)}</b>.
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <b>Decrease interpretation:</b> {interpretationBlock.decreaseText}
+                    </div>
+                    <div style={{ marginTop: 6 }}>
+                      <b>Residual interpretation:</b> {interpretationBlock.residualText}
+                    </div>
+                  </div>
+                </details>
+              ) : null}
+              </div>
             </>
           ) : (
             <div className="small" style={{ marginTop: 10 }}>
@@ -1340,39 +1382,6 @@ function BeliefLabVisualizerPageContent() {
             </div>
           )}
 
-          {/* --- 5 tiles --- */}
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 14,
-              marginTop: 12,
-              alignItems: "flex-start",
-            }}
-          >
-            <Tile title="Belief field — what does the posterior currently lean toward? (blue = lower fire belief, green = higher fire belief; colors may stay biased even while entropy rises again)" src={shownBelief} />
-
-            {showTemporalTrail ? (
-              <TrailTile
-                title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)"
-                urls={entropyTrailUrls}
-                opacityMode="entropy"
-              />
-            ) : (
-              <Tile title="Entropy field — where am I currently more or less uncertain? (black = lower uncertainty, white = higher uncertainty)" src={shownEntropy} />
-            )}
-            {showTemporalTrail ? (
-              <TrailTile
-                title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)"
-                urls={deltaEntropyTrailUrls}
-                opacityMode="delta"
-              />
-            ) : (
-              <Tile title="Entropy change field — where did uncertainty just go down or up? (blue = uncertainty decreased, red = uncertainty increased)" src={shownDH} />
-            )}
-            <Tile title="Prescribed support mask" src={shownSupport} />
-            <Tile title="Arrivals over prescribed support (white on gray)" src={shownArrived} />
-          </div>
         </>
       ) : (
         <div className="small">No run selected yet.</div>
