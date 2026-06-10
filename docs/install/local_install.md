@@ -2,17 +2,19 @@
 
 ## Status
 
-Draft local installation notes for AWSRT v0.8 reproducible-handoff work.
+Local installation and validation notes for AWSRT during the v0.10 JOSS/open-science documentation refresh.
 
-These instructions describe the current local development workflow for AWSRT. They are intended for a motivated technical reader who wants to run the backend and frontend locally. They are not yet a polished public deployment guide.
+These instructions describe the current local development workflow for AWSRT. They are intended for a motivated technical reader who wants to install the backend and frontend locally, run basic validation checks, and confirm that the research surfaces can be opened.
+
+AWSRT remains research software. These notes support local development, review, and reproducible inspection. They are not operational wildfire-deployment instructions.
 
 ## Tested/development context
 
 AWSRT is currently developed as local research software with:
 
-- a Python/FastAPI backend;
-- a Next.js/React frontend;
-- local data artifacts written under `data/` by default.
+* a Python/FastAPI backend;
+* a Next.js/React frontend;
+* local data artifacts written under `data/` by default.
 
 The current development workflow has been used on macOS with a conda environment named:
 
@@ -256,9 +258,34 @@ rm -rf data/renders/phy-XXXXX
 rm -rf data/renders/phy-XXXXX/t
 ```
 
+## Validation checks
+
+A minimal backend validation check is:
+
+```bash
+python -m pytest
+```
+
+A frontend production-build check is:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+Or, from the repository root:
+
+```bash
+npm --prefix frontend install
+npm --prefix frontend run build
+```
+
+These checks do not reproduce thesis results. They confirm that the local backend tests and frontend build pass in the current environment.
+
 ## First-run smoke test
 
-A minimal smoke test is:
+A minimal local smoke test is:
 
 1. Start the backend:
 
@@ -285,11 +312,18 @@ A minimal smoke test is:
    ```
 
 5. Confirm the AWSRT splash page loads.
-6. Open the Physical Surface.
-7. Create or inspect a small run.
-8. Open the corresponding visualizer or analysis page.
 
-This smoke test confirms that the backend, frontend, and local data paths are basically functioning. It does not reproduce the frozen v0.6 results by itself.
+6. Open the Physical Surface.
+
+7. Create or inspect a small physical artifact.
+
+8. Open the Epistemic Surface or Epistemic Visualizer and confirm that belief/entropy-oriented inspection pages load.
+
+9. Open the Operational Surface or Operational Visualizer and confirm that sensing/trajectory-oriented inspection pages load.
+
+10. Open the Analysis Surface or a corresponding metric/analysis page.
+
+This smoke test confirms that the backend, frontend, local data paths, and major research-surface routes are basically functioning. It does not reproduce the frozen v0.6 results or the v0.9 epistemic inspectability studies by itself.
 
 ## Reproducing thesis/journal results
 
@@ -301,7 +335,9 @@ See:
 docs/reproducibility/reproduce_v0_6.md
 ```
 
-That note should be used for inspecting or reproducing the frozen v0.6 evidence state. The local install path here only confirms that the application can be installed and started locally.
+That note should be used for inspecting or reproducing the frozen v0.6 evidence state. The local install path here only confirms that the application can be installed, started, built, tested, and inspected locally.
+
+The v0.9 Epistemic Surface work added support-geometry and visualizer-metric inspectability studies. A dedicated v0.9 reproducibility note may be added during the v0.10 documentation refresh. Until then, v0.9 design notes in `docs/design/` preserve the interpretation and subgoal history for epistemic inspectability work.
 
 ## Common troubleshooting
 
@@ -393,9 +429,14 @@ Some workflows require preserved manifests, metrics, fields, or transformed fire
 
 ## Known limitations
 
-- Installation has not yet been tested broadly across fresh machines.
-- Docker/container installation is not yet the primary supported path.
-- Some pages are research-instrument surfaces rather than polished product workflows.
-- Historical design notes may preserve older terminology for auditability.
-- The Physical Surface is an experimental environmental substrate, not a high-fidelity physical wildfire simulator.
-- The v0.6 result state is frozen, while v0.8 installation, documentation, and handoff verification work is ongoing.
+* Installation has not yet been tested broadly across fresh machines.
+* Docker/container installation is not yet the primary supported path.
+* Some pages are research-instrument surfaces rather than polished product workflows.
+* Historical design notes may preserve older terminology for auditability.
+* The Physical Surface is an experimental environmental substrate, not a high-fidelity physical wildfire simulator.
+* Transformed real-fire results are bounded and should not be read as universal wildfire generalization.
+* Epistemic Surface support geometries are controlled epistemic probes, not operational search policies.
+* Visualizer outputs are inspection aids and should be interpreted alongside metrics rather than as standalone evidence.
+* The v0.6 result state is frozen.
+* The v0.8 reproducible-handoff work and v0.9 interpretability/inspectability work are complete.
+* The v0.10 JOSS/open-science documentation refresh is ongoing.
