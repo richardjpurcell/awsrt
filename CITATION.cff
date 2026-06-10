@@ -3,24 +3,31 @@ message: "If you use AWSRT, please cite the software using the metadata below."
 title: "AWSRT: Adaptive Wildfire Sensing Research Tool"
 type: software
 authors:
-  - family-names: "Purcell"
-    given-names: "Richard"
-repository-code: "https://github.com/richardjpurcell/awsrt"
-url: "https://github.com/richardjpurcell/awsrt"
-abstract: >
+
+* family-names: "Purcell"
+  given-names: "Richard"
+  repository-code: "https://github.com/richardjpurcell/awsrt"
+  url: "https://github.com/richardjpurcell/awsrt"
+  abstract: >
   AWSRT is a research instrument for studying adaptive sensing, belief
-  maintenance, information impairment, and usefulness under wildfire-like
-  dynamic fields. It supports structured dynamic-field generation, transformed
-  fire artifact replay, belief and uncertainty analysis, sensing-policy
-  comparison, impairment studies, and regime-managed sensing experiments.
-keywords:
-  - wildfire sensing
-  - adaptive sensing
-  - research software
-  - uncertainty
-  - belief maintenance
-  - information impairment
-  - sensor networks
-license: "BSD-3-Clause"
-version: "v0.1"
-date-released: "2026-04-05"
+  maintenance, information impairment, epistemic inspectability, and usefulness
+  under wildfire-like dynamic fields. It supports structured dynamic-field
+  generation, transformed wildfire-like artifacts, belief and uncertainty
+  analysis, support-geometry probes, sensing-policy comparison, impairment
+  studies, deployment-geometry and observation-window analysis, and
+  thesis-facing metric and visualization workflows. AWSRT is not an operational
+  wildfire simulator, physical twin, or digital twin.
+  keywords:
+* wildfire sensing
+* adaptive sensing
+* research software
+* uncertainty
+* belief maintenance
+* information impairment
+* epistemic inspectability
+* sensor networks
+* entropy
+* visualization
+  license: "BSD-3-Clause"
+  version: "v0.10"
+  date-released: "2026-06-10"
