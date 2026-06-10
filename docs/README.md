@@ -25,6 +25,7 @@ The current documentation goal is to align the repository after the v0.9 interpr
 * [`development/subgoal_freeze_checklist.md`](development/subgoal_freeze_checklist.md) — lightweight checklist for freezing AWSRT development subgoals.
 * [`development/backend_smoke_test.md`](development/backend_smoke_test.md) — backend import, health, and pytest smoke-test workflow.
 * [`development/frontend_build_check.md`](development/frontend_build_check.md) — frontend install, production-build, and dev-server validation workflow.
+* [`development/joss_open_science_readiness_v0_10.md`](development/joss_open_science_readiness_v0_10.md) — current v0.10 JOSS/open-science readiness review and remaining repository-governance triage.
 * [`development/joss_community_readiness_review.md`](development/joss_community_readiness_review.md) — v0.8 JOSS/community readiness review and gap triage, retained as the starting point for the v0.10 documentation refresh.
 
 Use this checklist when finishing frontend, backend, documentation, or mixed changes. In particular, frontend-touching work should normally run:
@@ -104,6 +105,7 @@ Recent v0.7 design notes include:
 * [`development/backend_smoke_test.md`](development/backend_smoke_test.md) — backend import, health, and pytest smoke-test workflow.
 * [`development/frontend_build_check.md`](development/frontend_build_check.md) — frontend install, production-build, and dev-server validation workflow.
 * [`development/joss_community_readiness_review.md`](development/joss_community_readiness_review.md) — v0.8 JOSS/community readiness review and gap triage.
+* [`development/joss_open_science_readiness_v0_10.md`](development/joss_open_science_readiness_v0_10.md) — current v0.10 JOSS/open-science readiness review and remaining repository-governance triage.
 * [`overview/`](overview/) — committee-facing and high-level orientation documents.
 
 ---
