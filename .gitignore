@@ -98,3 +98,10 @@ dist/
 # Source utilities are tracked by default.
 # Scratch/ad hoc source scripts are kept here and ignored.
 src/do_not_track/
+
+# Local replay-fire manifests; underlying fire data is not distributed
+data/manifests/phy-327b9d58ce.json
+data/manifests/phy-79a8cea500.json
+data/manifests/phy-b7edba9ac3.json
+data/manifests/phy-c0f52eb645.json
+data/manifests/phy-ce7c47d240.json
