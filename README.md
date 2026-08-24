@@ -146,24 +146,29 @@ frontend/                Next.js frontend for the four research surfaces
 data/                    Local manifests, fields, renders, metrics, and run artifacts
 docs/                    Documentation, design notes, install notes, and workflow guidance
 docs/design/             Versioned design notes and release-freeze interpretation notes
-docs/install/            Local installation and setup notes
+docs/install/            Cross-platform installation and setup notes
 docs/reproducibility/    Reproduction notes for frozen result states
 docs/development/        Developer workflow and subgoal freeze checklist
 notes/                   Supporting research notes retained with software versions
 paper/                   Paper-facing materials
 results/                 Result outputs and figure exports
 src/                     Utility and packaging scripts
+environment.yml          Recommended clean-install Python/Node baseline
+start_backend.bat        Windows backend launcher
+start_frontend.bat       Windows frontend launcher
 README.md                Project overview
-pyproject.toml           Python package configuration
+pyproject.toml           Python package and compatibility metadata
 frontend/package.json    Frontend package configuration
+frontend/package-lock.json  Frontend dependency lockfile
 ```
 
 Historical release notes and reproducibility files, such as `REPRODUCIBILITY_v0.1.md`, `RESULTS_MANIFEST_v0.1.md`, `VERSION_NOTES_v0.1.md`, and `VERSION_NOTES_v0.2.md`, are retained for auditability.
 
 ## Quickstart
 
-These instructions describe the current local development workflow. They are not yet a polished public installation process.
-For more detailed setup notes, see [`docs/install/local_install.md`](docs/install/local_install.md).
+AWSRT has a Python/FastAPI backend on port `8000` and a Next.js frontend on port `3000`. The established development workflow is on macOS, and the local install path has also been exercised on Windows 11. For new installations on either platform, the recommended baseline is a dedicated Conda environment with Python 3.11 and Node.js 20.
+
+For the detailed cross-platform guide, see [`docs/install/local_install.md`](docs/install/local_install.md). Windows-specific setup and troubleshooting are in [`docs/install/windows_11.md`](docs/install/windows_11.md).
 
 ### 1. Clone the repository
 
@@ -172,62 +177,106 @@ git clone https://github.com/richardjpurcell/awsrt.git
 cd awsrt
 ```
 
-### 2. Create and activate a Python environment
+### 2. Create the AWSRT environment
 
-A generic virtual-environment path is:
+Preferred on macOS or Windows:
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -e .
+```text
+conda env create -f environment.yml
+conda activate awsrt
 ```
 
-The current development workflow has also used a conda environment named `PhD_general`:
+Manual equivalent:
 
-```bash
-conda activate PhD_general
-pip install -e .
+```text
+conda create -n awsrt -c conda-forge python=3.11 nodejs=20 pip
+conda activate awsrt
 ```
 
-Use the environment approach that matches your local setup.
+### 3. Install the backend
 
-### 3. Start the backend
+From the repository root:
+
+```text
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip check
+```
+
+AWSRT currently constrains dependency families that have introduced incompatible major changes. In particular, the supported install remains on NumPy 1.x and Zarr 2.x until migration to the newer major APIs is explicitly tested.
+
+Optional version check:
+
+```text
+python -c "import numpy, zarr, numcodecs; print('numpy', numpy.__version__); print('zarr', zarr.__version__); print('numcodecs', numcodecs.__version__)"
+```
+
+### 4. Install the frontend
+
+macOS:
+
+```bash
+cd frontend
+npm ci
+cp .env.local.example .env.local
+cd ..
+```
+
+Windows Anaconda Prompt:
+
+```bat
+cd frontend
+npm ci
+if not exist .env.local copy .env.local.example .env.local
+cd ..
+```
+
+`npm ci` is preferred for a clean/review install because it follows the committed `package-lock.json`. Use `npm install` when intentionally updating frontend dependencies and the lockfile.
+
+### 5. Start AWSRT
+
+#### macOS
+
+Open two Terminal windows in the repository root.
+
+Backend:
 
 ```bash
 make backend
 ```
 
-This expands to:
+Frontend:
 
 ```bash
-PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
+make frontend
 ```
 
-Health check:
+#### Windows 11
+
+Double-click these files in the repository root and leave both windows open:
+
+```text
+start_backend.bat
+start_frontend.bat
+```
+
+Manual Windows commands are documented in [`docs/install/windows_11.md`](docs/install/windows_11.md).
+
+### 6. Open AWSRT
+
+Backend health check:
 
 ```text
 http://127.0.0.1:8000/health
 ```
 
-When the backend is running, FastAPI route documentation may also be available through the local API documentation endpoint.
-
-### 4. Install and start the frontend
-
-```bash
-cd frontend
-npm install
-cp .env.local.example .env.local
-npm run dev
-```
-
-Open:
+Frontend:
 
 ```text
-http://127.0.0.1:3000
+http://localhost:3000
 ```
 
-### 5. Data location
+### 7. Data location
 
 By default, AWSRT writes artifacts under:
 
@@ -244,31 +293,21 @@ data/renders/
 data/metrics/
 ```
 
-To override the root data directory:
-
-```bash
-export AWSRT_DATA_DIR=/abs/path/to/data
-```
-
-Then start the backend from the same shell:
-
-```bash
-make backend
-```
+To override the root data directory, set `AWSRT_DATA_DIR` in the shell that starts the backend. Platform-specific examples are in [`docs/install/local_install.md`](docs/install/local_install.md).
 
 ## Testing and validation
 
 A minimal backend validation check is:
 
-```bash
+```text
 python -m pytest
 ```
 
 A frontend build check is:
 
-```bash
+```text
 cd frontend
-npm install
+npm ci
 npm run build
 ```
 
@@ -277,7 +316,7 @@ For a lightweight end-to-end smoke test:
 1. start the backend;
 2. verify `http://127.0.0.1:8000/health`;
 3. start the frontend;
-4. open `http://127.0.0.1:3000`;
+4. open `http://localhost:3000`;
 5. open the Physical Surface and create or inspect a small run;
 6. open an Epistemic or Operational visualizer;
 7. inspect the corresponding analysis or metric view.
@@ -290,27 +329,11 @@ AWSRT renders overlay-aligned PNGs, including base, fire, wind, terrain, and cat
 
 Available environment variables:
 
-* `AWSRT_RENDER_PX_PER_CELL`: pixels per grid cell;
-* `AWSRT_RENDER_MAX_SIDE_PX`: maximum longest rendered PNG side;
-* `AWSRT_RENDER_DPI`: Matplotlib DPI used during rendering.
+- `AWSRT_RENDER_PX_PER_CELL`: pixels per grid cell;
+- `AWSRT_RENDER_MAX_SIDE_PX`: maximum longest rendered PNG side;
+- `AWSRT_RENDER_DPI`: Matplotlib DPI used during rendering.
 
-Suggested starting points:
-
-For small simulations:
-
-```bash
-export AWSRT_RENDER_PX_PER_CELL=2.0
-export AWSRT_RENDER_MAX_SIDE_PX=4096
-export AWSRT_RENDER_DPI=160
-```
-
-For large transformed fire artifacts:
-
-```bash
-export AWSRT_RENDER_PX_PER_CELL=3.0
-export AWSRT_RENDER_MAX_SIDE_PX=8192
-export AWSRT_RENDER_DPI=200
-```
+Suggested values and platform-specific `export`/`set` commands are documented in [`docs/install/local_install.md`](docs/install/local_install.md).
 
 Render endpoints cache PNGs under paths such as:
 
@@ -318,20 +341,15 @@ Render endpoints cache PNGs under paths such as:
 data/renders/{phy_id}/t/{t}/...
 ```
 
-If render environment variables change, delete cached renders to regenerate them:
-
-```bash
-rm -rf data/renders/phy-XXXXX
-# or only cached timestep frames:
-rm -rf data/renders/phy-XXXXX/t
-```
+If render environment variables change, delete the relevant cached renders before regenerating them.
 
 ## Documentation map
 
 Important documentation areas include:
 
 * [`docs/README.md`](docs/README.md): documentation index;
-* [`docs/install/local_install.md`](docs/install/local_install.md): local installation and setup notes;
+* [`docs/install/local_install.md`](docs/install/local_install.md): cross-platform local installation and setup;
+* [`docs/install/windows_11.md`](docs/install/windows_11.md): Windows 11 installation, launch, and troubleshooting;
 * [`docs/reproducibility/reproduce_v0_6.md`](docs/reproducibility/reproduce_v0_6.md): reproduction notes for the frozen v0.6 result state;
 * [`docs/development/subgoal_freeze_checklist.md`](docs/development/subgoal_freeze_checklist.md): lightweight developer checklist for freezing subgoals;
 * [`docs/backlog/v0_8_backlog.md`](docs/backlog/v0_8_backlog.md): historical v0.8 backlog for reproducible handoff, committee readability, and JOSS/community readiness;
@@ -350,7 +368,9 @@ AWSRT is research software under active development.
 
 Current limitations include:
 
-* installation has not yet been tested broadly across machines;
+* the local workflow has been exercised on macOS development systems and on a fresh Windows 11 installation, but not across a broad operating-system/Python/Node test matrix;
+* Python 3.11 and Node.js 20 are the recommended clean-install baseline; other combinations are not equally validated;
+* NumPy 2.x and Zarr 3.x are intentionally outside the current compatibility bounds until AWSRT is migrated and tested against those major versions;
 * Docker or containerized installation is not yet the primary supported path;
 * some frontend pages are research-instrument surfaces rather than polished product workflows;
 * historical design notes may preserve older terminology for auditability;

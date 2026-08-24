@@ -12,7 +12,8 @@ The current documentation goal is to align the repository after the v0.9 interpr
 
 * [`../README.md`](../README.md) — project overview, research framing, quickstart, testing notes, and repository structure.
 * [`overview/awsrt_committee_orientation.md`](overview/awsrt_committee_orientation.md) — committee-facing orientation to AWSRT’s thesis role, four research surfaces, and bounded interpretation.
-* [`install/local_install.md`](install/local_install.md) — local setup instructions for backend and frontend development.
+* [`install/local_install.md`](install/local_install.md) — cross-platform local setup instructions for the AWSRT backend and frontend.
+* [`install/windows_11.md`](install/windows_11.md) — detailed Windows 11 / Anaconda installation, launcher, and troubleshooting guide.
 * [`install/clean_machine_check.md`](install/clean_machine_check.md) — v0.8 clean-machine / reproducible-handoff verification note.
 * [`reproducibility/reproduce_v0_6.md`](reproducibility/reproduce_v0_6.md) — notes for reproducing or inspecting the frozen v0.6 result state.
 * [`reproducibility/minimal_first_run.md`](reproducibility/minimal_first_run.md) — minimal v0.8 first-run workflow for starting AWSRT, creating a small smoke artifact, and opening it in the Physical Visualizer.
