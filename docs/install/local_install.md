@@ -1,32 +1,20 @@
-# AWSRT Local Installation Notes
+# AWSRT Local Installation — macOS and Windows 11
 
 ## Status
 
-Local installation and validation notes for AWSRT during the v0.10 JOSS/open-science documentation refresh.
+These are the cross-platform local installation and validation notes for AWSRT during the v0.10 JOSS/open-science documentation refresh.
 
-These instructions describe the current local development workflow for AWSRT. They are intended for a motivated technical reader who wants to install the backend and frontend locally, run basic validation checks, and confirm that the research surfaces can be opened.
+AWSRT is local research software composed of:
 
-AWSRT remains research software. These notes support local development, review, and reproducible inspection. They are not operational wildfire-deployment instructions.
+- a Python/FastAPI backend;
+- a Next.js/React frontend;
+- local data artifacts written under `data/` by default.
 
-## Tested/development context
+The established development workflow is on macOS. A fresh Windows 11 installation has also been completed using Anaconda/Conda, Python 3.11, Node.js 20, and the supplied `.bat` launchers. For new installations on either platform, the recommended baseline is now the dedicated `awsrt` Conda environment rather than a developer-specific environment.
 
-AWSRT is currently developed as local research software with:
-
-* a Python/FastAPI backend;
-* a Next.js/React frontend;
-* local data artifacts written under `data/` by default.
-
-The current development workflow has been used on macOS with a conda environment named:
-
-```bash
-PhD_general
-```
-
-A generic Python virtual environment path is also supported by the project packaging metadata.
+AWSRT remains a bounded experimental research instrument. These instructions support development, review, and reproducible inspection; they are not operational wildfire-deployment instructions.
 
 ## Repository layout relevant to installation
-
-Important files and directories:
 
 ```text
 backend/                 FastAPI backend and AWSRT core modules
@@ -34,169 +22,283 @@ frontend/                Next.js frontend
 data/                    Local manifests, fields, renders, metrics, and run artifacts
 docs/                    Documentation and design notes
 pyproject.toml           Python package/dependency metadata
-frontend/package.json    Frontend package/dependency metadata
-Makefile                 Convenience backend/frontend run targets
+environment.yml          Recommended Python/Node baseline
+Makefile                 macOS/Unix convenience launch targets
+start_backend.bat        Windows backend launcher
+start_frontend.bat       Windows frontend launcher
 README.md                Project overview
 ```
 
-The backend Python package is defined in `pyproject.toml`.
+The backend Python package is defined in `pyproject.toml`. The frontend package is defined in `frontend/package.json` and its lockfile.
 
-The frontend package is defined in `frontend/package.json`.
+## Dependency policy
 
-## Backend requirements
+The installation problem discovered during Windows testing had two distinct causes:
 
-The backend package metadata currently declares:
+1. **repository packaging/layout** — setuptools was not told that importable packages live under `backend/`;
+2. **dependency drift** — broad lower bounds allowed newer major library versions to be selected by a fresh environment.
 
-```text
-requires-python = >=3.10
-```
+The repository should therefore carry the fix, rather than requiring each user to discover it.
 
-Core Python dependencies are installed through:
-
-```bash
-pip install -e .
-```
-
-The current declared backend dependencies include:
+The proposed Python compatibility bounds include:
 
 ```text
-fastapi
-uvicorn[standard]
-pydantic
-numpy
-zarr
-pillow
-matplotlib
+Python       >=3.10,<3.13
+NumPy        >=1.24,<2
+Zarr         >=2.16,<3
+Numcodecs    >=0.10,<0.16
+Pydantic     >=2.6,<3
+FastAPI      >=0.110,<1
+Uvicorn      >=0.27,<1
+Matplotlib   >=3.7,<4
 ```
 
-Do not install these manually unless debugging. Prefer installing from `pyproject.toml` with `pip install -e .`.
+The NumPy and Zarr upper bounds are intentional. AWSRT has not yet been migrated and validated against the newer major APIs. `numcodecs<0.16` protects older Zarr 2.x releases from a known import incompatibility.
 
-## Frontend requirements
+These are compatibility bounds, not an archival lockfile. Once a clean macOS and Windows install both pass the smoke tests, record the exact known-good environments separately if exact reproduction is required.
 
-The frontend uses Next.js and React. The current frontend package metadata includes:
+Do not individually upgrade core libraries after installing AWSRT. Prefer:
+
+```bash
+python -m pip install -e .
+python -m pip check
+```
+
+## Recommended clean-install baseline
+
+The repository includes:
 
 ```text
-next 14.2.5
-react 18.3.1
-react-dom 18.3.1
-typescript
+environment.yml
 ```
 
-Install frontend dependencies from inside the `frontend/` directory with:
+with:
+
+```yaml
+name: awsrt
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - nodejs=20
+  - pip
+```
+
+This gives macOS and Windows the same Python/Node baseline. Python package compatibility is then resolved from `pyproject.toml`; frontend versions are resolved from `frontend/package-lock.json`.
+
+## 1. Get the repository
 
 ```bash
-npm install
+git clone https://github.com/richardjpurcell/awsrt.git
+cd awsrt
 ```
 
-## Installation path A: Python virtual environment
+A supplied ZIP can also be used. In either case, make sure you are in the repository root — the directory containing `pyproject.toml`, `backend`, `frontend`, and `README.md`.
 
-From the repository root:
+## 2. Create the environment
+
+### macOS
+
+From Terminal:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -U pip
-pip install -e .
+conda env create -f environment.yml
+conda activate awsrt
 ```
 
-Start the backend from the repository root:
+Manual equivalent:
 
 ```bash
-make backend
+conda create -n awsrt -c conda-forge python=3.11 nodejs=20 pip
+conda activate awsrt
 ```
 
-This expands to:
+### Windows 11
 
-```bash
-PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
+From Anaconda Prompt:
+
+```bat
+conda env create -f environment.yml
+conda activate awsrt
 ```
 
-Health check:
+Manual equivalent:
+
+```bat
+conda create -n awsrt -c conda-forge python=3.11 nodejs=20 pip
+conda activate awsrt
+```
+
+Verify:
 
 ```text
-http://127.0.0.1:8000/health
+python --version
+node --version
+npm --version
 ```
 
-## Installation path B: conda development environment
+## 3. Install the backend
 
-If using the existing development-style conda workflow:
-
-```bash
-conda activate PhD_general
-pip install -e .
-```
-
-Start the backend from the repository root:
-
-```bash
-make backend
-```
-
-This expands to:
-
-```bash
-PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
-```
-
-Health check:
+From the repository root on either platform:
 
 ```text
-http://127.0.0.1:8000/health
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip check
 ```
 
-## Backend startup note
-
-Use `make backend` as the primary backend startup path from the repository root.
-
-This path is currently required because `backend/api/main.py` imports routers using the `api.*` package path. Starting the backend as `uvicorn backend.api.main:app --reload --port 8000` can fail in the current layout with:
+Verify the dependency families that have caused compatibility problems:
 
 ```text
-ModuleNotFoundError: No module named 'api'
+python -c "import numpy, zarr, numcodecs; print('numpy', numpy.__version__); print('zarr', zarr.__version__); print('numcodecs', numcodecs.__version__)"
 ```
 
-If the backend import layout is changed in a future subgoal, this note should be revisited.
+Expected compatibility families are NumPy 1.x and Zarr 2.x.
 
-## Frontend setup
+## 4. Install the frontend
 
-In a second terminal, from the repository root:
+The repository has `frontend/package.json`; npm must therefore be run in that directory or with an explicit prefix.
+
+### macOS
 
 ```bash
 cd frontend
-npm install
+npm ci
 cp .env.local.example .env.local
-npm run dev
+cd ..
 ```
 
-Open the frontend in a browser:
+If `.env.local` already exists, keep the existing file rather than overwriting it.
 
-```text
-http://127.0.0.1:3000
+### Windows 11
+
+```bat
+cd frontend
+dir package.json
+npm ci
+if not exist .env.local copy .env.local.example .env.local
+cd ..
 ```
 
-The repository currently includes `frontend/.env.local.example`.
+For clean/review installs, prefer `npm ci` because it follows the committed lockfile. Use `npm install` when intentionally changing frontend dependencies and updating `package-lock.json`.
 
-## Convenience Makefile targets
+## 5. Start AWSRT
 
-The repository includes a small `Makefile` with convenience targets:
+AWSRT needs two running processes.
+
+### macOS
+
+Terminal 1, from the repository root:
 
 ```bash
 make backend
+```
+
+Equivalent explicit command:
+
+```bash
+PYTHONPATH=backend python -m uvicorn api.main:app --reload --port 8000
+```
+
+Terminal 2, from the repository root:
+
+```bash
 make frontend
 ```
 
-Current targets are equivalent to:
+Equivalent explicit command:
+
+```bash
+npm --prefix frontend run dev
+```
+
+### Windows 11
+
+Double-click in the repository root:
+
+```text
+start_backend.bat
+start_frontend.bat
+```
+
+The launchers activate the `awsrt` Conda environment. `start_backend.bat` sets `PYTHONPATH=backend`; `start_frontend.bat` creates `frontend\.env.local` from the example if needed and starts the Next.js development server.
+
+Manual Windows backend command:
+
+```bat
+conda activate awsrt
+set PYTHONPATH=backend
+python -m uvicorn api.main:app --reload --port 8000
+```
+
+Manual Windows frontend command:
+
+```bat
+conda activate awsrt
+cd frontend
+npm run dev
+```
+
+## 6. Open and validate
 
 Backend:
 
 ```text
-PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
+http://127.0.0.1:8000
+```
+
+Health endpoint:
+
+```text
+http://127.0.0.1:8000/health
 ```
 
 Frontend:
 
 ```text
-npm --prefix frontend run dev
+http://localhost:3000
 ```
+
+Minimal smoke test:
+
+1. confirm the backend health endpoint responds;
+2. confirm the frontend loads;
+3. open the Physical Surface and create or inspect a small artifact;
+4. open an Epistemic or Operational visualizer;
+5. inspect a corresponding analysis or metric view.
+
+This validates installation and basic integration. It does not by itself reproduce the frozen thesis-facing experiments.
+
+## 7. Tests and build checks
+
+Backend:
+
+```text
+python -m pytest
+```
+
+Frontend, from `frontend/`:
+
+```text
+npm ci
+npm run build
+```
+
+## Backend startup note
+
+The current import layout expects `backend` on `PYTHONPATH`. Do not use:
+
+```text
+uvicorn backend.api.main:app --reload --port 8000
+```
+
+as the primary startup command. It can fail with:
+
+```text
+ModuleNotFoundError: No module named 'api'
+```
+
+Use the Makefile on macOS/Unix, the Windows launcher on Windows, or the explicit `PYTHONPATH` commands shown above.
 
 ## Data directory
 
@@ -215,228 +317,164 @@ data/renders/
 data/metrics/
 ```
 
-To use a different data root:
+To override the root data directory:
+
+### macOS
 
 ```bash
 export AWSRT_DATA_DIR=/abs/path/to/data
 make backend
 ```
 
-Use the same shell session for the environment variable and backend process.
+### Windows Anaconda Prompt
+
+```bat
+set AWSRT_DATA_DIR=C:\absolute\path\to\data
+start_backend.bat
+```
+
+Set the variable in the same shell session that starts the backend.
 
 ## Render configuration
 
-AWSRT renders overlay-aligned PNGs for visual inspection. Large transformed fire artifacts may require larger render limits.
+Optional render variables include:
 
-Optional render environment variables:
+```text
+AWSRT_RENDER_PX_PER_CELL
+AWSRT_RENDER_MAX_SIDE_PX
+AWSRT_RENDER_DPI
+```
+
+Example for large transformed fire artifacts:
+
+### macOS
 
 ```bash
 export AWSRT_RENDER_PX_PER_CELL=3.0
 export AWSRT_RENDER_MAX_SIDE_PX=8192
 export AWSRT_RENDER_DPI=200
+make backend
 ```
 
-Smaller simulations may work with lower values, for example:
+### Windows Anaconda Prompt
 
-```bash
-export AWSRT_RENDER_PX_PER_CELL=2.0
-export AWSRT_RENDER_MAX_SIDE_PX=4096
-export AWSRT_RENDER_DPI=160
+```bat
+set AWSRT_RENDER_PX_PER_CELL=3.0
+set AWSRT_RENDER_MAX_SIDE_PX=8192
+set AWSRT_RENDER_DPI=200
+start_backend.bat
 ```
 
-Render endpoints cache generated PNGs under paths such as:
+If render settings change, remove the relevant cached render directory before regenerating.
 
-```text
-data/renders/{phy_id}/t/{t}/...
-```
-
-If render settings change, delete cached renders for the relevant artifact before regenerating:
+macOS:
 
 ```bash
 rm -rf data/renders/phy-XXXXX
-# or only cached timestep frames:
-rm -rf data/renders/phy-XXXXX/t
 ```
 
-## Validation checks
+Windows:
 
-A minimal backend validation check is:
-
-```bash
-python -m pytest
+```bat
+rmdir /s /q data\renders\phy-XXXXX
 ```
-
-A frontend production-build check is:
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-Or, from the repository root:
-
-```bash
-npm --prefix frontend install
-npm --prefix frontend run build
-```
-
-These checks do not reproduce thesis results. They confirm that the local backend tests and frontend build pass in the current environment.
-
-## First-run smoke test
-
-A minimal local smoke test is:
-
-1. Start the backend:
-
-   ```bash
-   make backend
-   ```
-
-2. Open the health endpoint:
-
-   ```text
-   http://127.0.0.1:8000/health
-   ```
-
-3. Start the frontend in a second terminal:
-
-   ```bash
-   make frontend
-   ```
-
-4. Open:
-
-   ```text
-   http://127.0.0.1:3000
-   ```
-
-5. Confirm the AWSRT splash page loads.
-
-6. Open the Physical Surface.
-
-7. Create or inspect a small physical artifact.
-
-8. Open the Epistemic Surface or Epistemic Visualizer and confirm that belief/entropy-oriented inspection pages load.
-
-9. Open the Operational Surface or Operational Visualizer and confirm that sensing/trajectory-oriented inspection pages load.
-
-10. Open the Analysis Surface or a corresponding metric/analysis page.
-
-This smoke test confirms that the backend, frontend, local data paths, and major research-surface routes are basically functioning. It does not reproduce the frozen v0.6 results or the v0.9 epistemic inspectability studies by itself.
-
-## Reproducing thesis/journal results
-
-The frozen v0.6 results depend on preserved manifests, metrics, transformed fire artifacts, and analysis scripts. Reproducing those results requires more than simply launching the app.
-
-See:
-
-```text
-docs/reproducibility/reproduce_v0_6.md
-```
-
-That note should be used for inspecting or reproducing the frozen v0.6 evidence state. The local install path here only confirms that the application can be installed, started, built, tested, and inspected locally.
-
-The v0.9 Epistemic Surface work added support-geometry and visualizer-metric inspectability studies. A dedicated v0.9 reproducibility note may be added during the v0.10 documentation refresh. Until then, v0.9 design notes in `docs/design/` preserve the interpretation and subgoal history for epistemic inspectability work.
 
 ## Common troubleshooting
 
-### Backend import errors
+### `pip install -e .` reports multiple top-level packages
 
-During v0.8 Subgoal 02 inspection, the Makefile backend path was verified to start successfully:
+This was encountered during the Windows 11 install because the repository root contains `backend`, `frontend`, and `data`. The current `pyproject.toml` should explicitly locate Python packages under `backend/`:
 
-```bash
-make backend
+```toml
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["api*", "awsrt_core*"]
+exclude = ["tests*"]
 ```
 
-This expands to:
+If a checkout lacks this block, update the repository. This should be a repository fix, not a per-user edit.
+
+### `npm` reports `ENOENT` or cannot find `package.json`
+
+You are probably running npm from the repository root. Use:
+
+macOS:
 
 ```bash
-PYTHONPATH=backend uvicorn api.main:app --reload --port 8000
+cd frontend
+npm ci
 ```
 
-Do not use the following command as the primary backend startup path in the current layout:
+Windows:
+
+```bat
+cd frontend
+dir package.json
+npm ci
+```
+
+### `.env.local` is missing
+
+macOS:
 
 ```bash
-uvicorn backend.api.main:app --reload --port 8000
+cd frontend
+cp .env.local.example .env.local
 ```
 
-It can fail with:
+Windows:
+
+```bat
+cd frontend
+copy .env.local.example .env.local
+```
+
+The Windows frontend launcher also creates it automatically when possible.
+
+### `npm` is not recognized on Windows
+
+```bat
+conda activate awsrt
+node --version
+npm --version
+```
+
+If Node/npm are missing, recreate the environment from `environment.yml`.
+
+### Browser cannot connect
+
+Check that both servers are running. Test `http://127.0.0.1:8000/health` directly. If the backend responds but `http://localhost:3000` does not, inspect the frontend terminal.
+
+### Port 8000 or 3000 is already in use
+
+Stop the older AWSRT terminal with `Ctrl+C`, then relaunch the corresponding server.
+
+### NumPy/Zarr dependency drift
+
+Do not repair this by upgrading packages individually. Activate the AWSRT environment and reinstall against current project metadata:
 
 ```text
-ModuleNotFoundError: No module named 'api'
+python -m pip install -e .
+python -m pip check
 ```
 
-If the backend import layout changes in a future subgoal, this note should be revisited.
+Then confirm NumPy is 1.x and Zarr is 2.x with the version-check command above.
 
-### Frontend dependency errors
+If the environment has accumulated incompatible packages, recreate the dedicated `awsrt` environment from `environment.yml`.
 
-From inside `frontend/`, reinstall dependencies:
+## Reproducing thesis/journal results
 
-```bash
-rm -rf node_modules
-npm install
-npm run dev
-```
-
-Or, from the repository root:
-
-```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
-```
-
-### Frontend cannot reach backend
-
-Confirm that the backend is running at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Then confirm the frontend is running at:
-
-```text
-http://127.0.0.1:3000
-```
-
-If `.env.local` exists, check whether it points to the correct backend URL.
-
-### Cached renders look stale
-
-Delete the relevant cached render directory:
-
-```bash
-rm -rf data/renders/phy-XXXXX
-```
-
-Then reload or regenerate the visualizer output.
-
-### Large artifact rendering is slow or blurry
-
-Set render variables before starting the backend:
-
-```bash
-export AWSRT_RENDER_PX_PER_CELL=3.0
-export AWSRT_RENDER_MAX_SIDE_PX=8192
-export AWSRT_RENDER_DPI=200
-make backend
-```
-
-### Missing data artifacts
-
-Some workflows require preserved manifests, metrics, fields, or transformed fire artifacts. If a page or script expects a specific `phy-*`, `epi-*`, `op-*`, or `ana-*` artifact, confirm that the corresponding files exist under `data/`.
+The installation smoke test confirms that AWSRT can be installed, started, built, and inspected. Frozen thesis/journal results depend on preserved manifests, metrics, transformed fire artifacts, and analysis scripts. Use the relevant files under `docs/reproducibility/` for result reconstruction.
 
 ## Known limitations
 
-* Installation has not yet been tested broadly across fresh machines.
-* Docker/container installation is not yet the primary supported path.
-* Some pages are research-instrument surfaces rather than polished product workflows.
-* Historical design notes may preserve older terminology for auditability.
-* The Physical Surface is an experimental environmental substrate, not a high-fidelity physical wildfire simulator.
-* Transformed real-fire results are bounded and should not be read as universal wildfire generalization.
-* Epistemic Surface support geometries are controlled epistemic probes, not operational search policies.
-* Visualizer outputs are inspection aids and should be interpreted alongside metrics rather than as standalone evidence.
-* The v0.6 result state is frozen.
-* The v0.8 reproducible-handoff work and v0.9 interpretability/inspectability work are complete.
-* The v0.10 JOSS/open-science documentation refresh is ongoing.
+- The workflow has now been exercised on macOS development systems and on a fresh Windows 11 installation, but not across a broad operating-system/Python/Node matrix.
+- Python 3.11 and Node.js 20 are the recommended clean-install baseline; other combinations are not equally validated.
+- NumPy 2.x and Zarr 3.x are intentionally outside the current compatibility bounds until AWSRT is migrated and tested against those major versions.
+- Docker/container installation is not yet the primary supported path.
+- Some pages are research-instrument surfaces rather than polished product workflows.
+- Historical design notes may preserve older terminology for auditability.
