@@ -1,6 +1,6 @@
 [project]
 name = "awsrt-backend"
-version = "0.1.0"
+version = "0.11.0"
 description = "Adaptive Wildfire Sensing Research Tool (AWSRT) backend"
 requires-python = ">=3.10,<3.13"
 dependencies = [

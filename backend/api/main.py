@@ -8,7 +8,7 @@ from awsrt_core.io.paths import ensure_data_dirs
 def create_app() -> FastAPI:
     ensure_data_dirs()
 
-    app = FastAPI(title="AWSRT API", version="0.1.0", docs_url="/docs", redoc_url="/redoc")
+    app = FastAPI(title="AWSRT API", version="0.11.0", docs_url="/docs", redoc_url="/redoc")
 
     app.add_middleware(
         CORSMiddleware,
