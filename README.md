@@ -6,12 +6,13 @@ AWSRT is not an operational wildfire simulator and does not claim high-fidelity 
 
 ## Current status
 
-The current `main` branch includes the frozen AWSRT v0.6 result state, the completed v0.7 shareability/coherence pass, the completed v0.8 reproducible-handoff pass, and the completed v0.9 interpretability/inspectability pass.
+The current `main` branch includes the frozen AWSRT v0.6 result state, the completed v0.7 shareability/coherence pass, the completed v0.8 reproducible-handoff pass, the completed v0.9 interpretability/inspectability pass, and the completed v0.10 JOSS/open-science documentation and repository-readiness refresh.
 
 * **v0.6** is the frozen distance-window and cross-artifact synthesis release used to support current thesis and journal-paper interpretation.
 * **v0.7** completed a shareability, coherence, documentation, build-hardening, and auditability pass.
 * **v0.8** moved AWSRT from a shareable repository toward reproducible handoff through installation checks, first-run workflow, backend/frontend validation, community-readiness review, metadata cleanup, and committee-facing orientation.
 * **v0.9** moved AWSRT from reproducible handoff toward interpretable inspection. It improved operational visualizer readability, added and reviewed Epistemic Surface support-geometry workflows, strengthened Epistemic Visualizer support/arrival inspection, added optional cloud-like uncertainty rendering, updated thesis-facing epistemic figures and metrics, and completed an interpretability freeze.
+* **v0.10** refreshed the JOSS/open-science documentation and repository-readiness path, including external-reader framing, installation guidance, validation instructions, documentation indexing, and readiness triage.
 
 The current documentation-facing goal is to align the repository for JOSS/open-science review: README clarity, installation instructions, test instructions, citation metadata, reproducibility notes, contribution guidance, and paper-facing statement of need.
 
@@ -379,7 +380,7 @@ Current limitations include:
 * Epistemic Surface support geometries are controlled epistemic probes, not operational search policies;
 * visualizer outputs are inspection aids and should be interpreted alongside metrics rather than as standalone evidence;
 * the compact usefulness triad is an interpretive diagnostic, not a complete causal explanation of every metric movement;
-* v0.6 results are frozen, v0.8 reproducible-handoff work is complete, and v0.9 interpretability work is complete, while JOSS/open-science documentation review remains ongoing.
+* v0.6 results are frozen, v0.8 reproducible-handoff work is complete, v0.9 interpretability work is complete, and the v0.10 JOSS/open-science documentation refresh is complete, while further JOSS submission preparation remains ongoing.
 
 ## Citation and publications
 
