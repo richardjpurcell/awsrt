@@ -1,92 +1,68 @@
 ---
-
 title: "AWSRT: Adaptive Wildfire Sensing Research Tool for Belief Maintenance Under Impaired Information Flow"
 tags:
-
-* Python
-* TypeScript
-* FastAPI
-* Next.js
-* wildfire sensing
-* adaptive sensing
-* uncertainty
-* research software
-* sensor networks
-  authors:
-* name: Richard Purcell
-  affiliation: 1
-  affiliations:
-* name: Dalhousie University, Halifax, Nova Scotia, Canada
-  index: 1
-  date: 2026-06-10
-  bibliography: paper.bib
-
+  - Python
+  - TypeScript
+  - FastAPI
+  - Next.js
+  - wildfire sensing
+  - adaptive sensing
+  - uncertainty
+  - research software
+  - sensor networks
+authors:
+  - name: Richard Purcell
+    affiliation: 1
+affiliations:
+  - name: Dalhousie University, Halifax, Nova Scotia, Canada
+    index: 1
+bibliography: paper.bib
 ---
 
 # Summary
 
-AWSRT (Adaptive Wildfire Sensing Research Tool) is research software for studying adaptive sensing, belief maintenance, information impairment, epistemic inspectability, and usefulness under wildfire-like dynamic fields. It supports linked workflows for structured dynamic-field generation, transformed wildfire-like artifacts, belief-state and uncertainty analysis, sensing-policy experiments, impairment studies involving delay, noise, and loss, support-geometry probes, and comparative analysis through preserved manifests, metrics, figures, and visual inspection workflows.
+AWSRT (Adaptive Wildfire Sensing Research Tool) is research software for studying adaptive sensing and belief maintenance under impaired information flow in wildfire-like dynamic fields. It links controlled field generation, sensing-policy experiments, delay/noise/loss impairments, belief-state and uncertainty analysis, support/arrival inspection, and reproducible experiment artifacts within one environment.
 
-AWSRT is designed for research settings in which the usefulness of sensed information cannot be captured by simple detection, coverage, or delivery counts alone. The software makes it possible to study not only whether information is collected or transmitted, but also whether it remains useful for maintaining an uncertainty-aware belief state about a changing field.
-
-AWSRT is not an operational wildfire simulator, physical twin, digital twin, or emergency-response product. Its role is that of a bounded diagnostic research instrument: it helps researchers make separations among sensing activity, information delivery, belief quality, usefulness-state diagnostics, support/arrival structure, and structural variables inspectable under controlled experimental conditions.
-
-This paper documents the current public research-software framing of AWSRT after the v0.8 reproducible-handoff work and v0.9 interpretability/inspectability work. The repository retains older frozen result states for auditability, while the current documentation track prepares the project for JOSS/open-science review.
+AWSRT is designed for experiments in which sensing activity, information delivery, and maintained belief quality must remain distinguishable. It allows researchers to examine whether observations are available, whether they arrive, and how delivered evidence affects an uncertainty-aware belief state. AWSRT is a bounded diagnostic research instrument rather than an operational wildfire simulator, digital twin, or emergency-response product.
 
 # Statement of need
 
-Adaptive wildfire-like sensing research combines several tightly coupled problems: evolving spatial fields, uncertain and impaired observations, constrained sensing resources, adaptive deployment, belief updating, and analysis of timeliness and uncertainty. These layers are often studied separately or connected through ad hoc scripts. That makes it difficult to compare sensing strategies under matched assumptions, preserve reproducible experiment states, and evaluate whether delivered information remains useful for maintaining belief quality.
+Adaptive sensing in dynamic environments couples evolving fields, uncertain observations, constrained sensing resources, information impairment, and belief updating. When these layers are studied separately or connected through ad hoc scripts, it becomes difficult to compare sensing strategies under matched assumptions, preserve reproducible experiment states, or determine how delivery conditions affect maintained belief quality.
 
-AWSRT was created to address this gap. It provides a unified research software environment in which wildfire-like field structure, epistemic belief evolution, sensing-policy comparison, impairment modeling, support/arrival inspection, and experiment analysis can be studied together. The intended users are researchers working on adaptive sensing, sensor networks, uncertainty-aware inference, information quality, visualization, and simulation-assisted decision-support research in dynamic environments.
+AWSRT provides a common experimental environment for these layers. Researchers can vary field structure, sensing behavior, observation support, delay, noise, and loss while retaining the resulting arrivals, belief states, metrics, and experiment artifacts for comparison and inspection. This supports research questions in which an observation being attempted, delivered, timely, or belief-improving are distinct events rather than interchangeable measures of sensing success.
 
-The central research need is not simply to generate wildfire-like fields or test controllers. It is to study when information that arrives at a monitoring system remains useful for belief maintenance. In impaired sensing settings, observations may be delayed, corrupted, lost, poorly located, redundant, or no longer belief-improving. AWSRT provides a research environment for making these distinctions visible.
-
-AWSRT is therefore not presented as a finished operational wildfire-response product. Its role is instead that of reusable research software: a basis for structured experiments, comparative studies, reproducible workflows, visual inspection, and continuing methodological development.
+The intended users are researchers studying adaptive sensing, sensor networks, uncertainty-aware inference, information quality, and simulation-assisted analysis in dynamic environments.
 
 # State of the field
 
-Software relevant to AWSRT typically emphasizes only part of the broader adaptive sensing workflow. Wildfire-focused systems often concentrate on physical spread modeling, environmental forcing, or historical-fire analysis. Sensor-network and adaptive-sensing tools often emphasize deployment, routing, or coordination logic in more abstract environments. Other packages support probabilistic inference, uncertainty quantification, or analysis workflows, but not necessarily in a form that directly couples wildfire-like field evolution, impaired observations, adaptive sensing actions, belief maintenance, and recoverable experiment artifacts.
+Adaptive and informative sensing research already provides sophisticated methods for deciding where, when, and what to observe. Informative path-planning methods select sensing actions or trajectories according to information objectives under resource constraints [@popovic2024adaptiveipp]. Related work on Value of Information and Uncertainty of Information explicitly distinguishes the receipt of observations from their value for estimating or maintaining knowledge of an underlying state [@wang2022voi; @chen2022uoi]. Age-of-information research similarly establishes timeliness as a property distinct from simple message delivery [@kaul2012; @kosta2017]. AWSRT therefore does not introduce uncertainty-aware sensing, information value, or freshness as concepts.
 
-AWSRT was developed for the gap between these categories. Its purpose is not to replace specialized fire models or general inference packages. Rather, AWSRT provides an integrated research instrument in which external-field structure, belief updates, sensing policies, impairments, epistemic support probes, and downstream analysis can be inspected together under matched assumptions.
+Existing research software also provides substantially greater specialization on individual parts of the problem. Wildfire simulators such as Cell2Fire model fire growth for wildfire-management and planning studies [@pais2021cell2fire], while network-simulation frameworks such as INET provide detailed communication-network, protocol, mobility, and physical-layer models [@meszaros2019inet]. AWSRT does not attempt to reproduce either level of physical-fire or communication-network fidelity. Its wildfire-like fields and delivery impairments instead provide controlled experimental conditions for studying their downstream consequences for sensing and maintained belief.
 
-This integrated role is particularly important for research questions where timeliness, delivery, uncertainty reduction, and usefulness diagnostics do not move together. Age-of-information research has shown that freshness is itself an important property of status-update systems [@kaul2012; @kosta2017]. Classical information theory and entropy-based reasoning provide tools for understanding uncertainty and information content [@shannon1948; @jaynes2003]. AWSRT connects these concerns to adaptive wildfire-like sensing experiments by preserving the distinction between information arrival and belief-maintenance usefulness.
+AWSRT occupies the experimental junction between these areas. It exposes external-field structure, observation opportunity and support, delivery impairment, realized arrivals, belief updates, sensing behavior, and downstream information-quality diagnostics as separately inspectable stages within one research environment. This permits matched experiments in which information collection, delivery, timeliness, uncertainty reduction, and belief-maintenance usefulness need not be treated as interchangeable. The contribution is therefore a reusable experimental instrument for studying these separations, rather than a new wildfire model, network simulator, information-value theory, or universally optimal sensing controller.
 
 # Software design
 
-AWSRT is organized around four linked research surfaces: Physical, Epistemic, Operational, and Analysis.
+AWSRT is organized around four linked research surfaces: Physical, Epistemic, Operational, and Analysis. The Physical Surface provides structured dynamic fields and transformed wildfire-like artifacts as experimental substrates. The Epistemic Surface maintains belief and uncertainty representations, including belief updates, entropy measures, and controlled probes of prescribed observation support and realized arrivals. The Operational Surface executes sensing policies, deployment configurations, delivery impairments, and usefulness diagnostics. The Analysis Surface preserves study manifests and supports metric extraction, figure generation, artifact inspection, and comparison across experimental conditions.
 
-The Physical Surface defines structured environmental fields used by AWSRT experiments. These include grid structure, ignition, fire-like spread, terrain-like structure, directional-bias fields, fuel-like heterogeneity, scalar environmental fields, and transformed wildfire-like artifacts. This surface should be understood as an experimental field generator and artifact interface, not as a physical wildfire-prediction engine.
+The platform uses a backend/frontend architecture. The backend provides experiment creation, execution, storage, and data-serving functionality, while the frontend supports experiment design, visualization, and comparative inspection. This permits both programmatic workflows and interactive examination of experiment states and outputs.
 
-The Epistemic Surface maintains belief-state and uncertainty representations over the monitored field. It supports belief updates, uncertainty summaries, entropy calculations, belief-quality analysis, controlled support-geometry probes, and visual inspection of support/arrival structure. The v0.9 Epistemic Surface work added support-geometry inspection workflows that separate prescribed support, realized arrivals, delivered-information activity, entropy-side belief quality, and visual impressions under controlled conditions. These support geometries are epistemic probes, not operational wildfire search policies.
-
-The Operational Surface runs adaptive sensing behavior. It includes sensing-network policies, deployment settings, impairment models, compact usefulness interpretation, and controller-facing diagnostics. The compact usefulness triad is interpreted as exploit, recover, and caution behavior: usable, stale, or suspect information flow under the tested AWSRT conditions.
-
-The Analysis Surface supports study manifests, metric extraction, figure generation, raw artifact inspection, and thesis-facing interpretation. It is used to compare timing, information delivery, belief quality, usefulness-state behavior, epistemic support/arrival structure, movement effort, and structural variables such as deployment geometry and observation-window selection.
-
-The platform uses a backend/frontend design. The backend provides experiment creation, execution, storage, and data-serving functionality. The frontend supports design, visualization, inspection, and comparative analysis of runs and studies. This separation supports both reproducible programmatic workflows and interactive inspection of experiment states and outputs.
-
-A central design choice in AWSRT is the preservation of manifests and associated experiment artifacts. Runs and studies are intended to be recoverable, comparable, and reviewable without depending on undocumented local state. Another design choice is to use simple, inspectable policy families and diagnostic probes rather than a single highly specialized controller. This supports comparative research and extensibility while preserving interpretability.
+AWSRT deliberately preserves manifests and associated artifacts so runs and studies remain recoverable and comparable without undocumented local state. It also favors simple, inspectable policy families and diagnostic probes over a single specialized controller. This design supports controlled comparison and extension while keeping the relationships among sensing opportunity, information delivery, belief state, and downstream diagnostics visible.
 
 # Research impact statement
 
-AWSRT serves as the software basis for a broader research program on adaptive wildfire-like sensing, belief maintenance, and impaired information flow. In that role, it supports workflows for constructing wildfire-like fields, maintaining belief-state analyses, comparing sensing-policy families, running impairment studies involving delay, noise, and loss, inspecting support/arrival structure, and preserving manifests and figure outputs associated with those studies.
+AWSRT has been used as the experimental research instrument for a PhD thesis on belief maintenance under impaired adaptive sensing and an associated journal manuscript on information delivery versus information usefulness. Paper-facing manifests, metric tables, figures, summaries, and analysis artifacts from this work are preserved in a published reproduction bundle [@purcell2026reproduction].
 
-Its research significance lies in enabling structured comparison across layers of a problem that are otherwise easy to fragment: external-field evolution, uncertain observation, adaptive sensing, information impairment, belief maintenance, and analysis of information quality over time. In particular, AWSRT supports experiments in which the distinction between information delivered and information useful for maintained belief quality can be studied directly rather than assumed away.
+This research use progressed from sensing-policy comparison through controlled delay, noise, and loss studies to tests of sensitivity to environmental context, deployment geometry, and observation window. AWSRT enabled detection timing, coverage or contact, delivered-information activity, belief quality, and usefulness diagnostics to be examined separately. Subsequent Epistemic Surface studies further separated prescribed observation support, realized arrivals, information activity, and maintained belief quality.
 
-AWSRT contributes research value in two ways. First, it provides a reproducible software basis for the author’s thesis and associated software, methods, and results papers. Second, it offers a reusable starting point for other researchers studying adaptive sensing in dynamic environments where belief quality, timeliness, impairment, visualization, and control logic must be examined together rather than in isolation.
+AWSRT's demonstrated research role is therefore as an inspectable experimental instrument for studying how sensing opportunity and impaired information delivery affect maintained belief. Its design permits reuse in other dynamic sensing experiments, although external adoption is not claimed here.
 
 # Scope and limitations
 
-AWSRT is bounded research software. It does not claim full physical wildfire validity, operational readiness, or universal controller optimality. Its wildfire-like fields and transformed artifacts are experimental substrates, not complete wildfire reconstructions. Its Epistemic Surface support geometries are controlled belief-maintenance probes, not operational search policies. Its usefulness-state diagnostics are internal information-health summaries, not validated labels of external wildfire decision quality.
-
-These limitations are deliberate. They define the software’s scientific role: AWSRT is designed to make information/usefulness separations inspectable under controlled adaptive sensing conditions. It should be evaluated as a research instrument for studying belief maintenance under impaired information flow, not as an emergency-management platform.
+AWSRT is bounded research software, not an operational wildfire model or emergency-management platform. Its wildfire-like fields and transformed artifacts are experimental substrates rather than complete wildfire reconstructions. Epistemic support geometries are controlled belief-maintenance probes rather than operational search policies, and usefulness diagnostics describe internal information health rather than validated external decision quality. These boundaries define AWSRT's role as an experimental instrument for studying belief maintenance under impaired information flow.
 
 # AI usage disclosure
 
-OpenAI language-model tools were used in the drafting and editorial revision of repository documentation and manuscript text. All technical claims, software descriptions, and final wording were reviewed and validated by the author against the repository, the software release structure, and the intended scholarly framing.
-
-# Acknowledgements
-
-AWSRT was developed as part of ongoing research on adaptive wildfire sensing, belief maintenance, and impaired information flow in dynamic and uncertain environments. Specific institutional, funding, and collaboration acknowledgements will be added as appropriate for the submission release.
+OpenAI language-model tools assisted with software development and review, testing and reproducibility workflows, and drafting and editing documentation and manuscript text. The author reviewed and validated software changes and technical claims through repository inspection, execution, testing, and comparison with the intended research design, and takes responsibility for the software and manuscript content.
 
 # References
