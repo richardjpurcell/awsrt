@@ -15,8 +15,9 @@ The current documentation goal is to align the repository after the v0.9 interpr
 * [`install/local_install.md`](install/local_install.md) — cross-platform local setup instructions for the AWSRT backend and frontend.
 * [`install/windows_11.md`](install/windows_11.md) — detailed Windows 11 / Anaconda installation, launcher, and troubleshooting guide.
 * [`install/clean_machine_check.md`](install/clean_machine_check.md) — v0.8 clean-machine / reproducible-handoff verification note.
-* [`reproducibility/reproduce_v0_6.md`](reproducibility/reproduce_v0_6.md) — notes for reproducing or inspecting the frozen v0.6 result state.
 * [`reproducibility/minimal_first_run.md`](reproducibility/minimal_first_run.md) — minimal v0.8 first-run workflow for starting AWSRT, creating a small smoke artifact, and opening it in the Physical Visualizer.
+* [`reproducibility/minimal_scientific_workflow.md`](reproducibility/minimal_scientific_workflow.md) — deterministic current-software scientific first run separating observation opportunity, information delivery, and belief consequence.
+* [`reproducibility/reproduce_v0_6.md`](reproducibility/reproduce_v0_6.md) — notes for reproducing or inspecting the frozen v0.6 result state.
 * [`design/v0_10_01_joss_open_science_doc_refresh.md`](design/v0_10_01_joss_open_science_doc_refresh.md) — current documentation-refresh design goal for README, install, reproducibility, citation, contribution, and JOSS/open-science readiness.
 
 ---
@@ -102,7 +103,7 @@ Recent v0.7 design notes include:
 * [`backlog/`](backlog/) — historical backlog files and deferred platform follow-ups.
 * [`foundations/`](foundations/) — foundational notes and theoretical framing.
 * [`install/`](install/) — installation and local development setup.
-* [`reproducibility/`](reproducibility/) — reproduction notes for frozen result states.
+* [`reproducibility/`](reproducibility/) — smoke-test, scientific first-run, and frozen-result-state reproduction guidance.
 * [`development/backend_smoke_test.md`](development/backend_smoke_test.md) — backend import, health, and pytest smoke-test workflow.
 * [`development/frontend_build_check.md`](development/frontend_build_check.md) — frontend install, production-build, and dev-server validation workflow.
 * [`development/joss_community_readiness_review.md`](development/joss_community_readiness_review.md) — v0.8 JOSS/community readiness review and gap triage.

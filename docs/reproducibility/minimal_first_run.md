@@ -36,6 +36,13 @@ This workflow does not verify:
 - analysis-batch reproduction;
 - scientific interpretation of results.
 
+For a small current-software scientific demonstration that separates
+observation opportunity, information delivery, and belief consequence, use:
+
+```text
+docs/reproducibility/minimal_scientific_workflow.md
+```
+
 For v0.6 evidence-state inspection, use:
 
 ```text
@@ -291,7 +298,7 @@ phy-6d2c689dab
 
 The minimal first-run workflow is successful if:
 
-1. backend health returns `{"ok":true,"version":"0.1.0"}`;
+1. backend health returns `"ok": true` and reports a version;
 2. the frontend starts at `http://localhost:3000`;
 3. the AWSRT landing page loads;
 4. the Physical Surface opens;

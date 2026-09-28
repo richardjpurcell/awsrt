@@ -351,6 +351,8 @@ Important documentation areas include:
 * [`docs/README.md`](docs/README.md): documentation index;
 * [`docs/install/local_install.md`](docs/install/local_install.md): cross-platform local installation and setup;
 * [`docs/install/windows_11.md`](docs/install/windows_11.md): Windows 11 installation, launch, and troubleshooting;
+* [`docs/reproducibility/minimal_first_run.md`](docs/reproducibility/minimal_first_run.md): application startup and visualization smoke test;
+* [`docs/reproducibility/minimal_scientific_workflow.md`](docs/reproducibility/minimal_scientific_workflow.md): deterministic scientific first run separating observation opportunity, information delivery, and belief consequence;
 * [`docs/reproducibility/reproduce_v0_6.md`](docs/reproducibility/reproduce_v0_6.md): reproduction notes for the frozen v0.6 result state;
 * [`docs/development/subgoal_freeze_checklist.md`](docs/development/subgoal_freeze_checklist.md): lightweight developer checklist for freezing subgoals;
 * [`docs/backlog/v0_8_backlog.md`](docs/backlog/v0_8_backlog.md): historical v0.8 backlog for reproducible handoff, committee readability, and JOSS/community readiness;
