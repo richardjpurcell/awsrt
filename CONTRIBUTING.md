@@ -66,6 +66,12 @@ readability, and traceability matter more than stylistic novelty.
 Where feasible, changes should include or preserve tests. If a change affects
 research workflows, manifests, or outputs, describe how it was verified.
 
+Install the backend test dependencies from the repository root:
+
+```bash
+python -m pip install -e ".[test]"
+```
+
 Common validation checks are:
 
 ```bash
