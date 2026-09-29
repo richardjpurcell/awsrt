@@ -59,7 +59,7 @@ AWSRT's demonstrated research role is therefore as an inspectable experimental i
 
 # Acknowledgements
 
-The author thanks Dr. Srini Sampalli for supervision and guidance throughout this research. The author also thanks Dr. Marzia Zaman and Dr. Darshana Upadhyay of the MYTech Lab for their support and collegiality during the research.
+The author thanks Dr. Srini Sampalli for supervision and guidance throughout this research. The author also thanks Dr. Marzia Zaman and Dr. Darshana Upadhyay of the MYTech Lab for their support.
 
 # Scope and limitations
 
