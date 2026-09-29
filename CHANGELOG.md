@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.11.1]
+
+### Changed
+- Updated current project metadata to version 0.11.1 following the v0.11.0 archival ingestion issue.
+
 ## [v0.11.0]
 
 ### Added
