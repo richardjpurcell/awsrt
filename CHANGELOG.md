@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.11.0]
+
+### Added
+- Deterministic minimal scientific workflow separating observation opportunity, information delivery, and belief consequence.
+- Backend physical-to-belief integration test.
+- Continuous integration for backend tests and frontend build validation.
+- Cross-platform installation and Windows 11 setup documentation.
+- Automated JOSS paper build workflow.
+
+### Changed
+- Updated repository documentation and README framing for independent external researchers and JOSS review.
+- Aligned backend, frontend, and project metadata to version 0.11.0.
+- Clarified research-software boundaries, reproducibility paths, and the relationship between the repository and associated research outputs.
+- Added final JOSS repository-readiness documentation and validation guidance.
+
 All notable changes to AWSRT will be documented in this file.
 
 The project uses a versioned research-software workflow in which frozen releases
