@@ -6,17 +6,18 @@ AWSRT is not an operational wildfire simulator and does not claim high-fidelity 
 
 ## Current status
 
-The current `main` branch includes the frozen AWSRT v0.6 result state, the completed v0.7 shareability/coherence pass, the completed v0.8 reproducible-handoff pass, the completed v0.9 interpretability/inspectability pass, and the completed v0.10 JOSS/open-science documentation and repository-readiness refresh.
+The current `main` branch includes the frozen AWSRT v0.6 result state, the completed v0.7 shareability/coherence pass, the completed v0.8 reproducible-handoff pass, the completed v0.9 interpretability/inspectability pass, the completed v0.10 JOSS/open-science documentation and repository-readiness refresh, and the subsequent v0.11 JOSS release-preparation work.
 
 * **v0.6** is the frozen distance-window and cross-artifact synthesis release used to support current thesis and journal-paper interpretation.
 * **v0.7** completed a shareability, coherence, documentation, build-hardening, and auditability pass.
 * **v0.8** moved AWSRT from a shareable repository toward reproducible handoff through installation checks, first-run workflow, backend/frontend validation, community-readiness review, metadata cleanup, and committee-facing orientation.
 * **v0.9** moved AWSRT from reproducible handoff toward interpretable inspection. It improved operational visualizer readability, added and reviewed Epistemic Surface support-geometry workflows, strengthened Epistemic Visualizer support/arrival inspection, added optional cloud-like uncertainty rendering, updated thesis-facing epistemic figures and metrics, and completed an interpretability freeze.
 * **v0.10** refreshed the JOSS/open-science documentation and repository-readiness path, including external-reader framing, installation guidance, validation instructions, documentation indexing, and readiness triage.
+* **v0.11** consolidates cross-platform installation, backend/frontend CI validation, physical-to-belief integration testing, a deterministic minimal scientific workflow, automated JOSS paper building, and final repository-readiness work.
 
-The current documentation-facing goal is to align the repository for JOSS/open-science review: README clarity, installation instructions, test instructions, citation metadata, reproducibility notes, contribution guidance, and paper-facing statement of need.
+The repository is now in final JOSS release preparation, with README clarity, installation and validation instructions, reproducibility notes, citation metadata, contribution guidance, and the paper/repository relationship undergoing final review.
 
-AWSRT remains research software under active development. It is intended to support thesis-facing and paper-facing experimental analysis, not operational wildfire deployment.
+AWSRT remains research software under active development. It is intended to support research analysis, not operational wildfire deployment.
 
 ## What AWSRT is
 
@@ -72,7 +73,7 @@ The Physical Surface provides the environmental substrate consumed by later surf
 
 The Epistemic Surface maintains belief-state and uncertainty representations over the monitored field. It supports belief updates, uncertainty summaries, entropy calculations, belief-quality analysis, controlled support-geometry probes, and visual inspection of support/arrival structure.
 
-This surface is central to the thesis framing because AWSRT is not only asking whether the system detects fire. It is asking whether observations help maintain an uncertainty-aware belief state under impaired information flow.
+This surface separates detection from belief maintenance by examining whether observations help maintain an uncertainty-aware belief state under impaired information flow.
 
 The v0.9 Epistemic Surface work added thesis-facing support-geometry inspection workflows. These workflows separate prescribed support, realized arrivals, delivered-information activity, entropy-side belief quality, and visual impressions under controlled conditions. Support geometries are interpreted as epistemic probes, not as operational wildfire search policies.
 
@@ -92,11 +93,11 @@ The Operational Surface also supports broader policy and regime-management exper
 
 ### Analysis Surface
 
-The Analysis Surface supports study manifests, metric extraction, figure generation, raw artifact inspection, and thesis-facing interpretation.
+The Analysis Surface supports study manifests, metric extraction, figure generation, raw artifact inspection, and research interpretation.
 
 It is used to compare timing, information delivery, belief quality, usefulness-state behavior, epistemic support/arrival structure, effort, and structural variables such as deployment geometry and observation-window selection.
 
-## Frozen and current thesis-facing result summaries
+## Frozen research results and evidence
 
 AWSRT v0.6 tested deployment geometry and observation-window effects under transformed real-fire conditions.
 
@@ -106,13 +107,13 @@ The frozen v0.6 result shows that normalized deployment geometry and observation
 * delay cases mapped to recover-dominant behavior;
 * noise cases mapped to caution-dominant behavior.
 
-This supports the thesis-level separation between timing access, information delivery, belief quality, and usefulness-state interpretation.
+This supports the separation between timing access, information delivery, belief quality, and usefulness-state interpretation.
 
 The v0.6 evidence base should be read as bounded transformed-real-fire evidence, not as universal wildfire generalization.
 
 AWSRT v0.9 added an interpretability/inspectability layer around the Epistemic Surface and Epistemic Visualizer. The v0.9 epistemic work tested whether support geometry, belief decay, impairments, delivered-information activity, and visual impressions remain separable under controlled belief-maintenance conditions.
 
-The v0.9 epistemic evidence supports the thesis-facing claim that:
+The v0.9 epistemic evidence supports the following interpretation:
 
 * prescribed support and realized arrivals should be interpreted separately;
 * delivered-information activity is not the same as maintained belief quality;
@@ -322,6 +323,8 @@ For a lightweight end-to-end smoke test:
 6. open an Epistemic or Operational visualizer;
 7. inspect the corresponding analysis or metric view.
 
+For a deterministic scientific first run that exercises the physical-to-belief path and compares delivered information with belief consequence, see [`docs/reproducibility/minimal_scientific_workflow.md`](docs/reproducibility/minimal_scientific_workflow.md).
+
 More detailed reproduction and experiment-specific instructions belong in `docs/install/` or `docs/reproducibility/`.
 
 ## Render configuration
@@ -382,7 +385,7 @@ Current limitations include:
 * Epistemic Surface support geometries are controlled epistemic probes, not operational search policies;
 * visualizer outputs are inspection aids and should be interpreted alongside metrics rather than as standalone evidence;
 * the compact usefulness triad is an interpretive diagnostic, not a complete causal explanation of every metric movement;
-* v0.6 results are frozen, v0.8 reproducible-handoff work is complete, v0.9 interpretability work is complete, and the v0.10 JOSS/open-science documentation refresh is complete, while further JOSS submission preparation remains ongoing.
+* v0.6 results are frozen, v0.8 reproducible-handoff work is complete, v0.9 interpretability work is complete, v0.10 JOSS/open-science documentation work is complete, and v0.11 represents the current JOSS release-preparation state.
 
 ## Citation and publications
 
@@ -392,7 +395,7 @@ Citation information is maintained in:
 CITATION.cff
 ```
 
-AWSRT supports thesis-facing and paper-facing work on adaptive sensing, belief maintenance, impaired information flow, and wildfire-like monitoring. Use the citation metadata in `CITATION.cff` when citing the software repository, and cite associated thesis or publication artifacts separately when appropriate.
+AWSRT supports research on adaptive sensing, belief maintenance, impaired information flow, and wildfire-like monitoring. Use the citation metadata in `CITATION.cff` when citing the software repository, and cite associated thesis or publication artifacts separately when appropriate.
 
 ## License
 
