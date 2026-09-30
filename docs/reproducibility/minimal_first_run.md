@@ -156,7 +156,7 @@ npm --prefix frontend run dev
 Observed frontend startup during this check:
 
 ```text
-Next.js 14.2.5
+Next.js 14.2.35
 Local: http://localhost:3000
 Ready in 1055ms
 ```
