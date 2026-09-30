@@ -21,7 +21,7 @@ bibliography: paper.bib
 
 # Summary
 
-AWSRT (Adaptive Wildfire Sensing Research Tool) is research software for studying adaptive sensing and belief maintenance under impaired information flow in wildfire-like dynamic fields. It links controlled field generation, sensing-policy experiments, delay/noise/loss impairments, belief-state and uncertainty analysis, support/arrival inspection, and reproducible experiment artifacts within one environment.
+AWSRT (Adaptive Wildfire Sensing Research Tool) is research software for studying how adaptive sensing systems maintain an estimate of a changing environment when information is delayed, noisy, or lost. It brings together controlled field generation, sensing-policy experiments, communication impairments, uncertainty and belief-state analysis, inspection of attempted and received observations, and reproducible experiment artifacts within one environment.
 
 AWSRT is designed for experiments in which sensing activity, information delivery, and maintained belief quality must remain distinguishable. It allows researchers to examine whether observations are available, whether they arrive, and how delivered evidence affects an uncertainty-aware belief state. AWSRT is a bounded diagnostic research instrument rather than an operational wildfire simulator, digital twin, or emergency-response product.
 
@@ -67,6 +67,6 @@ AWSRT is bounded research software, not an operational wildfire model or emergen
 
 # AI usage disclosure
 
-OpenAI language-model tools assisted with software development and review, testing and reproducibility workflows, and drafting and editing documentation and manuscript text. The author reviewed and validated software changes and technical claims through repository inspection, execution, testing, and comparison with the intended research design, and takes responsibility for the software and manuscript content.
+OpenAI ChatGPT was used during software development, testing and reproducibility work, documentation preparation, and drafting and editing of manuscript text. Multiple GPT model versions available through ChatGPT were used over the development period; complete historical model-version records were not retained. Assistance included code and test suggestions, debugging and review support, documentation development, and editorial and reasoning support. The author made the primary research, software-architecture, and design decisions and reviewed, modified, tested, and validated AI-assisted outputs through repository inspection, software execution, automated testing, reproducibility checks, and comparison with the intended research design. The author takes responsibility for the software and manuscript content.
 
 # References
