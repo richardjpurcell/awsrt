@@ -56,6 +56,8 @@ AWSRT has been used as the experimental research instrument for a PhD thesis on 
 
 This research use progressed from sensing-policy comparison through controlled delay, noise, and loss studies to tests of sensitivity to environmental context, deployment geometry, and observation window. AWSRT enabled detection timing, coverage or contact, delivered-information activity, belief quality, and usefulness diagnostics to be examined separately. Subsequent Epistemic Surface studies further separated prescribed observation support, realized arrivals, information activity, and maintained belief quality. The current release-preparation workflow also provides a deterministic scientific first run that exposes the separation among observation opportunity, information delivery, and belief consequence through the public interface.
 
+AWSRT has also been demonstrated within the WireAI research working group, and at least one member of that group has independently installed and tested the software.
+
 AWSRT's demonstrated research role is therefore as an inspectable experimental instrument for studying how sensing opportunity and impaired information delivery affect maintained belief. Its design permits reuse in other dynamic sensing experiments, although external adoption is not claimed here.
 
 # Acknowledgements
