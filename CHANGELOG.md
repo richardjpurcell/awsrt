@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.11.2]
+
+### Changed
+- Updated Next.js to 14.2.35 as a bounded frontend security-maintenance update.
+- Refined the JOSS paper summary and AI usage disclosure for submission readiness.
+
 ## [v0.11.1]
 
 ### Changed
