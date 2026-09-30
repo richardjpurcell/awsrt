@@ -6,6 +6,7 @@ type: software
 authors:
   - family-names: "Purcell"
     given-names: "Richard"
+    orcid: "https://orcid.org/0009-0005-1526-8338"
 
 repository-code: "https://github.com/richardjpurcell/awsrt"
 url: "https://github.com/richardjpurcell/awsrt"

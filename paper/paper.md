@@ -13,6 +13,7 @@ tags:
 authors:
   - name: Richard Purcell
     affiliation: 1
+    orcid: 0009-0005-1526-8338
 affiliations:
   - name: Dalhousie University, Halifax, Nova Scotia, Canada
     index: 1
