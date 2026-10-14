@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
    width="1600"
-   height="1000"
-   viewBox="0 0 1600 1000"
+   height="800"
+   viewBox="0 0 1600 800"
    version="1.1"
    id="svg43"
-   sodipodi:docname="awsrt_joss_architecture.svg"
+   sodipodi:docname="awsrt_architecture.svg"
    inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -22,11 +22,11 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="0.58831284"
      inkscape:cx="844.78863"
-     inkscape:cy="509.93278"
+     inkscape:cy="510.78266"
      inkscape:window-width="1512"
-     inkscape:window-height="949"
+     inkscape:window-height="920"
      inkscape:window-x="0"
-     inkscape:window-y="33"
+     inkscape:window-y="34"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg43" />
   <defs
@@ -53,24 +53,25 @@
        markerHeight="7"
        orient="auto-start-reverse">
       <path
-         d="M 0 0 L 10 5 L 0 10 z"
+         d="M 0,0 10,5 0,10 Z"
          fill="#111827"
          id="path1" />
     </marker>
   </defs>
   <!-- Background -->
   <rect
-     x="0"
-     y="0"
-     width="1600"
-     height="1000"
+     x="16"
+     y="22.194176"
+     width="1584"
+     height="768.83051"
      fill="#ffffff"
-     id="rect1" />
+     id="rect1"
+     style="stroke-width:0.872435" />
   <!-- External-field -->
   <rect
      class="box"
-     x="150"
-     y="70"
+     x="166"
+     y="48"
      width="560"
      height="145"
      fill="#dcefe3"
@@ -78,33 +79,33 @@
      id="rect2" />
   <text
      class="title"
-     x="430"
-     y="110"
+     x="446"
+     y="88"
      text-anchor="middle"
      id="text2">External-field Surface</text>
   <text
      class="subtitle"
-     x="430"
-     y="143"
+     x="446"
+     y="121"
      text-anchor="middle"
      id="text3">Structured wildfire-like fields</text>
   <text
      class="body"
-     x="430"
-     y="177"
+     x="446"
+     y="155"
      text-anchor="middle"
      id="text4">ignition · spread · terrain-like structure · directional bias</text>
   <text
      class="body"
-     x="430"
-     y="201"
+     x="446"
+     y="179"
      text-anchor="middle"
      id="text5">transformed fire artifacts</text>
   <!-- Epistemic -->
   <rect
      class="box"
-     x="150"
-     y="300"
+     x="166"
+     y="278"
      width="560"
      height="150"
      fill="#dbe9f8"
@@ -112,33 +113,33 @@
      id="rect5" />
   <text
      class="title"
-     x="430"
-     y="343"
+     x="446"
+     y="321"
      text-anchor="middle"
      id="text6">Epistemic Surface</text>
   <text
      class="subtitle"
-     x="430"
-     y="376"
+     x="446"
+     y="354"
      text-anchor="middle"
      id="text7">Belief state and uncertainty</text>
   <text
      class="body"
-     x="430"
-     y="410"
+     x="446"
+     y="388"
      text-anchor="middle"
      id="text8">observations · Beta–Bernoulli updates · entropy</text>
   <text
      class="body"
-     x="430"
-     y="434"
+     x="446"
+     y="412"
      text-anchor="middle"
      id="text9">uncertainty-aware representation</text>
   <!-- Operational -->
   <rect
      class="box"
-     x="150"
-     y="560"
+     x="166"
+     y="538"
      width="560"
      height="145"
      fill="#f6df87"
@@ -146,33 +147,33 @@
      id="rect9" />
   <text
      class="title"
-     x="430"
-     y="602"
+     x="446"
+     y="580"
      text-anchor="middle"
      id="text10">Operational Surface</text>
   <text
      class="subtitle"
-     x="430"
-     y="635"
+     x="446"
+     y="613"
      text-anchor="middle"
      id="text11">Adaptive sensing behavior</text>
   <text
      class="body"
-     x="430"
-     y="669"
+     x="446"
+     y="647"
      text-anchor="middle"
      id="text12">sensor placement · policy family · impairment response</text>
   <text
      class="body"
-     x="430"
-     y="693"
+     x="446"
+     y="671"
      text-anchor="middle"
      id="text13">usefulness states</text>
   <!-- Impairment -->
   <rect
      class="box"
-     x="860"
-     y="545"
+     x="876"
+     y="523"
      width="260"
      height="120"
      fill="#f8dddd"
@@ -180,27 +181,27 @@
      id="rect13" />
   <text
      class="title"
-     x="990"
-     y="585"
+     x="1006"
+     y="563"
      text-anchor="middle"
      id="text14">Information</text>
   <text
      class="title"
-     x="990"
-     y="616"
+     x="1006"
+     y="594"
      text-anchor="middle"
      id="text15">impairment</text>
   <text
      class="body"
-     x="990"
-     y="646"
+     x="1006"
+     y="624"
      text-anchor="middle"
      id="text16">delay · noise · loss</text>
   <!-- Analysis -->
   <rect
      class="box"
-     x="1240"
-     y="310"
+     x="1256"
+     y="288"
      width="300"
      height="155"
      fill="#e5e7eb"
@@ -208,205 +209,177 @@
      id="rect16" />
   <text
      class="title"
-     x="1390"
-     y="350"
+     x="1406"
+     y="328"
      text-anchor="middle"
      id="text17">Analysis Surface</text>
   <text
      class="subtitle"
-     x="1390"
-     y="383"
+     x="1406"
+     y="361"
      text-anchor="middle"
      id="text18">Metrics and interpretation</text>
   <text
      class="body"
-     x="1390"
-     y="417"
+     x="1406"
+     y="395"
      text-anchor="middle"
      id="text19">TTFD · delivery · belief quality</text>
   <text
      class="body"
-     x="1390"
-     y="441"
+     x="1406"
+     y="419"
      text-anchor="middle"
      id="text20">usefulness-state diagnostics</text>
   <!-- Main vertical flow -->
   <path
      class="arrow"
-     d="M430 215 L430 300"
+     d="m 446,193 v 85"
      id="path20" />
   <text
      class="labelb"
-     x="450"
-     y="254"
+     x="466"
+     y="232"
      id="text21">observations</text>
   <text
      class="label"
-     x="450"
-     y="278"
+     x="466"
+     y="256"
      id="text22">(observation opportunity and support)</text>
   <path
      class="arrow"
-     d="M430 450 L430 560"
+     d="M 446,428 V 538"
      id="path22" />
   <text
      class="labelb"
-     x="455"
-     y="495"
+     x="471"
+     y="473"
      id="text23">belief / usefulness signals</text>
   <text
      class="label"
-     x="455"
-     y="519"
+     x="471"
+     y="497"
      id="text24">(to guide sensing behavior)</text>
   <!-- Operational to impairment -->
   <path
      class="arrow"
-     d="M710 615 L860 615"
+     d="M 726,593 H 876"
      id="path24" />
   <text
      class="labelb"
-     x="745"
-     y="587"
+     x="761"
+     y="565"
      id="text25">attempted</text>
   <text
      class="labelb"
-     x="745"
-     y="607"
+     x="761"
+     y="585"
      id="text26">observations</text>
   <!-- Impairment back to epistemic -->
   <path
      class="arrow"
-     d="M990 545 L990 405 L710 405"
+     d="M 1006,523 V 383 H 726"
      id="path26" />
   <text
      class="labelb"
-     x="1010"
-     y="448"
+     x="1026"
+     y="426"
      id="text27">realized arrivals</text>
   <text
      class="label"
-     x="1010"
-     y="472"
+     x="1026"
+     y="450"
      id="text28">(delivered observations)</text>
   <!-- Operational feedback loop -->
   <path
      class="dash"
-     d="m 430.00099,704.96363 v 69.98125 H 78.001248 V 370.05335 h 57.791002"
+     d="m 446.00099,682.96363 v 69.98125 H 94.001248 V 348.05335 h 57.791002"
      id="path28" />
   <rect
      style="opacity:1;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.906299;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:7.4;stroke-dasharray:2.7189, 2.7189;stroke-opacity:0.750378"
      id="rect43"
      width="137.99998"
      height="133.4324"
-     x="7.0000005"
-     y="479.56757" />
+     x="23"
+     y="457.56757" />
   <text
      class="labelb"
-     x="76"
-     y="500"
+     x="92"
+     y="478"
      text-anchor="middle"
      id="text29">actions and</text>
   <text
      class="labelb"
-     x="76"
-     y="522"
+     x="92"
+     y="500"
      text-anchor="middle"
      id="text30">deployment</text>
   <text
      class="labelb"
-     x="76"
-     y="544"
+     x="92"
+     y="522"
      text-anchor="middle"
      id="text31">geometry</text>
   <text
      class="label"
-     x="76"
-     y="579"
+     x="92"
+     y="557"
      text-anchor="middle"
      id="text32">(sensor placement</text>
   <text
      class="label"
-     x="76"
-     y="601"
+     x="92"
+     y="579"
      text-anchor="middle"
      id="text33">based on belief)</text>
   <!-- Analysis feeds -->
   <path
      class="arrow"
-     d="M710 135 L1390 135 L1390 310"
+     d="m 726,113 h 680 v 175"
      id="path33" />
   <text
      class="labelb"
-     x="1060"
-     y="103"
+     x="1076"
+     y="81"
      text-anchor="middle"
      id="text34">field artifacts</text>
   <text
      class="label"
-     x="1060"
-     y="126"
+     x="1076"
+     y="104"
      text-anchor="middle"
      id="text35">(ground truth and derived fields)</text>
   <path
      class="arrow"
-     d="M710 375 L1240 375"
+     d="m 726,353 h 530"
      id="path35" />
   <text
      class="labelb"
-     x="975"
-     y="343"
+     x="991"
+     y="321"
      text-anchor="middle"
      id="text36">belief traces</text>
   <text
      class="label"
-     x="975"
-     y="366"
+     x="991"
+     y="344"
      text-anchor="middle"
      id="text37">(belief state and uncertainty metrics)</text>
   <path
      class="arrow"
-     d="m 710.08236,678.60189 h 679.83724 v -213.573"
+     d="m 726.08236,656.60189 h 679.83724 v -213.573"
      id="path37" />
   <text
      class="labelb"
-     x="1030"
-     y="700"
+     x="1046"
+     y="678"
      text-anchor="middle"
      id="text38">policy / state traces</text>
   <text
      class="label"
-     x="1030"
-     y="723"
+     x="1046"
+     y="701"
      text-anchor="middle"
      id="text39">(sensing behavior and system state)</text>
   <!-- Caption -->
-  <line
-     x1="55"
-     y1="835"
-     x2="1545"
-     y2="835"
-     stroke="#d1d5db"
-     stroke-width="1"
-     id="line39" />
-  <text
-     class="captionb"
-     x="60"
-     y="875"
-     id="text40">Figure 1. AWSRT experimental architecture.</text>
-  <text
-     class="caption"
-     x="476"
-     y="875"
-     id="text41">The External-field Surface defines structured wildfire-like fields. Observation</text>
-  <text
-     class="caption"
-     x="60"
-     y="903"
-     id="text42">opportunity and support feed the Epistemic Surface, while adaptive actions and deployment geometry are selected by the Operational Surface.</text>
-  <text
-     class="caption"
-     x="60"
-     y="931"
-     id="text43">Information impairment determines which attempted observations arrive. The Analysis Surface consumes field artifacts, belief traces, and policy/state traces.</text>
 </svg>
