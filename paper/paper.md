@@ -72,7 +72,7 @@ AWSRT is bounded research software, not an operational wildfire model or emergen
 
 # Acknowledgements
 
-The author thanks Dr. Srini Sampalli for supervision and guidance throughout this research. The author also thanks Dr. Marzia Zaman for her support and Dr. Darshana Upadhyay for her support, independent software testing, and review of the manuscript.
+The author thanks Dr. Srini Sampalli for supervision and guidance throughout this research. The author also thanks Dr. Marzia Zaman for her support and Dr. Darshana Upadhyay for her support, independent software testing, and review of the manuscript. This work was supported through PhD funding provided by Dalhousie University. The funding source had no role in the design of the research, software development, analysis, interpretation, or preparation of the manuscript.
 
 # AI usage disclosure
 
